@@ -1,0 +1,1 @@
+{ "name": "shop-api", "type": "module", "private": true, "scripts": { "test": "node --test" } }

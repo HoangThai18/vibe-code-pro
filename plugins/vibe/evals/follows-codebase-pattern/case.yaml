@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: follows-codebase-pattern
+expected_outcome: |
+  Code mới nằm ở src/modules/suppliers theo đúng mẫu customers (repository → service → index), số điện
+  thoại chuẩn hoá bằng normalizePhone có sẵn, lỗi dùng AppError có sẵn với code riêng, không đụng
+  src/legacy/vendors.js (code cũ cùng nghĩa "nhà cung cấp" mà CLAUDE.md dặn không mở rộng), không sửa
+  customers/ hay CLAUDE.md, không thêm dependency, test viết cùng kiểu và pass.
+context:
+  scaffold_script: place-files.sh

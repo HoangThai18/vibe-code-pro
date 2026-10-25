@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: tenant-switch-stale-cache
+expected_outcome: |
+  Đưa tenant/workspace id vào query key; khi đổi workspace thì huỷ request đang chạy và xoá/reset
+  cache; không đề xuất chép dữ liệu server vào store toàn cục.

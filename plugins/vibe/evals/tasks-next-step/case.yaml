@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: tasks-next-step
+expected_outcome: |
+  Đọc docs/tasks và báo tiến độ (4/9 task done, P1-T02 đang làm). Bước tiếp theo: làm cho xong P1-T02
+  (một agent làm lần lượt), hoặc hỏi user P1-T02 còn ai làm không vì không thấy dấu vết đang làm; nếu đề
+  xuất task mới thì là P1-T04. Không spawn agent, không sửa file nào, không bắt đầu viết code.
+context:
+  scaffold_script: place-files.sh

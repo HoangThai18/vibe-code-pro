@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: e2e-workspace-switch
+expected_outcome: |
+  Viết test Playwright cho luồng đổi workspace: đăng nhập bằng tài khoản thuộc hai workspace, đổi sang
+  workspace B rồi kiểm không còn thấy khách của A, kể cả khi response của A về muộn (giữ hoặc làm chậm
+  bằng page.route). Locator theo role/label, assertion tự chờ, không waitForTimeout.
+context:
+  scaffold_script: place-files.sh

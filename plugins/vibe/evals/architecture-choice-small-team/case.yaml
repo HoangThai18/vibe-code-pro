@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: architecture-choice-small-team
+expected_outcome: |
+  Khuyên modular monolith (không microservices) cho team 3 người và MVP; chỉ áp DDD/hexagonal có chọn lọc
+  cho miền đặt lịch phức tạp và ranh giới tích hợp ngoài; phần CRUD giữ đơn giản; nêu khi nào xem lại.

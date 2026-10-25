@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="600" viewBox="0 0 1280 600" role="img" aria-labelledby="t d">
+<title id="t">Quy trình của vibe</title>
+<desc id="d">Ý tưởng, plan, tasks, build, review, ship, chạy thật. Build dùng các skill architecture, backend, frontend. Khi chạy thật có lỗi thì qua fix rồi quay lại tasks.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0A0F24"/><stop offset="1" stop-color="#141A3A"/>
+  </linearGradient>
+  <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#FFFFFF" fill-opacity="0.07"/></pattern>
+  <clipPath id="card"><rect width="1280" height="600" rx="28"/></clipPath>
+  <linearGradient id="nodeGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#7C3AED" stop-opacity="0.75"/><stop offset="1" stop-color="#0891B2" stop-opacity="0.75"/>
+  </linearGradient>
+  <linearGradient id="wireGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#A78BFA"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
+  <style>
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+.blob { transform-box: fill-box; transform-origin: center; }
+.b0 { animation: drift0 16s ease-in-out infinite alternate; }
+.b1 { animation: drift1 19s ease-in-out infinite alternate; }
+.b2 { animation: drift2 23s ease-in-out infinite alternate; }
+@keyframes drift0 { to { transform: translate(90px, 40px) scale(1.15); } }
+@keyframes drift1 { to { transform: translate(-110px, -30px) scale(0.9); } }
+@keyframes drift2 { to { transform: translate(60px, -50px) scale(1.2); } }
+
+.node rect.base { fill: #FFFFFF; fill-opacity: 0.06; stroke: #FFFFFF; stroke-opacity: 0.18; }
+.node text.t { fill: #F8FAFC; } .node text.c { fill: #94A3B8; }
+.wire { fill: none; stroke: #FFFFFF; stroke-opacity: 0.22; stroke-width: 2; }
+.flow { fill: none; stroke: url(#wireGrad); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 6 14; animation: march 1.2s linear infinite; }
+.flow.slow { animation-duration: 2.4s; }
+@keyframes march { to { stroke-dashoffset: -20; } }
+.support rect { fill: #FFFFFF; fill-opacity: 0.04; stroke: #A78BFA; stroke-opacity: 0.45; stroke-dasharray: 5 5; }
+.support text { fill: #DDD6FE; }
+.live-dot { animation: pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulse { 50% { transform: scale(1.8); opacity: 0.3; } }
+@keyframes on0 { 0.00% { fill-opacity: 0; } 3.00% { fill-opacity: 1; } 18.00% { fill-opacity: 1; } 21.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.hl0 { animation: on0 10s ease-in-out infinite; }@keyframes on1 { 0.00% { fill-opacity: 0; } 19.99% { fill-opacity: 0; } 23.00% { fill-opacity: 1; } 38.00% { fill-opacity: 1; } 41.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.hl1 { animation: on1 10s ease-in-out infinite; }@keyframes on2 { 0.00% { fill-opacity: 0; } 39.99% { fill-opacity: 0; } 43.00% { fill-opacity: 1; } 58.00% { fill-opacity: 1; } 61.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.hl2 { animation: on2 10s ease-in-out infinite; }@keyframes on3 { 0.00% { fill-opacity: 0; } 59.99% { fill-opacity: 0; } 63.00% { fill-opacity: 1; } 78.00% { fill-opacity: 1; } 81.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.hl3 { animation: on3 10s ease-in-out infinite; }@keyframes on4 { 0.00% { fill-opacity: 0; } 79.99% { fill-opacity: 0; } 83.00% { fill-opacity: 1; } 98.00% { fill-opacity: 1; } 100.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.hl4 { animation: on4 10s ease-in-out infinite; }</style>
+</defs>
+<g clip-path="url(#card)"><rect width="1280" height="600" fill="url(#bg)"/>
+<circle class="blob b0" cx="120" cy="520" r="160" fill="#7C3AED" fill-opacity="0.45" filter="url(#blur)"/>
+<circle class="blob b1" cx="700" cy="40" r="170" fill="#0891B2" fill-opacity="0.45" filter="url(#blur)"/>
+<circle class="blob b2" cx="1200" cy="560" r="150" fill="#DB2777" fill-opacity="0.45" filter="url(#blur)"/>
+<rect width="1280" height="600" fill="url(#dots)"/></g>
+<rect x="0.5" y="0.5" width="1279" height="599" rx="27.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10"/>
+<text x="64" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#F8FAFC">Một agent chính, đi trọn vòng đời phần mềm</text>
+<path class="wire" d="M184.0 180.0 H206.0"/><path class="flow" d="M184.0 180.0 H198.0"/><path d="M198.0 174.0 L206.0 180.0 L198.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="wire" d="M362.0 180.0 H384.0"/><path class="flow" d="M362.0 180.0 H376.0"/><path d="M376.0 174.0 L384.0 180.0 L376.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="wire" d="M540.0 180.0 H562.0"/><path class="flow" d="M540.0 180.0 H554.0"/><path d="M554.0 174.0 L562.0 180.0 L554.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="wire" d="M718.0 180.0 H740.0"/><path class="flow" d="M718.0 180.0 H732.0"/><path d="M732.0 174.0 L740.0 180.0 L732.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="wire" d="M896.0 180.0 H918.0"/><path class="flow" d="M896.0 180.0 H910.0"/><path d="M910.0 174.0 L918.0 180.0 L910.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path class="wire" d="M1074.0 180.0 H1096.0"/><path class="flow" d="M1074.0 180.0 H1088.0"/><path d="M1088.0 174.0 L1096.0 180.0 L1088.0 186.0" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node"><rect class="base" x="32.0" y="150" width="148" height="60" rx="30" style="stroke-dasharray:6 6"/><text class="t" x="106.0" y="188.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="22" font-weight="600">Ý tưởng</text></g><g class="node">
+  <rect class="base" x="210.0" y="120" width="148" height="120" rx="18"/>
+  <rect class="hl0" x="210.0" y="120" width="148" height="120" rx="18" fill="url(#nodeGrad)" fill-opacity="0"/>
+  <text class="t" x="284.0" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">plan</text>
+  <text class="c" x="284.0" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">nghiệp vụ · PRD</text>
+  <text class="c" x="284.0" y="218" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">kiến trúc · phase</text>
+</g><g class="node">
+  <rect class="base" x="388.0" y="120" width="148" height="120" rx="18"/>
+  <rect class="hl1" x="388.0" y="120" width="148" height="120" rx="18" fill="url(#nodeGrad)" fill-opacity="0"/>
+  <text class="t" x="462.0" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">tasks</text>
+  <text class="c" x="462.0" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">task card</text>
+  <text class="c" x="462.0" y="218" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">tiến độ · handoff</text>
+</g><g class="node">
+  <rect class="base" x="566.0" y="120" width="148" height="120" rx="18"/>
+  <rect class="hl2" x="566.0" y="120" width="148" height="120" rx="18" fill="url(#nodeGrad)" fill-opacity="0"/>
+  <text class="t" x="640.0" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">build</text>
+  <text class="c" x="640.0" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">code + test</text>
+  <text class="c" x="640.0" y="218" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">một agent chính</text>
+</g><g class="node">
+  <rect class="base" x="744.0" y="120" width="148" height="120" rx="18"/>
+  <rect class="hl3" x="744.0" y="120" width="148" height="120" rx="18" fill="url(#nodeGrad)" fill-opacity="0"/>
+  <text class="t" x="818.0" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">review</text>
+  <text class="c" x="818.0" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">verifier độc lập</text>
+  <text class="c" x="818.0" y="218" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">PASS · BLOCK</text>
+</g><g class="node">
+  <rect class="base" x="922.0" y="120" width="148" height="120" rx="18"/>
+  <rect class="hl4" x="922.0" y="120" width="148" height="120" rx="18" fill="url(#nodeGrad)" fill-opacity="0"/>
+  <text class="t" x="996.0" y="164" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">ship</text>
+  <text class="c" x="996.0" y="196" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">CI/CD · rollback</text>
+  <text class="c" x="996.0" y="218" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15">giám sát · backup</text>
+</g><g class="node"><rect x="1100.0" y="150" width="148" height="60" rx="30" fill="#059669" fill-opacity="0.22" stroke="#34D399" stroke-opacity="0.7"/><circle class="live-dot" cx="1120.0" cy="180.0" r="5" fill="#34D399"/><text class="t" x="1134.0" y="187.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="20" font-weight="600">Chạy thật</text></g><path class="wire" d="M640.0 244 C640.0 300, 382.0 270, 382.0 326" style="stroke-dasharray:4 6"/><g class="support"><rect x="264.0" y="330" width="236" height="70" rx="16"/>
+  <text x="382.0" y="360" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="19" font-weight="700">architecture</text>
+  <text x="382.0" y="384" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" fill-opacity="0.85">theo codebase · SOLID · DDD</text></g><path class="wire" d="M640.0 244 C640.0 300, 640.0 270, 640.0 326" style="stroke-dasharray:4 6"/><g class="support"><rect x="522.0" y="330" width="236" height="70" rx="16"/>
+  <text x="640.0" y="360" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="19" font-weight="700">backend</text>
+  <text x="640.0" y="384" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" fill-opacity="0.85">DB · ORM · RLS · API · auth</text></g><path class="wire" d="M640.0 244 C640.0 300, 898.0 270, 898.0 326" style="stroke-dasharray:4 6"/><g class="support"><rect x="780.0" y="330" width="236" height="70" rx="16"/>
+  <text x="898.0" y="360" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="19" font-weight="700">frontend</text>
+  <text x="898.0" y="384" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" fill-opacity="0.85">UI theo design · state</text></g><text x="640.0" y="428" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15" fill="#64748B">skill chuyên môn: chỉ nạp phần tài liệu cần cho việc đang làm</text><path class="wire" d="M1174.0 214 V466"/><path class="flow slow" d="M1174.0 214 V460" style="stroke:#FB7185"/><g class="node"><rect x="1090.0" y="470" width="168" height="84" rx="18" fill="#E11D48" fill-opacity="0.16" stroke="#FB7185" stroke-opacity="0.7"/>
+  <text class="t" x="1174.0" y="506" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="24" font-weight="700">fix</text>
+  <text class="c" x="1174.0" y="532" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14">test tái hiện · gốc rễ</text></g><path class="wire" d="M1086.0 512.0 H252.0 Q236.0 512.0 236.0 496.0 V296 Q236.0 280 252.0 280 H446.0 Q462.0 280 462.0 264 V248"/><path class="flow slow" d="M1086.0 512.0 H252.0 Q236.0 512.0 236.0 496.0 V296 Q236.0 280 252.0 280 H446.0 Q462.0 280 462.0 264 V248" style="stroke:#FB7185"/><path d="M456.0 256 L462.0 248 L468.0 256" fill="none" stroke="#FB7185" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="783.0" y="500.0" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15" fill="#FDA4AF">có lỗi → test tái hiện → sửa → thêm task phòng ngừa</text>
+</svg>

@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: fix-repro-test-first
+expected_outcome: |
+  Viết test tái hiện bug trước và thấy nó fail, sửa đúng nguyên nhân (đ/Đ không tách dấu khi NFD
+  nên cần map sang d), rồi toàn bộ test pass.
+context:
+  scaffold_script: place-files.sh

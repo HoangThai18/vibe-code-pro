@@ -1,0 +1,1 @@
+{ "name": "slug-demo", "type": "module", "private": true, "scripts": { "test": "node --test" } }

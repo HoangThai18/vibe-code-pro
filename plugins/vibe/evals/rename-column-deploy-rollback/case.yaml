@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: rename-column-deploy-rollback
+expected_outcome: |
+  Không đổi tên cột trong một release; tách nhiều release (thêm cột mới, ghi cả hai, backfill, chuyển
+  đọc, thôi ghi cột cũ, xoá cột cũ sau cùng). Bỏ NOT NULL của cột cũ trước khi code thôi ghi vào nó, và
+  bỏ cột cũ khỏi model ORM trước khi DROP. Rollback dựa vào deploy lại bản trước nhờ migration tương thích
+  ngược, không dựa vào down migration sau khi đã có dữ liệu mới.

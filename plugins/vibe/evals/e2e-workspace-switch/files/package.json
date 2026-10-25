@@ -1,0 +1,7 @@
+{
+  "name": "spa-crm-demo",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "node server.mjs", "e2e": "playwright test" },
+  "devDependencies": { "@playwright/test": "1.63.0" }
+}

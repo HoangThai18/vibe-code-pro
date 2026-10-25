@@ -1,0 +1,28 @@
+{
+  "name": "vibe",
+  "displayName": "Vibe Code Pro",
+  "version": "0.3.0",
+  "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend, frontend, build và test, review, ship và vận hành, sửa bug và sự cố.",
+  "author": {
+    "name": "LovinBot"
+  },
+  "keywords": [
+    "sdlc",
+    "planning",
+    "task-breakdown",
+    "architecture",
+    "ddd",
+    "multi-tenant",
+    "postgres-rls",
+    "orm",
+    "testing",
+    "playwright",
+    "e2e",
+    "deploy",
+    "rollback",
+    "backup",
+    "incident",
+    "vietnamese"
+  ],
+  "license": "MIT"
+}

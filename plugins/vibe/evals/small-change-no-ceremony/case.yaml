@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: small-change-no-ceremony
+expected_outcome: |
+  Sửa thẳng chữ 'Lưu' thành 'Lưu lại' trong SaveButton.jsx (giữ nguyên 'Đang lưu…'), không dựng quy trình:
+  không tạo task card, tài liệu plan, không spawn agent. Kiểm việc bộ skill không kích hoạt quá đà.
+context:
+  scaffold_script: place-files.sh

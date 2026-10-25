@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: small-tasks-no-parallel
+expected_outcome: |
+  Khuyên làm lần lượt ở agent chính vì task nhỏ; chi phí sub-agent (bàn giao ngữ cảnh, điều phối,
+  token, worktree) lớn hơn lợi ích. Nêu khi nào mới đáng chạy song song.

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="t d">
+<title id="t">vibe: bộ skill Claude Code cho phát triển phần mềm thật</title>
+<desc id="d">Logo vibe và 9 skill: plan, tasks, architecture, backend, frontend, build, review, ship, fix, lần lượt sáng lên.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#0A0F24"/><stop offset="1" stop-color="#141A3A"/>
+  </linearGradient>
+  <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="70"/></filter>
+  <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#FFFFFF" fill-opacity="0.07"/></pattern>
+  <clipPath id="card"><rect width="1280" height="420" rx="28"/></clipPath>
+  <linearGradient id="titleGrad" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+    <stop offset="0" stop-color="#A78BFA"/><stop offset="0.35" stop-color="#22D3EE"/>
+    <stop offset="0.7" stop-color="#F0ABFC"/><stop offset="1" stop-color="#A78BFA"/>
+  </linearGradient>
+  <linearGradient id="chipGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#7C3AED" stop-opacity="0.85"/><stop offset="1" stop-color="#0891B2" stop-opacity="0.85"/>
+  </linearGradient>
+  <clipPath id="titleClip"><text x="58" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="168" font-weight="800" letter-spacing="-6">vibe</text></clipPath>
+  <style>
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+.blob { transform-box: fill-box; transform-origin: center; }
+.b0 { animation: drift0 16s ease-in-out infinite alternate; }
+.b1 { animation: drift1 19s ease-in-out infinite alternate; }
+.b2 { animation: drift2 23s ease-in-out infinite alternate; }
+@keyframes drift0 { to { transform: translate(90px, 40px) scale(1.15); } }
+@keyframes drift1 { to { transform: translate(-110px, -30px) scale(0.9); } }
+@keyframes drift2 { to { transform: translate(60px, -50px) scale(1.2); } }
+
+.shine { animation: shine 7s linear infinite; }
+@keyframes shine { from { transform: translateX(0); } to { transform: translateX(640px); } }
+.chip rect { fill: #FFFFFF; fill-opacity: 0.05; stroke: #FFFFFF; stroke-opacity: 0.16; }
+.chip text { fill: #CBD5E1; }
+.cursor { animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes lit0 { 0.00% { fill-opacity: 0; } 1.67% { fill-opacity: 1; } 10.00% { fill-opacity: 1; } 11.67% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow0 { animation: lit0 13.5s ease-in-out infinite; }@keyframes lit1 { 0.00% { fill-opacity: 0; } 11.10% { fill-opacity: 0; } 12.78% { fill-opacity: 1; } 21.11% { fill-opacity: 1; } 22.78% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow1 { animation: lit1 13.5s ease-in-out infinite; }@keyframes lit2 { 0.00% { fill-opacity: 0; } 22.21% { fill-opacity: 0; } 23.89% { fill-opacity: 1; } 32.22% { fill-opacity: 1; } 33.89% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow2 { animation: lit2 13.5s ease-in-out infinite; }@keyframes lit3 { 0.00% { fill-opacity: 0; } 33.32% { fill-opacity: 0; } 35.00% { fill-opacity: 1; } 43.33% { fill-opacity: 1; } 45.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow3 { animation: lit3 13.5s ease-in-out infinite; }@keyframes lit4 { 0.00% { fill-opacity: 0; } 44.43% { fill-opacity: 0; } 46.11% { fill-opacity: 1; } 54.44% { fill-opacity: 1; } 56.11% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow4 { animation: lit4 13.5s ease-in-out infinite; }@keyframes lit5 { 0.00% { fill-opacity: 0; } 55.55% { fill-opacity: 0; } 57.22% { fill-opacity: 1; } 65.56% { fill-opacity: 1; } 67.22% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow5 { animation: lit5 13.5s ease-in-out infinite; }@keyframes lit6 { 0.00% { fill-opacity: 0; } 66.66% { fill-opacity: 0; } 68.33% { fill-opacity: 1; } 76.67% { fill-opacity: 1; } 78.33% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow6 { animation: lit6 13.5s ease-in-out infinite; }@keyframes lit7 { 0.00% { fill-opacity: 0; } 77.77% { fill-opacity: 0; } 79.44% { fill-opacity: 1; } 87.78% { fill-opacity: 1; } 89.44% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow7 { animation: lit7 13.5s ease-in-out infinite; }@keyframes lit8 { 0.00% { fill-opacity: 0; } 88.88% { fill-opacity: 0; } 90.56% { fill-opacity: 1; } 98.89% { fill-opacity: 1; } 100.00% { fill-opacity: 0; } 100.00% { fill-opacity: 0; } }.glow8 { animation: lit8 13.5s ease-in-out infinite; }</style>
+</defs>
+<g clip-path="url(#card)"><rect width="1280" height="420" fill="url(#bg)"/>
+<circle class="blob b0" cx="180" cy="80" r="170" fill="#7C3AED" fill-opacity="0.45" filter="url(#blur)"/>
+<circle class="blob b1" cx="640" cy="380" r="190" fill="#0891B2" fill-opacity="0.45" filter="url(#blur)"/>
+<circle class="blob b2" cx="1130" cy="60" r="150" fill="#DB2777" fill-opacity="0.45" filter="url(#blur)"/>
+<rect width="1280" height="420" fill="url(#dots)"/></g>
+<rect x="0.5" y="0.5" width="1279" height="419" rx="27.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10"/>
+<g>
+  <rect x="64" y="56" width="292" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.18"/>
+  <circle cx="86" cy="74" r="5" fill="#34D399"/>
+  <text x="100" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="16" fill="#E2E8F0">Claude Code plugin · open source</text>
+</g>
+<g clip-path="url(#titleClip)">
+  <rect class="shine" x="-640" y="90" width="1920" height="200" fill="url(#titleGrad)"/>
+</g>
+<text x="64" y="312" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="30" font-weight="650" fill="#F8FAFC">Bộ skill để vibe code ra phần mềm thật</text>
+<text x="64" y="352" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="20" fill="#94A3B8">nghiệp vụ → plan → task → code + test → review → deploy → vận hành</text>
+<g class="chip">
+  <rect x="796" y="112" width="142" height="52" rx="14"/>
+  <rect class="glow0" x="796" y="112" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="867.0" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">plan</text>
+</g><g class="chip">
+  <rect x="952" y="112" width="142" height="52" rx="14"/>
+  <rect class="glow1" x="952" y="112" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1023.0" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">tasks</text>
+</g><g class="chip">
+  <rect x="1108" y="112" width="142" height="52" rx="14"/>
+  <rect class="glow2" x="1108" y="112" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1179.0" y="145" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">architecture</text>
+</g><g class="chip">
+  <rect x="796" y="180" width="142" height="52" rx="14"/>
+  <rect class="glow3" x="796" y="180" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="867.0" y="213" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">backend</text>
+</g><g class="chip">
+  <rect x="952" y="180" width="142" height="52" rx="14"/>
+  <rect class="glow4" x="952" y="180" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1023.0" y="213" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">frontend</text>
+</g><g class="chip">
+  <rect x="1108" y="180" width="142" height="52" rx="14"/>
+  <rect class="glow5" x="1108" y="180" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1179.0" y="213" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">build</text>
+</g><g class="chip">
+  <rect x="796" y="248" width="142" height="52" rx="14"/>
+  <rect class="glow6" x="796" y="248" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="867.0" y="281" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">review</text>
+</g><g class="chip">
+  <rect x="952" y="248" width="142" height="52" rx="14"/>
+  <rect class="glow7" x="952" y="248" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1023.0" y="281" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">ship</text>
+</g><g class="chip">
+  <rect x="1108" y="248" width="142" height="52" rx="14"/>
+  <rect class="glow8" x="1108" y="248" width="142" height="52" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
+  <text x="1179.0" y="281" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">fix</text>
+</g>
+<text x="796" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15" fill="#64748B">9 skill · 2 agent · nạp tài liệu khi cần</text>
+</svg>

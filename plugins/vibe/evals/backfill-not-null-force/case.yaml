@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: backfill-not-null-force
+expected_outcome: |
+  Expand/contract: thêm cột nullable, backfill theo lô bằng role BYPASSRLS hoặc theo từng tenant
+  (vì FORCE RLS làm backfill bằng owner cập nhật 0 dòng), kiểm số dòng, rồi áp NOT NULL không khoá lâu.
