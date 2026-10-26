@@ -33,6 +33,22 @@ Build mỗi hệ điều hành trên chính hệ điều hành đó (CI ma trậ
 | Cách làm | `autoUpdater` của Electron với update.electronjs.org (app mã nguồn mở trên GitHub), hoặc `electron-updater` (của electron-builder) với GitHub Releases, S3, server riêng | Plugin `updater`: endpoint trả JSON mô tả bản mới |
 | Xác thực bản cập nhật | Dựa vào chữ ký code (macOS, Windows), nên bước 2 là bắt buộc | Chữ ký riêng của Tauri, **bắt buộc, không tắt được**: tạo cặp khoá bằng `tauri signer generate`, build với `TAURI_SIGNING_PRIVATE_KEY`, đặt public key trong `plugins.updater.pubkey` |
 
+Cấu hình updater của Tauri (đã build thử với Tauri 2.12: có file `.sig` kèm bộ cài; thiếu `pubkey` thì app dừng lúc khởi động; có `pubkey` mà thiếu private key thì build báo lỗi):
+
+```json
+{
+  "bundle": { "createUpdaterArtifacts": true },
+  "plugins": {
+    "updater": {
+      "pubkey": "<nội dung file .pub do tauri signer generate tạo>",
+      "endpoints": ["https://releases.example.vn/spa-crm/{{target}}/{{arch}}/{{current_version}}"]
+    }
+  }
+}
+```
+
+Build phát hành với `TAURI_SIGNING_PRIVATE_KEY` (và `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` nếu khoá có mật khẩu) lấy từ secret của CI.
+
 - Mất khoá ký cập nhật của Tauri là **không đẩy được bản cập nhật cho các bản đã cài**: sao lưu khoá ở nơi an toàn, ngoài máy build.
 - Endpoint cập nhật dùng HTTPS; không cho người dùng tự nhập URL cập nhật.
 - Hỏi người dùng trước khi khởi động lại; đang có thao tác chưa lưu hoặc hàng đợi offline chưa gửi thì chờ.

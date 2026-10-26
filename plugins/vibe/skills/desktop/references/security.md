@@ -2,7 +2,7 @@
 
 Lỗi bảo mật của app desktop đắt hơn web: code chạy với quyền của người dùng trên máy họ. Một lỗi XSS trong renderer Electron cấu hình sai là đủ để chạy lệnh tuỳ ý trên máy khách.
 
-Đoạn Electron dưới đây đã chạy với Electron 45 và kiểm bằng test Playwright ở `testing.md`.
+Đoạn Electron dưới đây đã chạy với Electron 45; test Playwright ở `testing.md` mục 3 chạy trên chính đoạn code này và bắt được các bản cố ý cấu hình sai.
 
 ## Mục lục
 1. Electron: mô hình tin cậy
@@ -43,7 +43,7 @@ function serveRenderer() {
   protocol.handle('app', (request) => {
     const { host, pathname } = new URL(request.url);
     const file = path.resolve(RENDERER_DIR, '.' + decodeURIComponent(pathname));
-    // Chỉ trả file nằm trong thư mục giao diện (chặn app://bundle/%2e%2e/main.js)
+    // Chỉ trả file nằm trong thư mục giao diện (chặn app://bundle/..%2fmain.js)
     if (host !== 'bundle' || !file.startsWith(RENDERER_DIR + path.sep)) {
       return new Response('Not found', { status: 404 });
     }
@@ -187,7 +187,7 @@ Fuses tắt các tính năng của Electron mà app không cần, ghi thẳng v�
 |---|---|---|
 | `RunAsNode` | tắt | Chặn chạy file app như `node` qua biến `ELECTRON_RUN_AS_NODE` |
 | `EnableNodeOptionsEnvironmentVariable` | tắt | Chặn chèn tuỳ chọn Node qua `NODE_OPTIONS` |
-| `EnableNodeCliInspectArguments` | tắt | Chặn gắn debugger bằng `--inspect` |
+| `EnableNodeCliInspectArguments` | tắt | Chặn gắn debugger bằng `--inspect`. Playwright cần cờ này để điều khiển app: chạy E2E trên bản còn bật, chỉ tắt ở bản phát hành (`testing.md` mục 5) |
 | `EnableEmbeddedAsarIntegrityValidation` + `OnlyLoadAppFromAsar` | bật | Chỉ chạy code trong `app.asar` đã kiểm toàn vẹn (macOS, Windows) |
 | `EnableCookieEncryption` | bật | Mã hoá cookie trên đĩa |
 
