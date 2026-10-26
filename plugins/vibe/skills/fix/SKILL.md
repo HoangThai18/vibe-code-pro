@@ -1,6 +1,7 @@
 ---
 name: fix
 description: "Sửa bug và xử lý sự cố có phương pháp: chốt triệu chứng, tái hiện bằng test trước khi sửa, khoanh vùng nguyên nhân gốc (log theo request id, git bisect, kiểm từng giả thuyết), sửa tối thiểu, chống tái diễn; sự cố production thì giảm thiệt hại trước (rollback, tắt flag), báo tình hình, rồi mới điều tra, cuối cùng viết postmortem. Dùng mỗi khi code cho kết quả sai so với mong đợi ('đang ra X, đúng ra phải là Y', 'sửa giúp'), test đang fail, user báo lỗi, dán stack trace hoặc log, nói 'bug', 'lỗi 500', 'không chạy', 'chậm', 'dữ liệu sai', 'sập', 'hotfix', 'sự cố', 'production có vấn đề'."
+argument-hint: "[mô tả lỗi hoặc sự cố]"
 ---
 
 # Fix: sửa bug và xử lý sự cố

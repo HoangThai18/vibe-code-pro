@@ -1,6 +1,7 @@
 ---
 name: review
 description: "Nghiệm thu trước khi merge một task hoặc chốt phase: chạy kiểm tra tự động trên đúng code của task, đối chiếu từng acceptance criteria với bằng chứng, nhờ verifier (sub-agent ngữ cảnh mới, chỉ đọc) soi diff theo checklist bảo mật, cô lập tenant, migration, xử lý lỗi, hiệu năng, UI, test; ra verdict PASS / PASS + follow-up / BLOCK và ghi docs/reviews/. Dùng khi user hỏi 'task này xong chưa', 'review task P1-T03', 'chốt phase', 'sẵn sàng merge chưa', hoặc sau khi build xong task rủi ro (auth, dữ liệu tenant, tiền, migration). Đoạn code rời thì chỉ dùng checklist."
+argument-hint: "[branch, số PR hoặc mã task]"
 ---
 
 # Review: nghiệm thu có bằng chứng

@@ -1,6 +1,7 @@
 ---
 name: build
 description: "Biến task card hoặc yêu cầu tính năng thành code chạy được và có test: mặc định một agent làm cả tính năng lẫn test, kiểm tài liệu đúng version trước khi dùng API lạ, chọn mức test (unit, integration với DB thật, E2E), verify rồi merge. Dùng khi làm một task hoặc tính năng, và mỗi khi viết hoặc sửa test bất kỳ loại nào, nhất là test giao diện và luồng người dùng bằng Playwright (đăng nhập, nhiều vai trò, đổi workspace, so ảnh, a11y, test chập chờn). Cũng dùng khi cân nhắc có nên dùng sub-agent hay chạy song song nhiều task (mặc định là không; chỉ khi các task lớn và độc lập). Ví dụ: 'làm task P1-T03', 'code tiếp', 'build phase', 'viết test', 'test giao diện', 'test luồng người dùng', 'E2E', 'Playwright', 'test chập chờn', 'chạy song song', 'dùng sub-agent cho nhanh'."
+argument-hint: "[mã task hoặc tính năng]"
 ---
 
 # Build: từ task card tới code đã kiểm
