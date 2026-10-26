@@ -21,7 +21,7 @@
 
 ## 2. Token và bí mật
 
-Electron có `safeStorage` dùng kho khoá của hệ điều hành (Keychain trên macOS, DPAPI trên Windows, libsecret/kwallet trên Linux):
+Electron có `safeStorage` dùng kho khoá của hệ điều hành (Keychain trên macOS, DPAPI trên Windows, libsecret/kwallet trên Linux). Từ Electron 44 dùng bản async; các hàm sync (`isEncryptionAvailable`, `encryptString`...) bị đánh dấu deprecated ở Electron 45. Đoạn dưới đã chạy với Electron 45, kể cả trên máy Linux không có keyring (lưu thì báo lỗi, đọc trả `null`, không ghi file):
 
 ```js
 // main process
@@ -31,23 +31,24 @@ const path = require('node:path');
 
 const sessionFile = () => path.join(app.getPath('userData'), 'session.bin');
 
-function assertSecureStorage() {
-  if (!safeStorage.isEncryptionAvailable()) throw new Error('Hệ điều hành chưa sẵn sàng kho khoá');
-  // Linux không có keyring: Electron dùng khoá cố định, coi như không mã hoá
+async function assertSecureStorage() {
+  if (!(await safeStorage.isAsyncEncryptionAvailable())) throw new Error('Hệ điều hành chưa sẵn sàng kho khoá');
+  // Linux không có keyring: Electron vẫn "mã hoá" bằng khoá cố định, coi như không mã hoá
   if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
     throw new Error('Không có keyring (libsecret/kwallet): không lưu token xuống đĩa');
   }
 }
 
 async function saveRefreshToken(token) {
-  assertSecureStorage();
-  await fs.writeFile(sessionFile(), safeStorage.encryptString(token), { mode: 0o600 });
+  await assertSecureStorage();
+  await fs.writeFile(sessionFile(), await safeStorage.encryptStringAsync(token), { mode: 0o600 });
 }
 
 async function loadRefreshToken() {
   try {
-    assertSecureStorage();
-    return safeStorage.decryptString(await fs.readFile(sessionFile()));
+    await assertSecureStorage();
+    const { result } = await safeStorage.decryptStringAsync(await fs.readFile(sessionFile()));
+    return result;
   } catch {
     return null;   // không có file, không giải mã được, hoặc máy không có kho khoá: đăng nhập lại
   }

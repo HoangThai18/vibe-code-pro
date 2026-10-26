@@ -57,7 +57,7 @@ test('nhập CSV qua hộp thoại chọn file của main process', async () => 
 
 ## 3. Test cấu hình bảo mật
 
-Cấu hình bảo mật dễ bị đổi nhầm (một dòng `nodeIntegration: true` khi debug). Khoá lại bằng test chạy ở mọi PR:
+Cấu hình bảo mật dễ bị đổi nhầm (một dòng `nodeIntegration: true` khi debug). Khoá lại bằng test chạy ở mọi PR. Bộ test dưới đây đã chạy với Electron 45 và Playwright 1.64 (100 lượt liên tiếp không chập chờn) và bắt được từng bản app cố ý cài lỗi: bật `nodeIntegration`/tắt `contextIsolation`, bỏ kiểm path traversal, bỏ chặn điều hướng, cho mở cửa sổ mới, preload expose thêm `ipcRenderer` hoặc hàm `invoke(channel)` chung.
 
 ```ts
 // tests/e2e/security.spec.ts
@@ -79,11 +79,22 @@ test('renderer không có Node, chỉ thấy đúng các hàm được expose', 
   expect(await win.evaluate(() => typeof (globalThis as { process?: unknown }).process)).toBe('undefined');
   expect(await win.evaluate(() => Object.keys((window as unknown as { api: object }).api).sort()))
     .toEqual(['importCustomersCsv', 'openHelp']);
+  // preload không gắn thêm biến toàn cục nào khác (vd exposeInMainWorld('ipc', ipcRenderer))
+  expect(await win.evaluate(() => {
+    const frame = document.createElement('iframe');
+    document.body.append(frame);
+    const builtins = new Set(Object.getOwnPropertyNames(frame.contentWindow!));
+    frame.remove();
+    return Object.getOwnPropertyNames(window).filter((k) => !builtins.has(k));
+  })).toEqual(['api']);
 });
 
 test('cấu hình cửa sổ giữ isolation và sandbox', async () => {
+  await app.firstWindow();   // electron.launch() có thể trả về trước khi main tạo cửa sổ
   const prefs = await app.evaluate(({ BrowserWindow }) => {
-    const p = BrowserWindow.getAllWindows()[0]!.webContents.getLastWebPreferences();
+    // getLastWebPreferences() có ở runtime nhưng không có trong electron.d.ts
+    const wc = BrowserWindow.getAllWindows()[0]!.webContents as unknown as { getLastWebPreferences(): Electron.WebPreferences | null };
+    const p = wc.getLastWebPreferences();
     return { contextIsolation: p?.contextIsolation, sandbox: p?.sandbox, nodeIntegration: p?.nodeIntegration };
   });
   expect(prefs).toEqual({ contextIsolation: true, sandbox: true, nodeIntegration: false });
@@ -91,16 +102,23 @@ test('cấu hình cửa sổ giữ isolation và sandbox', async () => {
 
 test('không điều hướng ra ngoài, không mở cửa sổ mới', async () => {
   const win = await app.firstWindow();
+  await expect(win.getByRole('heading', { name: 'Khách hàng' })).toBeVisible();   // trang đầu đã tải xong
+  // Gắn listener trong main process trước khi điều hướng: đợi lần điều hướng kết thúc (bị huỷ hoặc đã tải xong)
+  await app.evaluate(({ BrowserWindow }) => {
+    const wc = BrowserWindow.getAllWindows()[0]!.webContents;
+    (globalThis as { navDone?: Promise<string> }).navDone =
+      new Promise((resolve) => wc.once('did-stop-loading', () => resolve(wc.getURL())));
+  });
   await win.evaluate(() => { window.location.href = 'https://example.com/'; });
-  await expect(win.getByRole('heading', { name: 'Khách hàng' })).toBeVisible();
-  expect(win.url()).toBe('app://bundle/index.html');
+  expect(await app.evaluate(() => (globalThis as { navDone?: Promise<string> }).navDone)).toBe('app://bundle/index.html');
+  // Điều hướng bị huỷ trong will-navigate thì Playwright không thấy nó kết thúc: từ đây dùng evaluate, không dùng locator
   expect(await win.evaluate(() => window.open('https://example.com/'))).toBeNull();
   expect(app.windows()).toHaveLength(1);
 });
 
 test('scheme app:// không trả file ngoài thư mục giao diện', async () => {
   const win = await app.firstWindow();
-  const status = await win.evaluate(async () => (await fetch('app://bundle/%2e%2e/main.js')).status);
+  const status = await win.evaluate(async () => (await fetch('app://bundle/..%2fmain.js')).status);
   expect(status).toBe(404);
 });
 ```
@@ -116,3 +134,4 @@ test('scheme app:// không trả file ngoài thư mục giao diện', async () =
 - Linux cần màn hình ảo để mở cửa sổ: `xvfb-run -a npx playwright test` (cài gói `xvfb`).
 - Ma trận hệ điều hành (`ubuntu-latest`, `windows-latest`, `macos-latest`) cho test và đóng gói; test bảo mật ở mục 3 chạy trên mọi PR.
 - Test bản đã đóng gói (không chỉ chạy từ source) ít nhất trước mỗi release: `electron.launch({ executablePath: '<đường dẫn file chạy>' })`.
+- Playwright mở Electron kèm cờ `--inspect`, nên bản đã tắt fuse `EnableNodeCliInspectArguments` (`security.md` mục 5) không chạy được bằng `electron.launch` (hết thời gian chờ). Chạy test tự động trên bản đóng gói còn bật fuse này; bản phát hành cuối (đã tắt) thì thử tay theo checklist và kiểm fuse bằng `npx @electron/fuses read`.
