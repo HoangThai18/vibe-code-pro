@@ -163,9 +163,9 @@ Compared with 0.5.0 (Vietnamese skills), same cases and settings:
 | Run cost with the skills, relative to without | 1.59× | 1.46× |
 | Runs where the skill loaded | 42/54 | 44/54 |
 
-The English skills still trigger on Vietnamese requests, and the agent answers in Vietnamese. The five commands (`vibe-help`, `vibe-start`...) are kept out of context until you type them.
+The English skills still trigger on Vietnamese requests, and the agent answers in Vietnamese. In Claude Code the five commands (`vibe-help`, `vibe-start`...) stay out of context until you type them.
 
-The cost: the agent reads skill docs before answering, so a run costs about 1.46× a run without the skills (a few cents per run in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
+The cost: the agent reads skill docs before answering, so a run costs about 1.46× a run without the skills (about $0.14 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
 
 ```bash
 claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
