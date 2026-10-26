@@ -1,0 +1,10 @@
+{
+  "name": "spa-crm-api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "pg": "^8.16.0",
+    "zod": "^4.6.0"
+  }
+}

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: perf-slow-list
+expected_outcome: |
+  Đo trước khi thêm Redis: tìm query chậm bằng pg_stat_statements / EXPLAIN (ANALYZE, BUFFERS) / trace;
+  sửa theo mẫu query (index (tenant_id, created_at), phân trang keyset, bỏ count(*)); kiểm tải bằng k6 hoặc
+  tương tự với ngưỡng p95 trên staging có dữ liệu giống thật, so trước và sau; cache chỉ khi đo được cần, khoá có tenant.

@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: privacy-deletion-request
+expected_outcome: |
+  Theo luật Việt Nam (Luật BVDLCN 91/2025, Nghị định 356/2025): xác nhận đã nhận trong 2 ngày làm việc, hoàn thành
+  xoá trong 20 ngày (30 ngày nếu có bên xử lý); xác minh danh tính; xoá ở mọi bảng, file, cache, bên xử lý,
+  backup hết hạn theo chính sách; giữ phần luật khác bắt buộc (hoá đơn) và ghi lý do; spa là bên kiểm soát,
+  phần mềm cung cấp công cụ; dữ liệu sức khoẻ là nhạy cảm.
