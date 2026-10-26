@@ -34,5 +34,8 @@
 ## Ghi chú stack
 - (Thư viện hay đổi API: version + link research note, vd "Prisma 6: xem docs/research/prisma.md")
 
+## Công cụ cho Claude
+- (Chỉ ghi công cụ đã cài cho dự án này, kèm giới hạn dùng. Vd: "Context7: hỏi kèm tên thư viện và version", "Supabase MCP: chỉ dự án dev, read_only", "Chrome DevTools MCP: chỉ mở app local/staging bằng tài khoản test". Chưa cài gì thì xoá mục này.)
+
 ## Quy trình
 Dự án dùng bộ skill `vibe`: plan → tasks → build (một agent làm cả code và test) → review → ship. Chỉ session chính cập nhật task card và `docs/STATUS.md`; sub-agent (nếu có) báo cáo kết quả thay vì tự sửa.

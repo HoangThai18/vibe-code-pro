@@ -310,6 +310,7 @@ Client gọi thẳng DB qua API của Supabase, nên RLS là lớp bảo vệ ch
   Policy này cho user thấy dữ liệu của mọi tenant họ là thành viên. Màn hình làm việc trong một workspace vẫn phải lọc thêm `tenant_id` của workspace đang chọn.
 - Không bao giờ để `service_role` key ở client hay trong code FE: key đó bỏ qua toàn bộ RLS.
 - Edge Function hay server dùng `service_role` thì phải tự kiểm membership trong code.
+- Supabase MCP (cho Claude xem schema, log, chạy SQL): chỉ nối vào dự án dev, `read_only=true`, có `project_ref`; thay đổi schema và policy vẫn đi qua file migration trong repo. Chi tiết: skill `plan`, `references/dev-tools.md` mục 7 (từ file này: `../../plan/references/dev-tools.md`).
 
 ## 7. Bẫy thường gặp
 

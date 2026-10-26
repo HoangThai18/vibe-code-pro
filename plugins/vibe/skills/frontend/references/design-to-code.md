@@ -8,7 +8,7 @@ Mục tiêu: UI trong code giống mockup đã duyệt (đúng token, đúng sta
 
 1. **Handoff bundle từ Claude Design**: khi design xong, Claude Design đóng gói thiết kế để chuyển sang Claude Code. Có cấu trúc, token và code prototype nên ít phải đoán nhất.
 2. **HTML/CSS export hoặc prototype chạy được**: đọc được giá trị thật (màu, spacing, transition) trong CSS.
-3. **Figma** (qua MCP Figma nếu có).
+3. **Figma** (qua Figma MCP nếu có: `get_variable_defs` cho token, `get_design_context` cho cấu trúc, `get_screenshot` để so; code nó trả về chỉ là bản mô tả, dựng lại bằng component và token của dự án. Cài và giới hạn lượt gọi: skill `plan`, `references/dev-tools.md` mục 6; từ file này: `../../plan/references/dev-tools.md`).
 4. **Screenshot**: phải ước lượng. Nói rõ với user là kết quả sẽ xấp xỉ, và hỏi các giá trị quan trọng (font, màu chủ đạo) nếu không suy ra được.
 
 ## Bước 1: Kiểm kê trước khi code → `docs/design/<feature>.md`

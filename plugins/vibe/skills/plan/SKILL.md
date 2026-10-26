@@ -31,5 +31,5 @@ Skill không viết code ứng dụng. Nó bổ sung cho plan mode của Claude 
    - P0 là nền móng: repo, lint/test/CI, auth, tenancy, layout, **deploy được lên staging** (skill `ship`). Phase sau đứng trên nền đó.
    - Mỗi phase sau là một lát cắt dọc (DB → API → UI) cho một luồng người dùng, kết thúc bằng thứ demo và deploy được, không chia kiểu "xong BE" rồi "xong FE".
    - Mỗi phase có mục tiêu, phạm vi, exit criteria kiểm chứng được, màn hình cần design, rủi ro; cỡ 5–15 task.
-7. **`CLAUDE.md`** theo `templates/CLAUDE.template.md`: lệnh, cấu trúc, quy tắc bắt buộc, quy ước. Repo đã có thì bổ sung, không ghi đè. Viết ngắn, chỉ những điều Claude không tự suy ra được từ code.
+7. **`CLAUDE.md`** theo `templates/CLAUDE.template.md`: lệnh, cấu trúc, quy tắc bắt buộc, quy ước. Repo đã có thì bổ sung, không ghi đè. Viết ngắn, chỉ những điều Claude không tự suy ra được từ code. Công cụ cho Claude trong dự án (tra tài liệu, trình duyệt, Figma, DB, GitHub, LSP) chọn theo `references/dev-tools.md`: chỉ cái dự án cần, quyền tối thiểu, không bao giờ nối vào production.
 8. **Chốt với user**: tóm tắt mục tiêu, kiến trúc trong 5 dòng, danh sách phase, giả định và câu hỏi còn mở. Duyệt xong thì chuyển sang skill `tasks` để chia task cho P0 (phase có UI mới thì design trên Claude Design trước).
