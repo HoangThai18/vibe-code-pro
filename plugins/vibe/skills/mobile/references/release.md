@@ -20,7 +20,7 @@ Ba biến thể cài được cạnh nhau trên cùng một máy (khác bundle i
 // app.config.ts
 import type { ExpoConfig } from 'expo/config';
 
-const variant = process.env.APP_VARIANT ?? 'production';   // development | preview | production
+const variant = process.env.APP_VARIANT || 'production';   // development | preview | production (chuỗi rỗng cũng là production)
 const suffix = variant === 'production' ? '' : `.${variant}`;
 
 const config: ExpoConfig = {
@@ -64,7 +64,7 @@ export default config;
 }
 ```
 
-(đó là `eas.json`). `appVersionSource: "remote"` + `autoIncrement`: EAS tự tăng số build (iOS `buildNumber`, Android `versionCode`), không phải nhớ sửa tay.
+(đó là `eas.json`, đã kiểm bằng chính bộ đọc cấu hình của `eas-cli` 25). `appVersionSource: "remote"` + `autoIncrement`: EAS tự tăng số build (iOS `buildNumber`, Android `versionCode`), không phải nhớ sửa tay. Profile `development` cần cài `expo-dev-client`; EAS Update cần `expo-updates` (`npx expo install expo-dev-client expo-updates`, hoặc `eas update:configure`).
 
 ```bash
 eas build --profile preview --platform all          # bản cài nội bộ cho QA
@@ -112,8 +112,17 @@ OTA thay phần JavaScript và asset của app mà không qua store. Nhanh, như
 - **Chỉ thay JS/asset, không thay native.** Thêm hoặc nâng thư viện có code native, đổi quyền, đổi `app.config.ts` phần native: phải build mới và qua store.
 - **Runtime version** quyết định bản update chạy được trên bản build nào. Chính sách `fingerprint` tự đổi runtime version mỗi khi phần native thay đổi, nên khó đẩy nhầm update lên bản build không tương thích; đánh đổi là build mới thường xuyên hơn. Dùng `appVersion` thì phải nhớ tăng `version` mỗi lần đổi native.
 - **Theo luật store**: dùng để sửa lỗi, chỉnh nhỏ; không dùng để thêm tính năng lớn hay đổi mục đích app (mục 3).
-- Quy trình: `eas update --channel preview --message "..."` → QA trên bản preview → đẩy cùng bản đó lên `production`. Không đẩy thẳng production từ máy dev.
-- Bản update lỗi: đẩy lại bản update tốt trước đó, hoặc đưa app về code đi kèm bản build. Tra lệnh trong `eas update --help` của bản `eas-cli` đang dùng.
+- **Mỗi biến thể có runtime version riêng.** Ba biến thể ở mục 1 khác tên và bundle id, nên chính sách `fingerprint` cho ra ba runtime version khác nhau: không chuyển được một bản update từ kênh `preview` sang `production`. Đẩy riêng cho từng kênh từ cùng một commit.
+- `eas update` không đọc `env` trong profile build của `eas.json`: thiếu `APP_VARIANT` thì nó tính runtime version của bản production, và bản preview không bao giờ nhận được update. Đặt biến này ngay trong lệnh (hoặc thành biến môi trường trên EAS). Từ SDK 55 phải có `--environment` (chạy `--non-interactive` mà thiếu thì lỗi).
+- Quy trình, chạy trong CI, không từ máy dev:
+
+```bash
+APP_VARIANT=preview eas update --channel preview --environment preview --message "Sửa lỗi lọc khách"
+# QA trên bản preview, đạt thì đẩy cùng commit lên production
+APP_VARIANT=production eas update --channel production --environment production --message "Sửa lỗi lọc khách"
+```
+
+- Bản update lỗi: `eas update:republish` đẩy lại một bản update tốt trước đó; `eas update:roll-back-to-embedded` đưa app về code đi kèm bản build (lệnh của `eas-cli` 25; xem `eas update --help` nếu bản khác).
 - Update tải về ở lần mở app sau, nên người dùng không nhận ngay; sửa lỗi nghiêm trọng phía server (feature flag, kill switch) vẫn nhanh hơn.
 
 ## 6. Buộc cập nhật và hỗ trợ bản cũ

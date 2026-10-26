@@ -25,7 +25,7 @@ Nguyên tắc chung giữ như skill `build` (`testing.md`; từ file này: `../
 npx expo install jest-expo jest @types/jest @testing-library/react-native --dev
 ```
 
-`package.json`: `"jest": { "preset": "jest-expo" }`, `"scripts": { "test": "jest" }`.
+`package.json`: `"jest": { "preset": "jest-expo", "testTimeout": 15000 }`, `"scripts": { "test": "jest" }`. `tsconfig.json`: thêm `"types": ["jest"]` vào `compilerOptions` (TypeScript 6, bản đi kèm Expo SDK 58, không tự nạp `@types/*` nữa; thiếu dòng này thì `tsc` báo không biết `test`, `expect`). `testTimeout` cao hơn mặc định 5 giây vì lần chạy đầu trên CI (chưa có cache) mất vài giây để biên dịch các component như `FlatList`.
 
 Logic thuần như hàng đợi ghi (`app-data.md` mục 6) test không cần React Native:
 
@@ -118,7 +118,8 @@ import { customersApi } from '../../api/client';
 jest.mock('../../api/client', () => ({ customersApi: { list: jest.fn() } }));
 
 function renderWithQuery(ui: React.ReactElement) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // gcTime: Infinity để Query không đặt hẹn giờ dọn cache 5 phút, nếu không Jest không thoát sau khi test xong
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
@@ -138,7 +139,8 @@ test('API lỗi thì hiện thông báo và nút thử lại', async () => {
 ```
 
 - Module native (`expo-secure-store`, `expo-sqlite`...) không chạy trong Jest: tách logic ra khỏi chỗ gọi native (như `OutboxStore`), hoặc dùng mock mà `jest-expo` có sẵn. Phần gọi native thật thì kiểm bằng E2E.
-- Từ React Native Testing Library 14, `render` trả về Promise: luôn `await render(...)`.
+- Từ React Native Testing Library 14, `render` trả về Promise: luôn `await render(...)`. Matcher như `toBeOnTheScreen` có sẵn khi import thư viện, không cần file setup.
+- Các đoạn code ở mục này đã chạy với Expo SDK 58, jest-expo 58, React Native Testing Library 14 và `tsc` strict: 5/5 test pass cả khi chưa có cache, Jest thoát ngay sau khi xong.
 
 ## 3. E2E bằng Maestro
 
@@ -146,7 +148,7 @@ Maestro viết luồng bằng YAML, tìm phần tử theo chữ hiển thị và
 
 ```yaml
 # .maestro/switch-workspace.yaml
-appId: vn.example.spacrm
+appId: vn.example.spacrm.preview      # bundle id của biến thể đang test (release.md mục 1)
 ---
 - launchApp:
     clearState: true
