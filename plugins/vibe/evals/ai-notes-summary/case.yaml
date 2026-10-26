@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: ai-notes-summary
+expected_outcome: |
+  Viết src/ai/summarize-notes.ts gọi Claude từ server: ghi chú lấy qua repository theo tenant của ctx, đưa vào
+  tin nhắn người dùng dưới dạng dữ liệu (JSON hoặc thẻ rõ ràng) với system prompt cố định nói rõ đó là dữ liệu;
+  có max_tokens, xử lý stop_reason và lỗi API thành lỗi thân thiện; kiểm hạn mức và ghi usage theo tenant.
+context:
+  scaffold_script: place-files.sh

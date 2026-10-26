@@ -1,8 +1,8 @@
 {
   "name": "vibe",
   "displayName": "Vibe Code Pro",
-  "version": "0.4.0",
-  "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend, frontend web, app mobile (iOS, Android), app desktop, build và test, review, ship và vận hành, sửa bug và sự cố.",
+  "version": "0.5.0",
+  "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend (job nền, bảo mật, dữ liệu cá nhân), frontend web, app mobile, app desktop, tính năng AI, build và test, review, ship (hiệu năng, kiểm tải), sửa bug và sự cố. Có lệnh tắt /vibe:start, /vibe:next, /vibe:check.",
   "author": {
     "name": "thaiphan",
     "url": "https://github.com/HoangThai18"
@@ -31,6 +31,15 @@
     "rollback",
     "backup",
     "incident",
+    "ai",
+    "llm",
+    "claude-api",
+    "background-jobs",
+    "security",
+    "ssrf",
+    "privacy",
+    "performance",
+    "k6",
     "vietnamese"
   ],
   "license": "MIT"

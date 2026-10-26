@@ -1,0 +1,6 @@
+{
+  "name": "spa-crm-api",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" }
+}

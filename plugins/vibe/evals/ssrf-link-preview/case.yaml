@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: ssrf-link-preview
+expected_outcome: |
+  Sửa src/link-preview.ts để chống SSRF: chỉ http/https, phân giải DNS và chặn mọi địa chỉ không công khai
+  (loopback, mạng riêng, link-local gồm 169.254.169.254, IPv6 nội bộ, IPv4 dạng IPv6), kiểm lại ở mỗi lần
+  chuyển hướng (hoặc tắt chuyển hướng), có timeout và giới hạn kích thước nội dung.
+context:
+  scaffold_script: place-files.sh

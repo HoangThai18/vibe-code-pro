@@ -9,7 +9,7 @@
     {
       "name": "vibe",
       "source": "./plugins/vibe",
-      "description": "Plan → tasks → backend / web / mobile / desktop → build và test → review → ship và vận hành → fix. Một agent chính, skill nạp khi cần, sub-agent chỉ dùng khi đáng."
+      "description": "Plan → tasks → backend / web / mobile / desktop / AI → build và test → review → ship và vận hành → fix. Lệnh tắt /vibe:start, /vibe:status, /vibe:next, /vibe:check. Một agent chính, skill nạp khi cần."
     }
   ]
 }
