@@ -17,6 +17,7 @@ Mục tiêu: code mới khớp với code cũ tới mức người đọc không
 - Cấu trúc thư mục: chia theo tính năng (`modules/customers/...`) hay theo tầng (`controllers/`, `services/`...)? Monorepo có những package nào, phụ thuộc nhau ra sao?
 - Chạy bộ test và lint hiện có **trước khi sửa gì**, để biết trạng thái ban đầu (test nào vốn đã fail thì không phải do mình).
 - Lần theo **một request hoàn chỉnh**: route → middleware (auth, tenant) → handler/controller → service → repository/ORM → DB → format response và lỗi. Đây là xương sống mà mọi tính năng mới phải bám theo.
+- Codebase lớn: tìm định nghĩa và mọi chỗ gọi theo symbol (công cụ `LSP` khi dự án có LSP plugin) chắc hơn grep theo chữ, nhất là trước khi đổi tên hay đổi chữ ký hàm. Cài: skill `plan`, `references/dev-tools.md` mục 9 (từ file này: `../../plan/references/dev-tools.md`).
 - Tìm quy ước ở từng mặt:
 
 | Mặt | Câu hỏi |

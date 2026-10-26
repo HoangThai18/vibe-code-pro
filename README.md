@@ -30,7 +30,7 @@ Thiết kế theo hướng Anthropic khuyến nghị cho agent: **một agent ch
 
 | Skill | Lo phần | Tài liệu nạp khi cần |
 |---|---|---|
-| `plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase | domain-analysis, tech-research, 6 template |
+| `plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase, chọn công cụ cho Claude (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 6 template |
 | `tasks` | Task card có deps và file sẽ đụng, tiến độ, việc tiếp theo, handoff giữa các phiên | `tasks.py`, template, ví dụ mini CRM |
 | `architecture` | Code theo đúng quy ước của codebase; chọn kiến trúc hợp với yêu cầu (modular monolith, layered, hexagonal, DDD, CQRS, event-driven, microservices); SOLID, pattern, refactor | codebase-conventions, architecture-styles, ddd, design-principles |
 | `backend` | Schema, index, transaction, migration an toàn, ORM (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), multi-tenant + Postgres RLS, API contract, xác thực và phân quyền | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth |
@@ -152,7 +152,7 @@ plugins/vibe/
 ├── agents/          verifier · implementer
 ├── evals/           case đánh giá chất lượng (claude plugin eval)
 └── skills/
-    ├── plan/          domain-analysis, tech-research · template PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, CLAUDE
+    ├── plan/          domain-analysis, tech-research, dev-tools · template PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, CLAUDE
     ├── tasks/         scripts/tasks.py · template task, STATUS, HANDOFF · examples/mini-crm
     ├── architecture/  codebase-conventions, architecture-styles, ddd, design-principles
     ├── backend/       data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth

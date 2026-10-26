@@ -606,7 +606,7 @@ Ngoài bộ test, Claude có thể mở trình duyệt để khám phá trang, t
 - **Playwright CLI** (tiết kiệm token, hợp với agent viết code): `npm install -g @playwright/cli@latest`, rồi `playwright-cli install --skills`. Lệnh chính: `playwright-cli open <url>`, `snapshot`, `click <ref>`, `type <text>`, `screenshot`.
 - **Playwright MCP** (khi cần giữ trạng thái trình duyệt qua phiên dài, khám phá nhiều bước): `claude mcp add playwright npx @playwright/mcp@latest`.
 
-Kiểm cách cài theo README hiện hành của hai dự án này trước khi dùng (công cụ còn mới, lệnh có thể đổi). Những gì phát hiện được khi duyệt tay phải trở thành file test trong repo chạy được ở CI; duyệt tay không phải là test. Chỉ cho agent vào môi trường test, không vào production bằng tài khoản thật.
+Kiểm cách cài theo README hiện hành của hai dự án này trước khi dùng (công cụ còn mới, lệnh có thể đổi). Soi console, network, hiệu năng thì Chrome DevTools MCP hợp hơn; so sánh các công cụ: skill `plan`, `references/dev-tools.md` (từ file này: `../../plan/references/dev-tools.md`). Những gì phát hiện được khi duyệt tay phải trở thành file test trong repo chạy được ở CI; duyệt tay không phải là test. Chỉ cho agent vào môi trường test, không vào production bằng tài khoản thật.
 
 ## 15. Trước khi coi là xong
 

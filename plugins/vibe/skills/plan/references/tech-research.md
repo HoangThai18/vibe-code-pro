@@ -17,7 +17,7 @@ Kiến thức của model có ngày cắt, còn thư viện thì đổi liên t�
 
 ## 2. Đọc nguồn chính thức, theo thứ tự tin cậy
 
-1. **Tài liệu chính thức đúng version** (WebFetch; nhiều trang có `/llms.txt`). Có MCP tra tài liệu (vd Context7) thì dùng.
+1. **Tài liệu chính thức đúng version** (WebFetch; nhiều trang có `/llms.txt`). Có Context7 (CLI `ctx7` hoặc MCP) thì dùng, ghi rõ thư viện và version trong câu hỏi; cách cài ở `dev-tools.md` mục 3 (cùng thư mục).
 2. **Migration guide và changelog** khi nâng version, hoặc khi ví dụ trên mạng là của version khác.
 3. **Type definitions và source trong `node_modules`** (hoặc site-packages): đây là sự thật của đúng bản đang cài. Không chắc một hàm có tồn tại hay nhận tham số gì thì mở file `.d.ts` ra đọc.
 4. GitHub issues/discussions cho lỗi lạ. Blog và Stack Overflow chỉ dùng sau cùng, và phải kiểm ngày đăng.
