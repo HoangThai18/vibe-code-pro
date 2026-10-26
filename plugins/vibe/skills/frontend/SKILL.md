@@ -1,6 +1,6 @@
 ---
 name: frontend
-description: "Code tầng frontend: dựng UI từ mockup (handoff Claude Design, HTML export, Figma, screenshot) với design token, đủ state, motion spec và ảnh chụp để kiểm; quản lý state/store (TanStack Query, SWR, RTK Query, Zustand, Redux Toolkit, Pinia, URL state, form), cache và invalidation, xoá cache khi đổi tenant hay đăng xuất. Dùng khi dựng màn hình hoặc component từ thiết kế, làm animation theo prototype, chọn hoặc sửa store, dữ liệu hiển thị cũ hoặc sai, re-render nhiều. Chỉnh nhỏ thì làm thẳng."
+description: "Code tầng frontend web: dựng UI từ mockup (handoff Claude Design, HTML export, Figma, screenshot) với design token, đủ state, motion spec và ảnh chụp để kiểm; quản lý state/store (TanStack Query, SWR, RTK Query, Zustand, Redux Toolkit, Pinia, URL state, form), cache và invalidation, xoá cache khi đổi tenant hay đăng xuất. Dùng khi dựng màn hình hoặc component web từ thiết kế, làm animation theo prototype, chọn hoặc sửa store, dữ liệu hiển thị cũ hoặc sai, re-render nhiều. App mobile dùng skill mobile, app desktop dùng skill desktop. Chỉnh nhỏ thì làm thẳng."
 ---
 
 # Frontend: UI theo design và quản lý state

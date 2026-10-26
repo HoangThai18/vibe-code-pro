@@ -26,7 +26,7 @@ Mọi thứ quan trọng (task, trạng thái, quyết định) nằm trong file
 Đầu vào: phase trong `docs/plan/PHASES.md` (chưa có thì hỏi user có muốn dùng skill `plan` trước không; tính năng nhỏ thì chia thẳng từ mô tả), `DOMAIN.md`, `ARCHITECTURE.md`, design, contract, và code hiện có để ghi đúng đường dẫn.
 
 1. Bắt đầu từ exit criteria của phase, đi ngược ra việc cần làm.
-2. Tách theo lane và thứ tự tự nhiên: **DB** (các task migration luôn tuần tự với nhau) → **contract API** (lane BE, task card ghi rõ "task này tạo contract") → **BE** và **FE** (FE dùng mock theo contract) → **INFRA / DOC** khi cần. Lane **QA** chỉ dành cho test xuyên nhiều task, vd E2E cho luồng người dùng quan trọng của phase (`${CLAUDE_SKILL_DIR}/../build/references/e2e-playwright.md`).
+2. Tách theo lane và thứ tự tự nhiên: **DB** (các task migration luôn tuần tự với nhau) → **contract API** (lane BE, task card ghi rõ "task này tạo contract") → **BE** và **FE** / **MOBILE** / **DESKTOP** (client dùng mock theo contract) → **INFRA / DOC** khi cần. Lane **QA** chỉ dành cho test xuyên nhiều task, vd E2E cho luồng người dùng quan trọng của phase (`${CLAUDE_SKILL_DIR}/../build/references/e2e-playwright.md`).
 3. Một task = một người (hoặc agent) làm cả tính năng lẫn test của nó, vừa một phiên làm việc, review được trong 15–30 phút (thường dưới ~400 dòng diff). Sub-task là một bước commit được. Quá 7 sub-task hoặc size L thì tách.
 4. Acceptance criteria phải kiểm chứng được bằng lệnh, test hoặc ảnh chụp, dẫn số quy tắc nghiệp vụ `BR-xx` nếu có. Câu như "code sạch", "chạy ổn" thì không kiểm được.
 5. Khai `touches` đầy đủ: mọi file/thư mục sẽ tạo hoặc sửa, kể cả mock, fixture, test helper, và file "điểm nóng" (router index, schema tổng, `package.json`, lockfile, i18n, `migrations/`). Mọi file nhắc tới trong mục tiêu và acceptance criteria phải nằm trong `touches`.
@@ -40,7 +40,7 @@ Mỗi task một file `docs/tasks/<id>-<slug>.md` theo `templates/task.md`; id d
 id: P1-T03
 title: API CRUD khách hàng
 phase: P1
-lane: BE              # DB | BE | FE | INFRA | QA | DOC
+lane: BE              # DB | BE | FE | MOBILE | DESKTOP | INFRA | QA | DOC
 status: todo          # todo | doing | review | done | blocked
 deps: [P1-T01, P1-T02]
 touches: [apps/api/src/modules/customers/**, apps/api/src/routes.ts]

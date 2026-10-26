@@ -16,7 +16,8 @@ Mô tả 3–5 câu: các khối chính và dữ liệu chạy qua chúng thế 
 ## 2. Stack
 | Tầng | Lựa chọn | Lý do |
 |---|---|---|
-| Frontend | | |
+| Frontend (web) | | |
+| App mobile / desktop (nếu có) | | |
 | Backend | | |
 | Database | | |
 | Auth | | |

@@ -60,7 +60,7 @@ def seq_keyframes(name, i, n, prop_on, prop_off):
 # ---------------------------------------------------------------- hero
 def hero():
     W, H = 1280, 420
-    skills = ["plan", "tasks", "architecture", "backend", "frontend", "build", "review", "ship", "fix"]
+    skills = ["plan", "tasks", "architecture", "backend", "frontend", "mobile", "desktop", "build", "review", "ship", "fix"]
     n = len(skills)
     cyc = 13.5
     css = [COMMON_CSS, BLOB_CSS, """
@@ -72,20 +72,21 @@ def hero():
 @keyframes blink { 50% { opacity: 0; } }
 """]
     chips = []
-    x0, y0, cw, ch, gx, gy = 796, 112, 142, 52, 14, 16
+    x0, y0, cw, ch, gx, gy = 796, 96, 142, 48, 14, 12
     for i, s in enumerate(skills):
         r, c = divmod(i, 3)
-        x, y = x0 + c * (cw + gx), y0 + r * (ch + gy)
+        indent = (cw + gx) / 2 if r == (n - 1) // 3 and n % 3 == 2 else 0   # hàng cuối 2 ô thì canh giữa
+        x, y = x0 + indent + c * (cw + gx), y0 + r * (ch + gy)
         css.append(seq_keyframes("lit", i, n, "fill-opacity: 1;", "fill-opacity: 0;"))
         css.append(f".glow{i} {{ animation: lit{i} {cyc}s ease-in-out infinite; }}")
         chips.append(f'''<g class="chip">
   <rect x="{x}" y="{y}" width="{cw}" height="{ch}" rx="14"/>
   <rect class="glow{i}" x="{x}" y="{y}" width="{cw}" height="{ch}" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
-  <text x="{x + cw/2}" y="{y + 33}" text-anchor="middle" font-family="{MONO}" font-size="16">{E(s)}</text>
+  <text x="{x + cw/2}" y="{y + 31}" text-anchor="middle" font-family="{MONO}" font-size="16">{E(s)}</text>
 </g>''')
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">
 <title id="t">vibe: bộ skill Claude Code cho phát triển phần mềm thật</title>
-<desc id="d">Logo vibe và 9 skill: plan, tasks, architecture, backend, frontend, build, review, ship, fix, lần lượt sáng lên.</desc>
+<desc id="d">Logo vibe và 11 skill: plan, tasks, architecture, backend, frontend, mobile, desktop, build, review, ship, fix, lần lượt sáng lên. Cho web, app mobile và app desktop.</desc>
 <defs>{bg_defs(W, H)}
   <linearGradient id="titleGrad" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
     <stop offset="0" stop-color="#A78BFA"/><stop offset="0.35" stop-color="#22D3EE"/>
@@ -108,8 +109,9 @@ def hero():
 </g>
 <text x="64" y="312" font-family="{SANS}" font-size="30" font-weight="650" fill="#F8FAFC">Bộ skill để vibe code ra phần mềm thật</text>
 <text x="64" y="352" font-family="{SANS}" font-size="20" fill="#94A3B8">nghiệp vụ → plan → task → code + test → review → deploy → vận hành</text>
+<text x="64" y="386" font-family="{SANS}" font-size="17" fill="#A5B4FC">web · mobile iOS, Android · desktop Windows, macOS, Linux</text>
 {"".join(chips)}
-<text x="{x0}" y="{y0 + 3*(ch+gy) + 24}" font-family="{SANS}" font-size="15" fill="#64748B">9 skill · 2 agent · nạp tài liệu khi cần</text>
+<text x="{x0}" y="{y0 + 4*(ch+gy) + 22}" font-family="{SANS}" font-size="15" fill="#64748B">11 skill · 2 agent · nạp tài liệu khi cần</text>
 </svg>'''
     open(OUT + "hero.svg", "w").write(svg)
 
@@ -172,9 +174,10 @@ def flow():
 </g>''')
     # support skills under build
     bx = xs[3] + nw / 2
-    sup = [("architecture", "theo codebase · SOLID · DDD"), ("backend", "DB · ORM · RLS · API · auth"), ("frontend", "UI theo design · state")]
-    sw, sh, sgap, sy = 236, 70, 22, 330
-    sx0 = bx - (3 * sw + 2 * sgap) / 2
+    sup = [("architecture", "codebase · SOLID · DDD"), ("backend", "DB · ORM · RLS · auth"), ("frontend", "web · UI · state"),
+           ("mobile", "iOS · Android · store"), ("desktop", "Windows · macOS · Linux")]
+    sw, sh, sgap, sy = 190, 70, 14, 330
+    sx0 = bx - (len(sup) * sw + (len(sup) - 1) * sgap) / 2
     for j, (t, c) in enumerate(sup):
         x = sx0 + j * (sw + sgap)
         mx = x + sw / 2
@@ -201,7 +204,7 @@ def flow():
     parts.append(f'<text x="{(lane + fx)/2 + 120}" y="{ry - 12}" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#FDA4AF">có lỗi → test tái hiện → sửa → thêm task phòng ngừa</text>')
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">
 <title id="t">Quy trình của vibe</title>
-<desc id="d">Ý tưởng, plan, tasks, build, review, ship, chạy thật. Build dùng các skill architecture, backend, frontend. Khi chạy thật có lỗi thì qua fix rồi quay lại tasks.</desc>
+<desc id="d">Ý tưởng, plan, tasks, build, review, ship, chạy thật. Build dùng các skill architecture, backend, frontend, mobile, desktop. Khi chạy thật có lỗi thì qua fix rồi quay lại tasks.</desc>
 <defs>{bg_defs(W, H)}
   <linearGradient id="nodeGrad" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#7C3AED" stop-opacity="0.75"/><stop offset="1" stop-color="#0891B2" stop-opacity="0.75"/>

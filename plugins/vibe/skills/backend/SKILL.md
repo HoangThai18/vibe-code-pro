@@ -12,7 +12,7 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Chọn đúng phần cần cho việc �
 | Thiết kế bảng, kiểu dữ liệu, ràng buộc, index, transaction, phân trang, migration, lưu file | `references/data-layer.md` |
 | Viết code qua ORM: N+1, transaction, raw SQL, migration tool, connection pool | `references/orm.md` |
 | Nhiều khách hàng dùng chung hệ thống (SaaS, workspace của khách) | `references/multi-tenant.md`, rồi `postgres-rls.md` và `isolation-tests.md` khi tới phần đó |
-| API giữa BE và FE, hoặc đổi một API đang chạy | `references/api-contract.md` và `api-conventions.md` |
+| API giữa BE và FE, hoặc đổi một API đang chạy | `references/api-contract.md` và `api-conventions.md` (có app mobile/desktop: mục 8, client sống lâu) |
 | Đăng nhập, phiên, phân quyền theo vai trò, API key, webhook | `references/auth.md` |
 
 Trước khi dùng API của một ORM hay thư viện mà bạn không chắc ở version đang cài, kiểm version và tài liệu (`${CLAUDE_SKILL_DIR}/../plan/references/tech-research.md`). ORM đổi API giữa các bản major khá thường xuyên.

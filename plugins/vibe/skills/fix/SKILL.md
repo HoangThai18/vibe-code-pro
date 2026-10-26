@@ -17,6 +17,7 @@ Sai lầm phổ biến nhất khi sửa bug là đoán rồi vá: sửa vài ch�
 2. **Tái hiện bằng test**: viết test nhỏ nhất làm lộ bug, chạy để thấy nó **fail đúng lý do**. Không tái hiện được thì chưa sửa; thu thêm dữ liệu (log theo `requestId`, dữ liệu của bản ghi lỗi, các bước của user).
 3. **Khoanh vùng nguyên nhân gốc**:
    - Đọc kỹ thông báo lỗi và stack trace tới dòng code của dự án. Lỗi chỉ xảy ra trên trình duyệt (trang trắng, request lỗi, chậm): đọc console, network, performance trace, qua Chrome DevTools MCP nếu dự án có (`${CLAUDE_SKILL_DIR}/../plan/references/dev-tools.md` mục 5).
+   - App mobile, desktop: đọc crash report (stack trace đã giải mã bằng source map, dSYM, mapping), lọc theo phiên bản app và hệ điều hành; tái hiện trên đúng phiên bản đó (skill `mobile`, `desktop`, `release.md`).
    - Xem thay đổi gần đây: `git log` của các file liên quan, lần deploy gần nhất. Lỗi mới xuất hiện giữa hai version thì dùng `git bisect` với chính test vừa viết.
    - Liệt kê giả thuyết, kiểm **từng cái một** bằng bằng chứng (log, query, debugger, thêm log tạm). Mỗi lần chỉ đổi một thứ.
    - Hỏi "vì sao" tới khi gặp nguyên nhân thật (thiếu ràng buộc, sai giả định về dữ liệu, race condition), không dừng ở triệu chứng.

@@ -32,7 +32,9 @@ Ai đang gặp vấn đề gì, hiện họ giải quyết thế nào, vì sao c
 - Bảo mật và dữ liệu: dữ liệu cá nhân nào, ai được xem, lưu bao lâu
 - Quy mô: số tenant, user, bản ghi dự kiến sau 12 tháng
 - Hiệu năng: vd danh sách tải dưới 1 giây với 10.000 bản ghi
+- Nền tảng: web / app iOS, Android / app Windows, macOS, Linux; phiên bản hệ điều hành tối thiểu
 - Ngôn ngữ, thiết bị, trình duyệt: ...
+- Offline: không cần / chỉ xem / ghi khi offline (app mobile, desktop)
 
 ## 7. Tích hợp
 | Hệ thống | Mục đích | Bắt buộc ở bản này? |

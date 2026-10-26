@@ -1,8 +1,8 @@
 {
   "name": "vibe",
   "displayName": "Vibe Code Pro",
-  "version": "0.3.1",
-  "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend, frontend, build và test, review, ship và vận hành, sửa bug và sự cố.",
+  "version": "0.4.0",
+  "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend, frontend web, app mobile (iOS, Android), app desktop, build và test, review, ship và vận hành, sửa bug và sự cố.",
   "author": {
     "name": "LovinBot"
   },
@@ -17,6 +17,12 @@
     "multi-tenant",
     "postgres-rls",
     "orm",
+    "mobile",
+    "react-native",
+    "expo",
+    "desktop",
+    "electron",
+    "tauri",
     "testing",
     "playwright",
     "e2e",

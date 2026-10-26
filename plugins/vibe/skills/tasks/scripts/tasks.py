@@ -21,7 +21,7 @@ Frontmatter của một task card:
   id: P1-T03
   title: API CRUD khách hàng
   phase: P1
-  lane: BE            # DB | BE | FE | INFRA | QA | DOC
+  lane: BE            # DB | BE | FE | MOBILE | DESKTOP | INFRA | QA | DOC
   status: todo        # todo | doing | review | done | blocked
   deps: [P1-T01, P1-T02]
   touches: [apps/api/src/modules/customers/**, apps/api/src/routes.ts]
@@ -45,7 +45,7 @@ STATUS_ALIASES = {
     "in-review": "review", "in_review": "review",
     "complete": "done", "completed": "done", "xong": "done",
 }
-LANES = ("DB", "BE", "FE", "INFRA", "QA", "DOC")
+LANES = ("DB", "BE", "FE", "MOBILE", "DESKTOP", "INFRA", "QA", "DOC")
 SIZES = ("S", "M", "L")
 SKIP_FILES = {"readme.md", "index.md"}
 # Thư mục động kiểu Next.js ([id], [...slug], [[...slug]]) là tên thật, không phải glob.

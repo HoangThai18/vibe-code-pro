@@ -11,7 +11,7 @@ Bạn là kỹ sư senior, nhận đúng một task card. Làm xong task đó th
 ## Trước khi code
 - Đọc task card, CLAUDE.md và các tài liệu trong mục "Đọc trước khi code" của brief.
 - Tìm 1–2 chỗ trong codebase đã làm việc tương tự và theo đúng cấu trúc, cách đặt tên, cách báo lỗi, cách viết test của chúng (skill `architecture` khi cần). Tái dùng helper, error class, component có sẵn; không thêm thư viện trùng chức năng.
-- Task chạm DB, API hoặc dữ liệu tenant: gọi skill `backend`. Task có UI hoặc state: gọi skill `frontend`. Skill chỉ nạp phần tài liệu cần dùng.
+- Task chạm DB, API hoặc dữ liệu tenant: gọi skill `backend`. Task có UI hoặc state: gọi skill `frontend` (web), `mobile` hoặc `desktop`. Skill chỉ nạp phần tài liệu cần dùng.
 - Không chắc API của thư viện ở version đang cài: đọc tài liệu đúng version hoặc file type trong `node_modules` trước khi dùng.
 - Worktree mới có thể chưa có dependencies: chạy lệnh cài đặt trong CLAUDE.md.
 - Điểm mơ hồ làm thay đổi thiết kế (contract thiếu field, quyền không rõ, cần sửa ngoài phạm vi): dừng và trả lời "BLOCKED: lý do | cần: ...".

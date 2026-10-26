@@ -10,6 +10,7 @@
 5. Auth và tenant
 6. Idempotency
 7. Mẫu contract: zod, OpenAPI, MSW
+8. Client sống lâu: app mobile, desktop
 
 ## 1. Đặt tên và cấu trúc
 - REST theo resource, danh từ số nhiều. Tài nguyên thuộc tenant nằm dưới tiền tố `/v1/t/{tenantId}` (mục 5): `GET /v1/t/{tenantId}/customers`, `GET .../customers/{id}`, `POST .../customers`, `PATCH .../customers/{id}`, `DELETE .../customers/{id}`.
@@ -186,3 +187,56 @@ export const customerHandlers = [
   }),
 ];
 ```
+
+## 8. Client sống lâu: app mobile, desktop
+
+Web deploy xong là mọi người dùng chạy bản mới. App mobile và desktop thì không: bản cũ còn chạy trên máy người dùng nhiều tháng, và không rollback được bản đã cài.
+
+- **Thay đổi API phải tương thích với mọi bản app còn hỗ trợ**: chỉ thêm field (field mới trong request phải optional), không đổi tên, không xoá, không đổi kiểu hay ý nghĩa của field cũ. Đổi tên làm như expand/contract của DB: thêm field mới, trả cả hai, bỏ field cũ khi bản app cuối cùng dùng nó hết được hỗ trợ.
+- **Enum có thể có giá trị mới**: app xử lý giá trị lạ (hiện "Không xác định", không crash). Giá trị mới mà bản cũ không xử lý được thì chỉ trả cho bản app đủ mới, dựa vào header phiên bản.
+- **App gửi `x-app-version` và `x-app-platform` ở mọi request ngay từ bản đầu tiên** (`ios`, `android`, `macos`, `windows`, `linux`). Log và metric lỗi theo phiên bản để biết bản nào đang gặp lỗi.
+- **Phiên bản tối thiểu theo nền tảng**, đọc từ cấu hình (biến môi trường, bảng settings, feature flag) để nâng không cần deploy. Bản thấp hơn nhận `426` với code `app_update_required`; app chuyển sang màn hình cập nhật (skill `mobile`, `release.md` mục 6). Chỉ nâng khi thật cần: lỗ hổng bảo mật, thay đổi không giữ tương thích được.
+- **Thay đổi phá vỡ thật sự**: thêm version mới của endpoint (`/v2/...`) chạy song song với `/v1` cho tới khi bản app cuối cùng dùng `/v1` hết được hỗ trợ.
+- **Giữ fixture request/response của từng bản app đã phát hành** và chạy contract test với chúng: bản cũ gọi server mới vẫn phải nhận đúng dạng dữ liệu.
+
+```ts
+// apps/api/src/shared/min-app-version.ts
+import type { NextFunction, Request, Response } from 'express';
+
+type Platform = 'ios' | 'android' | 'macos' | 'windows' | 'linux';
+export type MinVersions = Partial<Record<Platform, string>>;
+
+// So "1.10.0" với "1.9.3" theo từng phần số
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map((n) => Number.parseInt(n, 10) || 0);
+  const pb = b.split('.').map((n) => Number.parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+// getMin đọc cấu hình mỗi lần gọi (có cache ngắn), để nâng mức tối thiểu không cần deploy
+export function requireMinAppVersion(getMin: () => MinVersions) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const platform = req.header('x-app-platform') as Platform | undefined;
+    const version = req.header('x-app-version');
+    const min = platform ? getMin()[platform] : undefined;
+    if (!min || !version) return next();          // web không gửi header: luôn là bản mới nhất
+    if (compareVersions(version, min) < 0) {
+      return res.status(426).json({
+        error: {
+          code: 'app_update_required',
+          message: 'Phiên bản app đã cũ, vui lòng cập nhật để tiếp tục.',
+          details: { minVersion: min },
+        },
+      });
+    }
+    return next();
+  };
+}
+```
+
+Gắn middleware trước các route nghiệp vụ; để riêng các endpoint mà màn hình cập nhật cần (cấu hình app, link store) ở trước nó.
+
