@@ -29,9 +29,10 @@ Ai đang gặp vấn đề gì, hiện họ giải quyết thế nào, vì sao c
 
 ## 6. Yêu cầu phi chức năng
 - Multi-tenant: có / không. Mô hình: ... (xem ARCHITECTURE.md)
-- Bảo mật và dữ liệu: dữ liệu cá nhân nào, ai được xem, lưu bao lâu
+- Bảo mật và dữ liệu: dữ liệu cá nhân nào (có dữ liệu nhạy cảm: sức khoẻ, vị trí, tài chính, trẻ em?), ai được xem, lưu bao lâu, gửi cho dịch vụ nào ở nước ngoài
 - Quy mô: số tenant, user, bản ghi dự kiến sau 12 tháng
-- Hiệu năng: vd danh sách tải dưới 1 giây với 10.000 bản ghi
+- Hiệu năng: p95 theo nhóm endpoint ở mức tải mục tiêu (vd danh sách dưới 300 ms ở 100 request/giây); Core Web Vitals mức tốt (LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1)
+- Tính năng AI (nếu có): việc gì, người dùng sửa được kết quả không, chi phí ước tính mỗi tháng, ngân sách theo tenant
 - Nền tảng: web / app iOS, Android / app Windows, macOS, Linux; phiên bản hệ điều hành tối thiểu
 - Ngôn ngữ, thiết bị, trình duyệt: ...
 - Offline: không cần / chỉ xem / ghi khi offline (app mobile, desktop)

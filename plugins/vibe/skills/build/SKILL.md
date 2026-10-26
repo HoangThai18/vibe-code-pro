@@ -13,6 +13,8 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Công cụ xem task: `python3 "${CLAUDE
 | Test giao diện và luồng người dùng trên trình duyệt bằng Playwright: nhiều vai trò, chụp so sánh giao diện, a11y, mock mạng, debug | `references/e2e-playwright.md` |
 | Test app mobile (Jest, React Native Testing Library, Maestro trên emulator) | `${CLAUDE_SKILL_DIR}/../mobile/references/testing.md` |
 | Test app desktop (Playwright cho Electron, Tauri, test cấu hình bảo mật) | `${CLAUDE_SKILL_DIR}/../desktop/references/testing.md` |
+| Test tính năng AI (fetch giả, không tốn tiền) và eval chất lượng | `${CLAUDE_SKILL_DIR}/../ai/references/testing.md` |
+| Ngân sách hiệu năng trong E2E (LCP, CLS) | `${CLAUDE_SKILL_DIR}/../ship/references/performance.md` mục 5 |
 | Định chạy song song nhiều agent | `references/parallel.md` (và `agent-brief.md`) |
 
 ## Mặc định: một agent, một vòng lặp
@@ -24,7 +26,7 @@ Session chính làm lần lượt từng task: đọc task card, code, viết te
 ## Quy trình cho một task
 
 1. **Chọn task**: task mà `next` gợi ý, hoặc task user chỉ định. Đổi `status: doing`, tạo branch `task/<ID>` từ branch phase (`phase/P1`).
-2. **Đọc trước khi code**: task card, `CLAUDE.md`, phần liên quan trong `docs/domain/DOMAIN.md` (quy tắc `BR-xx`), contract, design, và 1–2 chỗ trong codebase đã làm việc tương tự để theo đúng cấu trúc và quy ước (codebase còn lạ thì gọi skill `architecture`). Gọi skill `backend`, `frontend`, `mobile` hoặc `desktop` khi task chạm phần đó; skill chỉ nạp phần tài liệu cần dùng.
+2. **Đọc trước khi code**: task card, `CLAUDE.md`, phần liên quan trong `docs/domain/DOMAIN.md` (quy tắc `BR-xx`), contract, design, và 1–2 chỗ trong codebase đã làm việc tương tự để theo đúng cấu trúc và quy ước (codebase còn lạ thì gọi skill `architecture`). Gọi skill `backend`, `frontend`, `mobile`, `desktop` hoặc `ai` khi task chạm phần đó; skill chỉ nạp phần tài liệu cần dùng.
 3. **Kiểm tài liệu khi dùng API chưa chắc**: xem version đang cài và tài liệu đúng version (`${CLAUDE_SKILL_DIR}/../plan/references/tech-research.md`). Không đoán chữ ký hàm.
 4. **Code + test cùng lúc**, theo quy ước của codebase (tái dùng helper, error class, component có sẵn; đặt code đúng tầng và module), theo từng sub-task, commit `<ID>: <việc>` sau mỗi bước có nghĩa. Test kiểm từng acceptance criteria và các nhánh lỗi; mức test chọn theo `references/testing.md`.
 5. **Chỉ sửa trong `touches`**. Phát hiện cần sửa ngoài phạm vi thì dừng lại và báo user (hoặc tạo task mới), không làm lan.

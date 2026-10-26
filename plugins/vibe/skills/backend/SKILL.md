@@ -1,6 +1,6 @@
 ---
 name: backend
-description: "Thiết kế và code tầng backend: schema DB, kiểu dữ liệu, ràng buộc, index, transaction, migration an toàn, dùng ORM đúng cách (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), lưu file/object storage, multi-tenant (tenant_id, composite FK, Postgres RLS, test cô lập), API contract giữa BE và FE (endpoint, lỗi, phân trang, mock). Dùng khi tạo/sửa bảng, model, migration, query, repository, endpoint, upload file, RLS/Supabase policy, gặp N+1 hay query chậm, hoặc thiết kế hệ thống nhiều khách hàng dùng chung."
+description: "Thiết kế và code tầng backend: schema DB, kiểu dữ liệu, ràng buộc, index, transaction, migration an toàn, dùng ORM đúng cách (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), lưu file/object storage, multi-tenant (tenant_id, composite FK, Postgres RLS, test cô lập), API contract giữa BE và FE (endpoint, lỗi, phân trang, mock), job nền (hàng đợi, retry, cron), bảo mật ứng dụng (upload, SSRF, rate limit, quét secret), dữ liệu cá nhân theo luật Việt Nam. Dùng khi tạo/sửa bảng, model, migration, query, repository, endpoint, upload file, RLS/Supabase policy, gặp N+1 hay query chậm, hoặc thiết kế hệ thống nhiều khách hàng dùng chung."
 ---
 
 # Backend: dữ liệu, ORM, multi-tenant, API
@@ -14,6 +14,10 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Chọn đúng phần cần cho việc �
 | Nhiều khách hàng dùng chung hệ thống (SaaS, workspace của khách) | `references/multi-tenant.md`, rồi `postgres-rls.md` và `isolation-tests.md` khi tới phần đó |
 | API giữa BE và FE, hoặc đổi một API đang chạy | `references/api-contract.md` và `api-conventions.md` (có app mobile/desktop: mục 8, client sống lâu) |
 | Đăng nhập, phiên, phân quyền theo vai trò, API key, webhook | `references/auth.md` |
+| Job nền: gửi email/SMS, việc theo lịch, retry, dead letter | `references/jobs.md` |
+| Upload file, server tải URL do người dùng đưa (SSRF), rate limit, header bảo mật, quét secret và dependency | `references/app-security.md` |
+| Dữ liệu cá nhân và nhạy cảm: đồng ý, yêu cầu xuất/xoá, lộ dữ liệu, chuyển ra nước ngoài, luật Việt Nam | `references/privacy.md` |
+| Query chậm, kiểm tải, mục tiêu hiệu năng | `${CLAUDE_SKILL_DIR}/../ship/references/performance.md` |
 
 Trước khi dùng API của một ORM hay thư viện mà bạn không chắc ở version đang cài, kiểm version và tài liệu (`${CLAUDE_SKILL_DIR}/../plan/references/tech-research.md`). ORM đổi API giữa các bản major khá thường xuyên.
 
@@ -31,6 +35,8 @@ Những lỗi dưới đây đắt nhất và hay gặp nhất, nên nhớ cả 
 6. **Đọc SQL mà ORM sinh ra** cho mỗi migration trước khi chạy; không sửa migration đã chạy ở môi trường khác; migration trên bảng lớn phải an toàn khi bảng đang có dữ liệu và đang được dùng.
 7. **Hệ thống nhiều khách hàng**: tenant nằm trong path của API (`/v1/t/{tenantId}/...`) và server kiểm user là thành viên ở mỗi request; không lấy tenant từ body/query, không dựa vào "tenant hiện tại" ngầm trong phiên. Mọi bảng thuộc tenant có `tenant_id`. Chi tiết đọc `multi-tenant.md`, đừng tự chế.
 8. **API**: chốt contract trước khi BE và FE làm song song; tài nguyên của tenant khác trả 404.
+9. **Gọi ra ngoài và việc chậm đi qua job nền**, xếp job trong cùng transaction với dữ liệu; job idempotent và mang `tenant_id` (`jobs.md`).
+10. **Dữ liệu cá nhân**: chỉ thu trường cần, đồng ý theo từng mục đích, dữ liệu sức khoẻ, vị trí, tài chính là nhạy cảm (`privacy.md`).
 
 ## Trước khi coi là xong
 
