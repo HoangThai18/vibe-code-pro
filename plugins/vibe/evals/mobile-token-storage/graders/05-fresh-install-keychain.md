@@ -1,6 +1,8 @@
 ---
 type: llm
-focus: files
+focus:
+  source: file
+  path: src/auth/session.ts
 ---
 
 PASS if the code handles iOS Keychain items surviving an app uninstall: for example it clears the SecureStore tokens on the first launch after a fresh install, detected with a flag stored in AsyncStorage (which is wiped on uninstall).
