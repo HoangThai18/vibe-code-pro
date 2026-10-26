@@ -1,6 +1,7 @@
 ---
 name: plan
 description: "Lên kế hoạch dự án trước khi code: phân tích nghiệp vụ (vai trò, quy trình, quy tắc, vòng đời dữ liệu), research người dùng, đối thủ và tech stack (đọc tài liệu đúng version, chọn thư viện), viết PRD, chọn nền tảng (web, app mobile, app desktop), chốt kiến trúc, chia phase, tạo CLAUDE.md. Dùng khi bắt đầu một sản phẩm, hệ thống hoặc tính năng lớn ('lên plan', 'kickoff', 'phân tích nghiệp vụ', 'viết PRD', 'research', 'chọn tech stack', 'thiết kế kiến trúc', 'chia phase'), hoặc khi nghiệp vụ còn mơ hồ. Prototype nhỏ thì chỉ cần plan một trang."
+argument-hint: "[ý tưởng sản phẩm hoặc tính năng]"
 ---
 
 # Plan: từ ý tưởng tới kế hoạch build được
