@@ -7,7 +7,7 @@ Skill tự kích hoạt theo câu nói tự nhiên, ví dụ "phân tích nghi�
 Cài đặt (Claude Code 2.1.275 trở lên):
 
 ```bash
-/plugin install vibe --marketplace OWNER/vibe-code-pro
+/plugin install vibe --marketplace HoangThai18/vibe-code-pro
 ```
 
 Hướng dẫn đầy đủ, quy trình, và danh sách những gì đã được chạy kiểm chứng: xem README ở thư mục gốc của repo.

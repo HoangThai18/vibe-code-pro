@@ -15,7 +15,7 @@
 Vibe code thì nhanh, nhưng phần mềm chạy thật cần thêm nhiều thứ mà prompt hay bỏ quên: hiểu đúng nghiệp vụ, test đi cùng code, dữ liệu khách này không lộ sang khách kia, migration không làm sập bản đang chạy, có đường rollback, backup đã restore thử. **vibe** gói những kinh nghiệm đó thành 9 skill cho Claude Code. Claude tự gọi đúng skill theo câu bạn nói, và chỉ đọc phần tài liệu cần cho việc đang làm.
 
 ```bash
-claude plugin install vibe --marketplace OWNER/vibe-code-pro
+claude plugin install vibe --marketplace HoangThai18/vibe-code-pro
 ```
 
 Rồi nói chuyện bình thường: *"phân tích nghiệp vụ app đặt lịch spa"*, *"tới đâu rồi, làm gì tiếp?"*, *"làm task P1-T03"*, *"deploy lên production"*, *"lỗi 500 khi tạo khách"*.
@@ -78,10 +78,10 @@ Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không
 **Qua GitHub (khuyên dùng):**
 
 ```bash
-claude plugin install vibe --marketplace OWNER/vibe-code-pro    # Claude Code 2.1.275 trở lên
+claude plugin install vibe --marketplace HoangThai18/vibe-code-pro    # Claude Code 2.1.275 trở lên
 ```
 
-Bản Claude Code cũ hơn: `claude plugin marketplace add OWNER/vibe-code-pro` rồi `claude plugin install vibe@lovinbot-skills` (trong phiên thì dùng `/plugin ...` tương ứng). Cập nhật: `claude plugin marketplace update lovinbot-skills`.
+Bản Claude Code cũ hơn: `claude plugin marketplace add HoangThai18/vibe-code-pro` rồi `claude plugin install vibe@lovinbot-skills` (trong phiên thì dùng `/plugin ...` tương ứng). Cập nhật: `claude plugin marketplace update lovinbot-skills`.
 
 **Thử từ thư mục đã clone:**
 
@@ -197,4 +197,4 @@ Linux cần `bubblewrap` và `socat` để eval chạy được Bash trong sandb
 
 **vibe** is a Claude Code plugin (written in Vietnamese) that turns "vibe coding" into a full software lifecycle: domain analysis and planning, task cards with dependencies, backend and frontend guidance (multi-tenant Postgres RLS, 8 ORMs, auth, state management), test-with-the-code builds including Playwright UI/workflow tests, independent review, CI/CD with rollback, monitoring and backup/restore, and incident handling. It follows Anthropic's single-agent guidance: one main agent, skills loaded on demand, subagents only for independent verification and large parallel tasks. Code, SQL and workflow examples were executed before being documented (PostgreSQL 16, Playwright 1.63, TypeScript strict, actionlint). On its 11-case eval suite (3 runs per arm) it scores 1.00 with the plugin versus 0.90 without, with no case getting worse, at roughly 1.5× the tokens per run.
 
-Install: `claude plugin install vibe --marketplace OWNER/vibe-code-pro` (Claude Code 2.1.275+). MIT licensed.
+Install: `claude plugin install vibe --marketplace HoangThai18/vibe-code-pro` (Claude Code 2.1.275+). MIT licensed.
