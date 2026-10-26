@@ -1,6 +1,6 @@
 ---
 name: backend
-description: "Thiết kế và code tầng backend: schema DB, kiểu dữ liệu, ràng buộc, index, transaction, migration an toàn, dùng ORM đúng cách (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), lưu file/object storage, multi-tenant (tenant_id, composite FK, Postgres RLS, test cô lập), API contract giữa BE và FE (endpoint, lỗi, phân trang, mock), job nền (hàng đợi, retry, cron), bảo mật ứng dụng (upload, SSRF, rate limit, quét secret), dữ liệu cá nhân theo luật Việt Nam. Dùng khi tạo/sửa bảng, model, migration, query, repository, endpoint, upload file, RLS/Supabase policy, gặp N+1 hay query chậm, hoặc thiết kế hệ thống nhiều khách hàng dùng chung."
+description: "Thiết kế và code tầng backend: schema DB, kiểu dữ liệu, ràng buộc, index, transaction, migration an toàn, dùng ORM đúng cách (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), lưu file/object storage, multi-tenant (tenant_id, composite FK, Postgres RLS, test cô lập), API contract giữa BE và FE (endpoint, lỗi, phân trang, mock), job nền (hàng đợi, retry, cron), bảo mật ứng dụng (upload, SSRF, rate limit, quét secret), dữ liệu cá nhân theo luật Việt Nam. Dùng khi tạo/sửa bảng, model, migration, query, repository, endpoint, upload file, RLS/Supabase policy, gặp N+1 hay query chậm, thiết kế hệ thống nhiều khách hàng dùng chung, gửi email/SMS nền, hoặc khi khách yêu cầu xem/xoá dữ liệu cá nhân, 'Nghị định 13', 'luật bảo vệ dữ liệu'."
 ---
 
 # Backend: dữ liệu, ORM, multi-tenant, API
