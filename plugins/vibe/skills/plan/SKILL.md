@@ -18,7 +18,7 @@ Skill không viết code ứng dụng. Nó bổ sung cho plan mode của Claude 
 
 ## Quy trình
 
-1. **Làm rõ yêu cầu (1–2 lượt hỏi).** Đọc kỹ những gì user đã đưa; repo có sẵn code thì khảo sát trước (cấu trúc, package, schema, test, CI). Gom câu hỏi thành danh sách đánh số, mỗi câu kèm phương án mặc định để user trả lời nhanh: người dùng và vai trò, nền tảng (web, app mobile, app desktop), 3–5 luồng chính, quy mô và có nhiều khách hàng dùng chung không, ràng buộc (stack, hạn, ngân sách, pháp lý), tích hợp, ngoài phạm vi.
+1. **Làm rõ yêu cầu (1–2 lượt hỏi).** Đọc kỹ những gì user đã đưa; repo có sẵn code thì khảo sát trước (cấu trúc, package, schema, test, CI). Gom câu hỏi thành danh sách đánh số, mỗi câu kèm phương án mặc định để user trả lời nhanh: người dùng và vai trò, nền tảng (web, app mobile, app desktop), 3–5 luồng chính, có tính năng AI không, có dữ liệu cá nhân hay nhạy cảm (sức khoẻ, tài chính, trẻ em) không, quy mô và có nhiều khách hàng dùng chung không, ràng buộc (stack, hạn, ngân sách, pháp lý), tích hợp, ngoài phạm vi.
 2. **Phân tích nghiệp vụ** → `docs/domain/DOMAIN.md` theo `templates/DOMAIN.md`. Đọc `references/domain-analysis.md`. Đây là nơi chốt thuật ngữ, quy tắc và vòng đời dữ liệu; mọi bước sau dựa vào nó.
 3. **Research** → `docs/research/<chủ-đề>.md` theo `templates/RESEARCH.md`. Đọc `references/tech-research.md`. Gồm hai loại: người dùng/đối thủ (tính năng mà ngành coi là chuẩn) và kỹ thuật (chọn stack, thư viện, dịch vụ; đọc tài liệu đúng version).
 4. **PRD** → `docs/plan/PRD.md` theo `templates/PRD.md`: vấn đề, vai trò, mục tiêu đo được, luồng chính kèm tiêu chí chấp nhận, phạm vi, phi chức năng, giả định. Một đến hai trang.
@@ -26,6 +26,7 @@ Skill không viết code ứng dụng. Nó bổ sung cho plan mode của Claude 
    - Công nghệ "nhàm chán" trước; thành phần nào thêm vào (queue, cache, search, microservice) cũng phải trả lời được "bỏ nó đi thì cái gì vỡ?".
    - Nền tảng: web là mặc định; cần app mobile hay desktop thì chọn cách làm theo `${CLAUDE_SKILL_DIR}/../mobile/references/choose-stack.md` và `${CLAUDE_SKILL_DIR}/../desktop/references/choose-stack.md`. App cài trên máy kéo theo phát hành qua store, ký số, và API phải tương thích với bản cũ: ghi vào ADR ngay từ đầu.
    - Chọn kiểu kiến trúc theo quy mô team và độ phức tạp nghiệp vụ (`${CLAUDE_SKILL_DIR}/../architecture/references/architecture-styles.md`); mặc định là modular monolith, tách service khi có lý do đo được. Miền nghiệp vụ phức tạp thì xem thêm `${CLAUDE_SKILL_DIR}/../architecture/references/ddd.md`.
+   - Tính năng AI: chọn kiểu và ước tính chi phí mỗi tháng (`${CLAUDE_SKILL_DIR}/../ai/references/design.md`, `cost.md`). Dữ liệu cá nhân: lập `docs/privacy/DATA-MAP.md` (`${CLAUDE_SKILL_DIR}/../backend/references/privacy.md` mục 2), vì dữ liệu nhạy cảm và dịch vụ đặt ở nước ngoài kéo theo nghĩa vụ pháp lý. Mục tiêu hiệu năng là con số (`${CLAUDE_SKILL_DIR}/../ship/references/performance.md` mục 1).
    - Data model nháp từ các thực thể trong DOMAIN.md. Hệ thống nhiều khách hàng dùng chung thì chọn mô hình tenancy ngay bây giờ (`${CLAUDE_SKILL_DIR}/../backend/references/multi-tenant.md`), vì đổi về sau rất đắt.
    - Chốt sớm các quyết định khó đảo ngược (tenancy, auth, định dạng ID, tiền, thời gian, cách deploy), ghi vào bảng ADR kèm lý do và phương án đã loại.
 6. **Phase** → `docs/plan/PHASES.md` theo `templates/PHASES.md`:

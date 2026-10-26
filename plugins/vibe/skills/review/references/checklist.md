@@ -20,6 +20,14 @@ Dùng để gợi nhớ, không phải để điền cho đủ. Chỉ báo vấn
 - Không có secret trong code, log hay response; không trả stack trace ra client.
 - Upload: kiểm loại và kích thước; tên file lưu không do người dùng quyết định; không phục vụ file upload như HTML cùng domain.
 - Webhook: xác minh chữ ký. Server fetch URL do người dùng đưa: chống SSRF. Redirect theo tham số: chống open redirect.
+- Đăng nhập, OTP, endpoint công khai, tính năng tốn tiền có rate limit; trả 429 kèm `Retry-After` (backend `app-security.md`).
+- CI có quét secret (cả lịch sử git) và lỗ hổng dependency; secret đã lộ thì đã thu hồi, không chỉ xoá khỏi code.
+
+## Dữ liệu cá nhân
+- Trường dữ liệu cá nhân mới có trong `docs/privacy/DATA-MAP.md`: mục đích, nơi lưu, ai xem, giữ bao lâu.
+- Dữ liệu nhạy cảm (sức khoẻ, vị trí, tài chính, trẻ em) chỉ vai trò cần mới đọc được, không vào log, analytics, email.
+- Thu đồng ý theo từng mục đích, không chọn sẵn; job gửi tin lọc theo đồng ý hiện tại lúc gửi.
+- Dịch vụ bên ngoài mới nhận dữ liệu cá nhân đã được ghi vào danh sách bên xử lý (backend `privacy.md`).
 
 ## Cô lập tenant
 - Mọi truy vấn bảng tenant chạy trong context tenant (lớp repository / RLS); không nhận `tenantId` từ client.
@@ -41,6 +49,7 @@ Dùng để gợi nhớ, không phải để điền cho đủ. Chỉ báo vấn
 - Gọi bên thứ ba có timeout; retry có giới hạn và backoff.
 
 ## Hiệu năng
+- Thay đổi để tăng tốc có số đo trước và sau (cùng kịch bản), không chỉ "cảm thấy nhanh hơn".
 - Không N+1 (query trong vòng lặp); danh sách có phân trang và `limit` tối đa.
 - Filter/sort mới có index phù hợp (bắt đầu bằng `tenant_id`).
 - Không tải cả bảng vào bộ nhớ; không gọi API ngoài trong vòng lặp nếu có endpoint batch.
@@ -58,6 +67,12 @@ Dùng để gợi nhớ, không phải để điền cho đủ. Chỉ báo vấn
 - Electron: `contextIsolation`, `sandbox` bật; preload chỉ expose hàm cụ thể; IPC kiểm nguồn và tham số; chặn điều hướng, cửa sổ mới (skill `desktop`, `security.md` mục 7). Tauri: capability chỉ có permission cần.
 - Quyền hệ thống (camera, vị trí...) xin đúng lúc, có câu giải thích, app vẫn chạy khi bị từ chối.
 - Đổi code native thì không đẩy qua OTA.
+
+## Tính năng AI
+- API key chỉ ở server; dữ liệu đưa vào prompt lấy theo tenant hiện tại; system prompt không chứa dữ liệu người dùng.
+- Dữ liệu do người khác nhập đi trong JSON hoặc thẻ rõ ràng; công cụ cho model gọi dùng quyền của người dùng hiện tại, hành động có hậu quả cần người bấm xác nhận.
+- Output validate bằng schema, hiển thị dạng text; có `max_tokens`, ngân sách theo tenant, ghi usage; lỗi và `refusal` có thông báo thân thiện.
+- Đổi prompt, model, effort: PR có kết quả eval (số case đạt, chi phí) (skill `ai`, `testing.md`).
 
 ## Test
 - Test kiểm hành vi thật và có assert có ý nghĩa; không mock chính thứ đang được test.

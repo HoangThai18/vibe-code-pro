@@ -12,6 +12,7 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Chỉ đọc phần cần cho việc đ
 | Dựng màn hình hoặc component mới từ mockup, handoff Claude Design | `references/design-to-code.md` |
 | Animation, hiệu ứng theo prototype | `references/motion-spec.md` |
 | Store, cache dữ liệu API, form, đồng bộ khi đổi tenant | `references/state-management.md` |
+| Trang chậm, Core Web Vitals (LCP, INP, CLS), ngân sách hiệu năng | `${CLAUDE_SKILL_DIR}/../ship/references/performance.md` mục 5 |
 
 Thư viện frontend đổi API nhanh (React, Next.js, Tailwind, TanStack Query đều có bản major gần đây). Trước khi dùng API mà bạn không chắc, kiểm version đang cài và tài liệu đúng version (`${CLAUDE_SKILL_DIR}/../plan/references/tech-research.md`).
 

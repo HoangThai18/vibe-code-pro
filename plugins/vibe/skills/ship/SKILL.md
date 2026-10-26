@@ -14,6 +14,8 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Chỉ đọc phần cần cho việc đ
 | Log, metric, cảnh báo, error tracking, healthcheck | `references/observability.md` |
 | Backup, khôi phục, diễn tập restore, xuất dữ liệu theo tenant | `references/backup-restore.md` |
 | Nâng cấp dependency, vá bảo mật, dọn dữ liệu, việc định kỳ | `references/maintenance.md` |
+| Hiệu năng: mục tiêu, query chậm, kiểm tải bằng k6, Core Web Vitals | `references/performance.md` |
+| Quét secret và lỗ hổng dependency trong CI | `${CLAUDE_SKILL_DIR}/../backend/references/app-security.md` mục 6 |
 | Phát hành app mobile: build, ký, store, OTA, phát hành dần, buộc cập nhật | `${CLAUDE_SKILL_DIR}/../mobile/references/release.md` |
 | Phát hành app desktop: đóng gói, ký số, notarize, tự cập nhật | `${CLAUDE_SKILL_DIR}/../desktop/references/release.md` |
 

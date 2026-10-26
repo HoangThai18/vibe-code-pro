@@ -41,4 +41,6 @@ Thứ tự ưu tiên: **giảm thiệt hại → thông báo → tìm nguyên nh
 
 ## Nghi ngờ lộ dữ liệu giữa khách hàng
 
+Lộ dữ liệu cá nhân có thể phải thông báo cơ quan chuyên trách trong 72 giờ kể từ khi phát hiện: ghi thời điểm phát hiện ngay từ đầu và báo người quyết định (`${CLAUDE_SKILL_DIR}/../backend/references/privacy.md` mục 7).
+
 Xử lý như sự cố nghiêm trọng nhất: chặn đường rò ngay (tắt tính năng, chặn endpoint), giữ nguyên log làm bằng chứng, xác định tenant và dữ liệu bị ảnh hưởng, báo người phụ trách và bộ phận pháp lý. Quy định bảo vệ dữ liệu cá nhân của Việt Nam có nghĩa vụ và thời hạn thông báo khi có vi phạm; hỏi pháp chế để làm đúng.
