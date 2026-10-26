@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: search-vietnamese-names
+expected_outcome: |
+  Tìm không dấu ở cả hai phía (unaccent qua hàm IMMUTABLE bọc lại, đ -> d), tách từ và khớp từng từ theo mọi thứ tự,
+  chuẩn hoá số điện thoại (bỏ khoảng trắng, +84/84 -> 0), index trigram (pg_trgm, GIN) trên đúng biểu thức chuẩn hoá,
+  tạo CONCURRENTLY; nhận ra dưới RLS LIKE/ILIKE không dùng được index trigram cho app_user (không leakproof) và xử lý
+  (hàm SECURITY DEFINER tự lọc tenant, hoặc đo bằng role của app và chấp nhận có lý do); escape % và _ từ người dùng.
+context:
+  scaffold_script: place-files.sh

@@ -1,6 +1,6 @@
 ---
 name: vibe-backend
-description: "Backend data and API layer: schema, indexes, transactions, safe migrations, ORMs (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), file storage, multi-tenancy (tenant_id, Postgres RLS, isolation tests), BE-FE API contracts, auth, background jobs, app security, personal data under Vietnamese law. Use for tables, models, queries, endpoints, RLS/Supabase policies, slow or N+1 queries, SaaS tenancy, background email/SMS, data deletion requests. Also use for Vietnamese requests like 'tạo bảng', 'query chậm', 'nhiều khách hàng dùng chung', 'xoá dữ liệu cá nhân', 'Nghị định 13', 'luật bảo vệ dữ liệu'."
+description: "Backend data and API layer: schema, indexes, transactions, safe migrations, ORMs (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), file storage, multi-tenancy (tenant_id, Postgres RLS, isolation tests), BE-FE API contracts, auth, background jobs, app security, personal data under Vietnamese law. Use for tables, models, queries, endpoints, RLS/Supabase policies, slow or N+1 queries, SaaS tenancy, background email/SMS, payments (VNPay, MoMo, VietQR, refunds, e-invoices), accent-insensitive search, Zalo/SMS/email delivery, realtime updates (SSE), Excel/CSV import, data deletion requests. Also use for Vietnamese requests like 'tạo bảng', 'query chậm', 'nhiều khách hàng dùng chung', 'tích hợp VNPay', 'tìm không dấu', 'gửi Zalo ZNS', 'nhập khách từ Excel', 'cập nhật realtime', 'xoá dữ liệu cá nhân', 'luật bảo vệ dữ liệu'."
 ---
 
 # Backend: data, ORM, multi-tenancy, API
@@ -17,6 +17,12 @@ Paths are relative to this skill folder. Read only the file for the task at hand
 | Background jobs: email/SMS, scheduled work, retries, dead letter queue | `references/jobs.md` |
 | File uploads, server fetching user-supplied URLs (SSRF), rate limits, security headers, secret and dependency scanning | `references/app-security.md` |
 | Personal and sensitive data: consent, export/deletion requests, data leaks, cross-border transfer, Vietnamese law | `references/privacy.md` |
+| Payments: VNPay, MoMo, bank transfer with VietQR and SePay/Casso webhooks, refunds, reconciliation, e-invoices, subscriptions | `references/payments.md` |
+| Search: customers by name or phone without accents, notes full-text, search under RLS | `references/search.md` |
+| Email, Zalo (ZNS/ZBS) and SMS delivery: DNS, unsubscribe, templates and tokens, brandname, advertising rules, OTP abuse | `references/notifications.md` |
+| Live updates and in-app notifications: SSE/WebSocket, LISTEN/NOTIFY fan-out, refetch on reconnect | `references/realtime.md` |
+| Importing data from Excel/CSV: column mapping, row-error preview, re-runnable imports, error report | `references/data-import.md` |
+| Formatting money, dates and messages on the server (SMS, email, PDF), time zones, Vietnamese sorting | the `vibe-frontend` skill (`references/i18n.md`) |
 | Slow queries, load testing, performance targets | the `vibe-ship` skill (`references/performance.md`) |
 
 Before using an ORM or library API you are unsure of for the installed version, check the version and docs (the `vibe-plan` skill, `references/tech-research.md`). ORMs change APIs between major versions often.
@@ -37,6 +43,7 @@ The costliest and most common mistakes; apply them even before reading any detai
 8. **API**: lock the contract before BE and FE work in parallel; another tenant's resource returns 404.
 9. **External calls and slow work go through background jobs**, enqueued in the same transaction as the data; jobs are idempotent and carry `tenant_id` (`references/jobs.md`).
 10. **Personal data**: collect only needed fields, consent per purpose; health, location and financial data are sensitive (`references/privacy.md`).
+11. **Payments**: only a verified provider callback (or a status query) marks a payment paid, once, from `pending`, after checking the amount against the database (`references/payments.md`).
 
 ## Before calling it done
 

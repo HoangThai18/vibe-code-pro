@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: import-customers-excel
+expected_outcome: |
+  Khoá tự nhiên theo tenant trên SĐT đã chuẩn hoá (UNIQUE (tenant_id, phone)) và upsert ON CONFLICT; SĐT dạng số mất
+  số 0 (912345678) và +84 đưa về 0912345678; ngày dd/mm/yyyy đọc ngày trước bằng code tường minh, xử lý số serial và ô
+  ngày của Excel, không dùng new Date(chuỗi); kiểm mọi dòng trước khi ghi, báo lỗi theo số dòng Excel, cột và câu tiếng
+  Việt, chỉ ghi sau khi người dùng xác nhận; áp dụng theo lô có lưu tiến độ, chạy lại không trùng, job đặt ngữ cảnh tenant;
+  CSV xuất ra (báo cáo lỗi) bọc dấu ngoặc và thêm ' trước =, +, -, @; đọc CSV bằng UTF-8, byte lỗi thì từ chối.

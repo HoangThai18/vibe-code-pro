@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: realtime-appointment-board
+expected_outcome: |
+  SSE (hoặc polling) từ server xuống client, thao tác ghi vẫn là HTTP thường; sự kiện chỉ mang loại, id, version (không
+  có tên, số điện thoại), client gọi lại API để lấy dữ liệu (invalidateQueries); sự kiện phát trong transaction ghi
+  (trigger/pg_notify trong transaction hoặc outbox) nên chỉ tới khi COMMIT; stream theo tenant (/v1/t/{tenantId}/...),
+  401 khi chưa đăng nhập, 404 khi không phải thành viên, lọc theo tenant ở server, có test chứng minh sự kiện của tenant A
+  không tới tenant B; client refetch khi kết nối lại, server gửi heartbeat và X-Accel-Buffering: no; LISTEN trên kết nối
+  riêng (không qua pool/PgBouncer transaction mode) có tự kết nối lại; dọn stream khi đóng, kết thúc stream khi bị gỡ
+  khỏi spa hoặc đăng xuất.
