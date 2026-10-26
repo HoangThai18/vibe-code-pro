@@ -7,7 +7,7 @@
   <a href="https://code.claude.com/docs/en/plugins"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-0891B2?style=flat-square"></a>
   <img alt="12 skills, 5 shortcut commands, 2 agents" src="https://img.shields.io/badge/skills-12%20·%20lệnh%20tắt%205%20·%20agents%202-DB2777?style=flat-square">
   <img alt="Examples verified on PostgreSQL 16 and Playwright" src="https://img.shields.io/badge/ví%20dụ-đã%20chạy%20thật-059669?style=flat-square">
-  <a href="plugins/vibe/evals"><img alt="Eval: 1.00 with plugin vs 0.85 without, 14 cases" src="https://img.shields.io/badge/eval-1.00%20có%20plugin%20·%200.85%20không-F59E0B?style=flat-square"></a>
+  <a href="plugins/vibe/evals"><img alt="Eval: 0.99 with plugin vs 0.85 without, 19 cases" src="https://img.shields.io/badge/eval-0.99%20có%20plugin%20·%200.85%20không-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><b>Tiếng Việt</b> · <a href="#english">English</a></p>
@@ -194,20 +194,25 @@ plugins/vibe/
 
 ## Đo chất lượng: có plugin và không có plugin
 
-`plugins/vibe/evals/` có 14 case là yêu cầu thật kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, gọi theo thứ tự nào (viết test trước khi sửa code), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có plugin và 3 lượt không có plugin (`claude plugin eval`, model mặc định của lệnh, judge mặc định). Kết quả bản 0.4.0:
+`plugins/vibe/evals/` có 19 case là yêu cầu thật kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, gọi theo thứ tự nào (viết test trước khi sửa code), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có plugin và 3 lượt không có plugin (`claude plugin eval`, model mặc định của lệnh, judge mặc định). Kết quả bản 0.5.0:
 
 | Case | Có plugin | Không có | Khác biệt chính |
 |---|---|---|---|
-| Sửa bug `slugify('Đường')` | **1.00** | 0.50 | Viết test tái hiện và thấy nó fail trước khi sửa: 3/3 so với 0/3 |
-| Phát hành app mobile vừa thêm `expo-camera` qua EAS Update | **1.00** | 0.58 | Đủ quy trình (build mới, thử trước khi phát hành, phát hành dần, khai báo quyền camera): 3/3 so với 0/3; tính đến người dùng còn ở bản cũ: 3/3 so với 1/3 |
-| Chọn kiến trúc cho team 3 người | **1.00** | 0.73 | Có điều kiện cụ thể để xem lại quyết định: 3/3 so với 0/3 |
-| "Tới đâu rồi, làm gì tiếp?" trên task card | **1.00** | 0.73 | Làm nốt task dở trước, không chọn task bị chặn: 3/3 so với 0/3 |
-| Đổi workspace mà màn hình vẫn hiện dữ liệu cũ | **1.00** | 0.75 | Huỷ request và bỏ cache của workspace cũ đúng cách: 3/3 so với 0/3 |
+| Màn danh sách chậm, team định thêm Redis | **1.00** | 0.44 | Kiểm tải có ngưỡng trên staging: 3/3 so với 0/3; index theo tenant và cột sắp xếp: 3/3 so với 1/3 |
+| Sửa bug `slugify('Đường')` | **1.00** | 0.67 | Thấy test tái hiện fail trước khi sửa: 3/3 so với 0/3 |
+| Phát hành app mobile vừa thêm `expo-camera` qua EAS Update | **1.00** | 0.67 | Đủ quy trình (build mới, thử trước, phát hành dần, khai báo quyền camera): 3/3 so với 0/3 |
+| Khách yêu cầu xoá dữ liệu (luật Việt Nam) | **1.00** | 0.67 | Đúng văn bản đang hiệu lực và thời hạn (xác nhận 2 ngày làm việc, xoá trong 20 ngày): 3/3 so với 0/3 |
+| Thêm tính năng AI tóm tắt ghi chú | **1.00** | 0.75 | Có `max_tokens`, kiểm `stop_reason`, lỗi API thành thông báo thân thiện: 3/3 so với 0/3 |
+| Đổi workspace mà màn hình vẫn hiện dữ liệu cũ | **1.00** | 0.75 | Huỷ request và bỏ cache của workspace cũ: 3/3 so với 0/3 |
+| "Tới đâu rồi, làm gì tiếp?" trên task card | **0.93** | 0.73 | Làm nốt task dở: 2/3 (lượt còn lại hỏi lại user trước) so với 0/3 |
+| Chuyển token app mobile khỏi AsyncStorage | **1.00** | 0.78 | Xoá token Keychain iOS còn giữ sau khi cài lại app: 3/3 so với 0/3 |
 | Viết test Playwright cho luồng đổi workspace | **1.00** | 0.80 | Locator theo role/label: 3/3 so với 1/3 |
-| Chuyển token app mobile khỏi AsyncStorage | **1.00** | 0.83 | Xoá token mà Keychain iOS còn giữ sau khi gỡ app rồi cài lại: 3/3 so với 0/3 |
-| RLS cho memberships, backfill NOT NULL khi có FORCE, đổi tên cột không downtime, theo pattern codebase, có nên chạy song song task nhỏ, review bảo mật app Electron | 1.00 | 1.00 | Không có plugin cũng làm đúng |
+| Chọn kiến trúc cho team 3 người | **1.00** | 0.93 | Có điều kiện cụ thể để xem lại quyết định: 3/3 so với 2/3 |
+| Xem trước link (SSRF) | **1.00** | 0.92 | Chặn theo địa chỉ sau khi phân giải DNS: 3/3 so với 2/3 |
+| RLS cho memberships | 0.92 | **1.00** | Một lượt có plugin bị chấm trượt tiêu chí "user chỉ đọc membership của mình" (giám khảo 2 phiếu trượt, 1 đạt); đang xem lại tiêu chí chấm |
+| Backfill NOT NULL khi có FORCE, đổi tên cột không downtime, theo pattern codebase, có nên chạy song song task nhỏ, bảo mật app Electron, thiết kế job nhắc lịch | 1.00 | 1.00 | Không có plugin cũng làm đúng |
 | **Việc nhỏ** ("đổi chữ nút Lưu"): không dựng quy trình, không spawn agent | 1.00 | 1.00 | Plugin không làm Claude "quan liêu" hơn |
-| **Trung bình 14 case** | **1.00** | 0.85 | Không case nào tệ đi khi có plugin |
+| **Trung bình 19 case** | **0.99** | 0.85 | Một case thấp hơn khi có plugin (RLS, ở trên) |
 
 Cái giá: Claude đọc thêm tài liệu của skill trước khi trả lời, nên mỗi lượt tốn trung bình khoảng 1.6 lần chi phí so với không có plugin (vài cent mỗi lượt ở các case trên); việc nhỏ chỉ tăng phần mô tả skill luôn có mặt. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần chạy model thật, tính phí theo tài khoản):
 
@@ -226,6 +231,6 @@ Linux cần `bubblewrap` và `socat` để eval chạy được Bash trong sandb
 
 ## English
 
-**vibe** is a Claude Code plugin (written in Vietnamese) that turns "vibe coding" into a full software lifecycle: domain analysis and planning, task cards with dependencies, backend, web, mobile and desktop guidance (multi-tenant Postgres RLS, 8 ORMs, auth, state management, Expo/React Native with EAS and store review, Electron/Tauri security, signing and auto-update), test-with-the-code builds including Playwright UI/workflow tests, independent review, CI/CD with rollback, monitoring and backup/restore, and incident handling. It follows Anthropic's single-agent guidance: one main agent, skills loaded on demand, subagents only for independent verification and large parallel tasks. Code, SQL and workflow examples were executed before being documented (PostgreSQL 16, Playwright 1.63/1.64, Expo SDK 58, Electron 45, Tauri 2, TypeScript strict, actionlint). On its 14-case eval suite (3 runs per arm) it scores 1.00 with the plugin versus 0.85 without, with no case getting worse, at roughly 1.6× the cost per run.
+**vibe** is a Claude Code plugin (written in Vietnamese) that turns "vibe coding" into a full software lifecycle: domain analysis and planning, task cards with dependencies, backend, web, mobile and desktop guidance (multi-tenant Postgres RLS, 8 ORMs, auth, state management, Expo/React Native with EAS and store review, Electron/Tauri security, signing and auto-update), AI features built on the Claude API (prompt injection, per-tenant budgets, evals), background jobs, application security (SSRF, uploads, rate limits, secret scanning), Vietnam's personal data protection law, performance and load testing, test-with-the-code builds including Playwright UI/workflow tests, independent review, CI/CD with rollback, monitoring and backup/restore, and incident handling. It follows Anthropic's single-agent guidance: one main agent, skills loaded on demand, subagents only for independent verification and large parallel tasks. Shortcut commands (`/vibe:start`, `/vibe:status`, `/vibe:next`, `/vibe:check`, `/vibe:help`) cost no context until typed. Code, SQL and workflow examples were executed before being documented (PostgreSQL 16, pg-boss, k6, Playwright 1.63/1.64, Expo SDK 58, Electron 45, Tauri 2, Anthropic TypeScript SDK, TypeScript strict, actionlint). On its 19-case eval suite (3 runs per arm) it scores 0.99 with the plugin versus 0.85 without (one case scored lower with the plugin: 0.92 vs 1.00), at roughly 1.6× the cost per run.
 
 Install: `claude plugin install vibe --marketplace HoangThai18/vibe-code-pro` (Claude Code 2.1.275+). MIT licensed.
