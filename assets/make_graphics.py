@@ -263,23 +263,23 @@ def terminal():
             css.append(f"@keyframes ln{i} {{ 0%, {p-0.01:.2f}% {{ opacity: 0; }} {p:.2f}%, {hold_end*100:.2f}% {{ opacity: 1; }} {hold_end*100+2:.2f}%, 100% {{ opacity: 0; }} }}")
             css.append(f".l{i} {{ animation: ln{i} {total}s linear infinite; }}")
             color = "#CBD5E1"
-            if text.startswith(("Tiến độ", "Đang", "Sẵn sàng", "Chờ")):
-                color = "#F0ABFC" if not text.startswith("Tiến độ") else "#F8FAFC"
+            if text.startswith(("Progress", "In progress", "Running", "Ready", "Waiting")):
+                color = "#F0ABFC" if not text.startswith("Progress") else "#F8FAFC"
             if "██" in text or "░" in text:
                 color = "#22D3EE"
             y = top + i * lh
             rows.append(f'<text class="ln l{i}" x="{left}" y="{y}" font-family="{MONO}" font-size="16" fill="{color}" xml:space="preserve">{E(text)}</text>')
     last_y = top + (len(lines)) * lh
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">
-<title id="t">tasks.py: tiến độ và việc tiếp theo</title>
-<desc id="d">Output thật của tasks.py status và next trên dự án mẫu mini-crm.</desc>
+<title id="t">tasks.py: progress and next task</title>
+<desc id="d">Real output of tasks.py status and next on the mini-crm example project.</desc>
 <defs>{bg_defs(W, H)}
   <style>{"".join(css)}</style>
 </defs>
 {backdrop(W, H, [(900, 60, 150, "#7C3AED"), (120, H-40, 140, "#0891B2")])}
 <rect x="0" y="0" width="{W}" height="48" fill="#FFFFFF" fill-opacity="0.04" clip-path="url(#card)"/>
 <circle cx="30" cy="24" r="7" fill="#FF5F57"/><circle cx="54" cy="24" r="7" fill="#FEBC2E"/><circle cx="78" cy="24" r="7" fill="#28C840"/>
-<text x="{W/2}" y="30" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#94A3B8">~/spa-crm · tasks.py (output thật, dự án mẫu mini-crm)</text>
+<text x="{W/2}" y="30" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#94A3B8">~/spa-crm · tasks.py (real output, mini-crm example)</text>
 {"".join(rows)}
 <rect class="cur" x="{left}" y="{last_y - 16}" width="10" height="20" fill="#22D3EE"/>
 </svg>'''
