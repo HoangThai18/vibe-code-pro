@@ -4,7 +4,8 @@
   "version": "0.4.0",
   "description": "Quy trình phát triển phần mềm đầy đủ cho Claude Code theo kiểu một agent chính + skills + tools: plan, chia task, backend, frontend web, app mobile (iOS, Android), app desktop, build và test, review, ship và vận hành, sửa bug và sự cố.",
   "author": {
-    "name": "LovinBot"
+    "name": "thaiphan",
+    "url": "https://github.com/HoangThai18"
   },
   "homepage": "https://github.com/HoangThai18/vibe-code-pro",
   "repository": "https://github.com/HoangThai18/vibe-code-pro",

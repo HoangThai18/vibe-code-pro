@@ -85,7 +85,7 @@ Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không
 claude plugin install vibe --marketplace HoangThai18/vibe-code-pro    # Claude Code 2.1.275 trở lên
 ```
 
-Bản Claude Code cũ hơn: `claude plugin marketplace add HoangThai18/vibe-code-pro` rồi `claude plugin install vibe@lovinbot-skills` (trong phiên thì dùng `/plugin ...` tương ứng). Cập nhật: `claude plugin marketplace update lovinbot-skills`.
+Bản Claude Code cũ hơn: `claude plugin marketplace add HoangThai18/vibe-code-pro` rồi `claude plugin install vibe@vibe-code-pro` (trong phiên thì dùng `/plugin ...` tương ứng). Cập nhật: `claude plugin marketplace update vibe-code-pro`.
 
 **Thử từ thư mục đã clone:**
 

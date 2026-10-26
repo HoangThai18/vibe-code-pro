@@ -1,8 +1,9 @@
 {
-  "name": "lovinbot-skills",
+  "name": "vibe-code-pro",
   "description": "Bộ skill Claude Code cho vibe code chuyên nghiệp",
   "owner": {
-    "name": "LovinBot"
+    "name": "thaiphan",
+    "url": "https://github.com/HoangThai18"
   },
   "plugins": [
     {
