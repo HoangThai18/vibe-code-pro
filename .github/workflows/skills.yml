@@ -1,0 +1,34 @@
+# .github/workflows/skills.yml: validate skills against the Agent Skills standard
+name: Skills
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install skills-ref==0.1.1
+      - name: Domain skills follow the standard strictly
+        run: |
+          for d in plugins/vibe/skills/*/; do
+            case "$(basename "$d")" in
+              vibe-help|vibe-start|vibe-status|vibe-next|vibe-check) continue ;;   # commands keep two extra fields
+            esac
+            agentskills validate "$d"
+          done
+      - name: No agent-specific variables, names match folders
+        run: |
+          if grep -rn 'CLAUDE_SKILL_DIR' plugins/vibe/skills; then echo 'remove CLAUDE_SKILL_DIR'; exit 1; fi
+          for f in plugins/vibe/skills/*/SKILL.md; do
+            name=$(sed -n 's/^name: //p' "$f" | head -1)
+            test "$name" = "$(basename "$(dirname "$f")")" || { echo "name mismatch in $f"; exit 1; }
+          done
+      - name: Task script works on the example
+        run: python3 plugins/vibe/skills/vibe-tasks/scripts/tasks.py check --dir plugins/vibe/skills/vibe-tasks/examples/mini-crm

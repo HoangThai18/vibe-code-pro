@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="t d">
-<title id="t">vibe: bộ skill Claude Code cho phát triển phần mềm thật</title>
-<desc id="d">Logo vibe và 12 skill: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix, lần lượt sáng lên. Cho web, app mobile, app desktop và tính năng AI.</desc>
+<title id="t">vibe: Agent Skills for shipping real software</title>
+<desc id="d">The vibe logo and 12 skills: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix, lighting up in turn. Works with Claude Code, Codex, Cursor, Copilot, Gemini CLI and OpenCode.</desc>
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#0A0F24"/><stop offset="1" stop-color="#141A3A"/>
@@ -44,14 +44,14 @@
 <g>
   <rect x="64" y="56" width="292" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.18"/>
   <circle cx="86" cy="74" r="5" fill="#34D399"/>
-  <text x="100" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="16" fill="#E2E8F0">Claude Code plugin · open source</text>
+  <text x="100" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="16" fill="#E2E8F0">Agent Skills · any coding agent</text>
 </g>
 <g clip-path="url(#titleClip)">
   <rect class="shine" x="-640" y="90" width="1920" height="200" fill="url(#titleGrad)"/>
 </g>
-<text x="64" y="312" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="30" font-weight="650" fill="#F8FAFC">Bộ skill để vibe code ra phần mềm thật</text>
-<text x="64" y="352" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="20" fill="#94A3B8">nghiệp vụ → plan → task → code + test → review → deploy → vận hành</text>
-<text x="64" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="17" fill="#A5B4FC">web · mobile · desktop · AI · /vibe:start → /vibe:next → /vibe:check</text>
+<text x="64" y="312" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="30" font-weight="650" fill="#F8FAFC">Agent Skills for shipping real software</text>
+<text x="64" y="352" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="20" fill="#94A3B8">domain → plan → tasks → code + tests → review → deploy → operate</text>
+<text x="64" y="386" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="17" fill="#A5B4FC">Claude Code · Codex · Cursor · Copilot · Gemini CLI · OpenCode</text>
 <g class="chip">
   <rect x="796" y="96" width="142" height="48" rx="14"/>
   <rect class="glow0" x="796" y="96" width="142" height="48" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
@@ -101,5 +101,5 @@
   <rect class="glow11" x="1108" y="276" width="142" height="48" rx="14" style="fill:url(#chipGrad);stroke:none" fill-opacity="0"/>
   <text x="1179.0" y="307" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas, 'Liberation Mono', monospace" font-size="16">fix</text>
 </g>
-<text x="796" y="358" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15" fill="#64748B">12 skill · 5 lệnh tắt · 2 agent</text>
+<text x="796" y="358" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="15" fill="#64748B">12 skills · 5 commands · 2 subagents</text>
 </svg>

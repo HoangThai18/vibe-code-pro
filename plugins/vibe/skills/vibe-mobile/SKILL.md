@@ -24,7 +24,7 @@ Expo, React Native and Flutter change APIs between versions. Check the installed
 ## Rules that always apply
 
 1. **Installed apps cannot be rolled back.** Old versions keep running on users' phones for months. The API must stay compatible with every supported app version; have a minimum-version mechanism to force updates when truly needed (`references/release.md` section 6).
-2. **Tokens live only in Keychain/Keystore** (`expo-secure-store`, `flutter_secure_storage`), never in AsyncStorage or plain SharedPreferences. Never embed server secrets in the app: anyone can unpack the app file.
+2. **Tokens live only in Keychain/Keystore** (`expo-secure-store`, `flutter_secure_storage`), never in AsyncStorage or plain SharedPreferences. iOS Keychain survives uninstall: clear leftover tokens on the first launch after install (`references/app-data.md`). Never embed server secrets in the app: anyone can unpack the app file.
 3. **Flaky networks are normal.** Every screen has loading, error and offline states. Writes send an idempotency key so a retry does not create duplicates.
 4. **Tenant and session work as on web**: tenant in the request (path), cache keyed by tenant; switching workspace drops the old workspace's cache; logout deletes token, cache and offline data and unregisters the device from push.
 5. **Ask for permissions at the right moment** (right before the feature is used) and explain why. If the user declines, the app still works with only that feature disabled.
