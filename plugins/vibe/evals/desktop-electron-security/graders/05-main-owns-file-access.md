@@ -1,7 +1,9 @@
 ---
 type: llm
-focus: files
+focus:
+  source: file
+  path: main.js
 ---
 
-PASS if the main process opens the file picker itself (dialog.showOpenDialog) and reads the chosen file, and the preload exposes only a task-specific function through contextBridge (not ipcRenderer itself, not a generic readFile(path) that takes a path from the renderer).
-FAIL if the renderer can still pass an arbitrary path to be read, or the preload exposes ipcRenderer or a generic file API.
+PASS if main.js opens the file picker itself (dialog.showOpenDialog or showOpenDialogSync) inside an IPC handler and reads the chosen file there, so the renderer never supplies the path to read.
+FAIL if an IPC handler reads a file path sent by the renderer, or main.js has no IPC handler for the import.

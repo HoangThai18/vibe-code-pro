@@ -1,6 +1,6 @@
 ---
 name: mobile
-description: "Làm app mobile iOS và Android: chọn cách làm (Expo/React Native, Flutter, native, PWA), điều hướng, lưu token an toàn (Keychain/Keystore), offline và đồng bộ, push, deep link, xin quyền, test (Jest, Maestro), build và lên App Store/Google Play, OTA update, buộc bản cũ cập nhật. Dùng khi user làm app điện thoại hoặc nhắc 'mobile', 'app iOS', 'app Android', 'React Native', 'Expo', 'Flutter', 'TestFlight', 'lên store', 'EAS', 'push notification', 'deep link'. Web trên trình duyệt điện thoại thì dùng skill frontend."
+description: "Làm app mobile iOS và Android: chọn cách làm (Expo/React Native, Flutter, native, PWA), điều hướng, lưu token an toàn (Keychain/Keystore), offline và đồng bộ, push, deep link, xin quyền, test (Jest, Maestro), build và lên App Store/Google Play, OTA update, buộc bản cũ cập nhật. Dùng khi user làm app điện thoại hoặc nhắc 'mobile', 'app iOS', 'app Android', 'React Native', 'Expo', 'Flutter', 'TestFlight', 'lên store', 'EAS Build', 'EAS Update', 'OTA', 'push notification', 'deep link'. Web trên trình duyệt điện thoại thì dùng skill frontend."
 ---
 
 # Mobile: app iOS và Android
