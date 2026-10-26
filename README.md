@@ -1,236 +1,234 @@
 <p align="center">
-  <img src="assets/hero.svg" width="100%" alt="vibe: bộ skill Claude Code để vibe code ra phần mềm thật. 12 skill: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix.">
+  <img src="assets/hero.svg" width="100%" alt="vibe: Agent Skills for shipping real software. 12 skills: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix. Works with Claude Code, Codex, Cursor, Copilot, Gemini CLI and OpenCode.">
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-7C3AED?style=flat-square"></a>
-  <a href="https://code.claude.com/docs/en/plugins"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-0891B2?style=flat-square"></a>
-  <img alt="12 skills, 5 shortcut commands, 2 agents" src="https://img.shields.io/badge/skills-12%20·%20lệnh%20tắt%205%20·%20agents%202-DB2777?style=flat-square">
-  <img alt="Examples verified on PostgreSQL 16 and Playwright" src="https://img.shields.io/badge/ví%20dụ-đã%20chạy%20thật-059669?style=flat-square">
-  <a href="plugins/vibe/evals"><img alt="Eval: 0.99 with plugin vs 0.85 without, 19 cases" src="https://img.shields.io/badge/eval-0.99%20có%20plugin%20·%200.85%20không-F59E0B?style=flat-square"></a>
+  <a href="https://agentskills.io"><img alt="Agent Skills standard" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
+  <img alt="12 skills, 5 commands, 2 subagents" src="https://img.shields.io/badge/skills-12%20·%20commands%205%20·%20subagents%202-DB2777?style=flat-square">
+  <img alt="Examples executed" src="https://img.shields.io/badge/examples-executed-059669?style=flat-square">
+  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.99 with the skills vs 0.85 without, 19 cases" src="https://img.shields.io/badge/eval-0.99%20with%20·%200.85%20without-F59E0B?style=flat-square"></a>
 </p>
 
-<p align="center"><b>Tiếng Việt</b> · <a href="#english">English</a></p>
+<p align="center"><b>English</b> · <a href="README.vi.md">Tiếng Việt</a></p>
 
-Vibe code thì nhanh, nhưng phần mềm chạy thật cần thêm nhiều thứ mà prompt hay bỏ quên: hiểu đúng nghiệp vụ, test đi cùng code, dữ liệu khách này không lộ sang khách kia, migration không làm sập bản đang chạy, có đường rollback, backup đã restore thử. **vibe** gói những kinh nghiệm đó thành 12 skill cho Claude Code, cho cả web, app mobile (iOS, Android), app desktop (Windows, macOS, Linux) và tính năng AI trong app. Claude tự gọi đúng skill theo câu bạn nói, và chỉ đọc phần tài liệu cần cho việc đang làm.
+Vibe coding is fast. Real software needs what prompts tend to forget: getting the domain right, tests that ship with the code, one customer's data never leaking to another, migrations that don't break the running version, a rollback path, backups that were actually restored. **vibe** packs that experience into 12 [Agent Skills](https://agentskills.io) for web, mobile (iOS, Android), desktop (Windows, macOS, Linux) and AI features. Your agent picks the right skill from what you say and reads only the part it needs.
+
+The skills are written in English so every agent reads them the same way, and they work with any agent that supports the open Agent Skills standard: Claude Code, OpenAI Codex, Cursor, GitHub Copilot, Gemini CLI, OpenCode, Cline, Goose, Roo Code, Amp, Windsurf and more. The agent answers in your language.
+
+## Install
+
+**Any agent** (the [`skills`](https://github.com/vercel-labs/skills) installer copies the skills into each agent's folder):
+
+```bash
+npx skills add HoangThai18/vibe-code-pro
+```
+
+**Claude Code plugin** (adds the two subagents; Claude Code 2.1.275+):
 
 ```bash
 claude plugin install vibe --marketplace HoangThai18/vibe-code-pro
 ```
 
-Rồi gõ `/vibe:start` kèm ý tưởng, hoặc cứ nói chuyện bình thường: *"phân tích nghiệp vụ app đặt lịch spa"*, *"tới đâu rồi?"*, *"làm tiếp"*, *"lỗi 500 khi tạo khách"*, *"deploy lên staging"*.
+**Manual**: copy `plugins/vibe/skills/*` into the folder your agent reads.
 
-### Lệnh nhanh
-
-| Gõ | Để làm gì |
-|---|---|
-| `/vibe:start <ý tưởng>` | Bắt đầu: dự án mới thì phân tích nghiệp vụ, lên plan, chia task; dự án có sẵn thì khảo sát code, tạo `CLAUDE.md` |
-| `/vibe:status` | Tới đâu rồi: tiến độ, task đang làm, task bị chặn, việc nên làm tiếp |
-| `/vibe:next [P1-T03]` | Làm việc tiếp theo (hoặc đúng task đó): code kèm test, cập nhật task card |
-| `/vibe:check` | Kiểm trước khi merge: test, review độc lập, PASS hoặc BLOCK |
-| `/vibe:fix <mô tả lỗi>` | Sửa bug, xử lý sự cố |
-| `/vibe:ship <việc>` | Deploy, rollback, backup, giám sát |
-| `/vibe:help` | Bảng lệnh và gợi ý lệnh nên dùng tiếp theo trạng thái dự án |
-
-Một vòng làm việc: `/vibe:start` → `/vibe:next` → `/vibe:check` → merge → `/vibe:next`... Quên lệnh thì gõ `/vibe:help` hoặc nói bằng lời. Lệnh tắt chỉ chạy khi bạn gõ, không chiếm token nào trong phiên.
-
-## Quy trình
-
-<p align="center">
-  <img src="assets/flow.svg" width="100%" alt="Ý tưởng → plan → tasks → build → review → ship → chạy thật. Build dùng skill architecture, backend, frontend, mobile, desktop, ai. Có lỗi thì qua fix rồi quay lại tasks.">
-</p>
-
-Thiết kế theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills + tools**. Kiến thức chuyên môn nằm trong skill và chỉ nạp khi cần (progressive disclosure); sub-agent chỉ dùng khi thật sự đáng: kiểm chứng độc lập, chạy song song các task lớn và độc lập, hoặc khảo sát một lượng code rất lớn mà chỉ cần kết luận. Phần luôn có mặt trong mỗi phiên chỉ là mô tả ngắn của 12 skill và 2 agent, khoảng 4.1k token (theo `claude plugin details`; 5 lệnh tắt không tính vì chỉ nạp khi bạn gõ); hỏi về rollback thì chỉ đọc thêm `release-rollback.md`, không nạp cả bộ.
-
-| Skill | Lo phần | Tài liệu nạp khi cần |
-|---|---|---|
-| `plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase, chọn công cụ cho Claude (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 6 template |
-| `tasks` | Task card có deps và file sẽ đụng, tiến độ, việc tiếp theo, handoff giữa các phiên | `tasks.py`, template, ví dụ mini CRM |
-| `architecture` | Code theo đúng quy ước của codebase; chọn kiến trúc hợp với yêu cầu (modular monolith, layered, hexagonal, DDD, CQRS, event-driven, microservices); SOLID, pattern, refactor | codebase-conventions, architecture-styles, ddd, design-principles |
-| `backend` | Schema, index, transaction, migration an toàn, ORM (Prisma, Drizzle, TypeORM, Sequelize, SQLAlchemy, Django, GORM, ActiveRecord), multi-tenant + Postgres RLS, API contract, xác thực và phân quyền, **job nền** (hàng đợi, retry, cron), **bảo mật ứng dụng** (upload, SSRF, rate limit, quét secret), **dữ liệu cá nhân theo luật Việt Nam** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy |
-| `frontend` | Web: UI theo mockup (Claude Design, Figma), motion, state/store (TanStack Query, Zustand, Redux, Pinia...), đổi workspace an toàn | design-to-code, motion-spec, state-management |
-| `mobile` | App iOS và Android: chọn stack (Expo / React Native, Flutter, native, PWA), token trong Keychain/Keystore, offline và hàng đợi ghi, push, deep link, test (Jest, Maestro), EAS Build, OTA update, duyệt store, buộc cập nhật | choose-stack, app-data, platform-features, testing, release |
-| `desktop` | App Windows, macOS, Linux: chọn Tauri / Electron / PWA, cấu hình bảo mật Electron (isolation, sandbox, IPC kiểm nguồn gửi), lưu token qua kho khoá hệ điều hành, test bằng Playwright, ký số, notarize, tự cập nhật | choose-stack, security, app-data, testing, release |
-| `ai` | Tính năng AI trong app: gọi Claude API từ server, structured output, streaming, chống prompt injection, cô lập tenant, ngân sách và usage theo tenant, test không tốn tiền, eval chất lượng | design, integration, safety, cost, testing |
-| `build` | Một agent làm cả code lẫn test cho từng task, chọn mức test, **test giao diện và luồng người dùng bằng Playwright**, khi nào mới chạy song song | testing, e2e-playwright, parallel, agent-brief |
-| `review` | Nghiệm thu có bằng chứng, verifier độc lập, verdict PASS / BLOCK, báo cáo | checklist |
-| `ship` | CI/CD, deploy kèm migration đúng thứ tự, feature flag, **rollback**, giám sát, **backup và restore**, bảo trì, **hiệu năng và kiểm tải** (k6, query chậm, Web Vitals) | ci-cd, release-rollback, observability, backup-restore, maintenance, performance |
-| `fix` | Sửa bug bằng test tái hiện trước, sự cố production, nghi lộ dữ liệu, postmortem | template POSTMORTEM |
-
-| Agent | Khi nào dùng |
-|---|---|
-| `verifier` | Review độc lập: ngữ cảnh mới, chỉ đọc, chạy kiểm tra và soi diff, không bị neo vào cách nghĩ của người viết code |
-| `implementer` | Chỉ khi chạy song song nhiều task **lớn và độc lập**, mỗi agent một git worktree. Mặc định session chính tự làm |
-
-## Tiến độ nằm trong repo, không nằm trong trí nhớ của chat
-
-<p align="center">
-  <img src="assets/terminal.svg" width="90%" alt="Output thật của tasks.py status và tasks.py next trên dự án mẫu mini-crm: tiến độ theo phase, task đang làm, task sẵn sàng, task chờ deps.">
-</p>
-
-Task card là file Markdown trong `docs/tasks/`, nên phiên nào, máy nào cũng làm tiếp được. `tasks.py` (Python 3.8+, không cần cài thêm) kiểm lỗi deps, xếp thứ tự, phát hiện hai task cùng sửa một file, và gợi ý đúng một việc tiếp theo. Thử ngay với dữ liệu mẫu:
+| Agent | Project folder | User folder | Run a command |
+|---|---|---|---|
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` | `/vibe-start` |
+| OpenAI Codex | `.agents/skills/` | `~/.agents/skills/` | `$vibe-start` |
+| Cursor | `.agents/skills/` or `.cursor/skills/` | `~/.cursor/skills/` | `/vibe-start` |
+| GitHub Copilot (VS Code, CLI) | `.github/skills/` or `.agents/skills/` | `~/.copilot/skills/` | `/vibe-start` |
+| Gemini CLI | `.agents/skills/` or `.gemini/skills/` | `~/.gemini/skills/` | ask: "use vibe-start" |
+| OpenCode | `.agents/skills/` or `.opencode/skills/` | `~/.config/opencode/skills/` | ask: "use vibe-start" |
+| Cline, Goose, Roo Code, Amp, Windsurf | `.agents/skills/` | `~/.agents/skills/` | `/vibe-start` (Windsurf: `@vibe-start`) |
+| Kiro, Junie, Factory | `.kiro/skills/`, `.junie/skills/`, `.factory/skills/` | same under `~/` | `/vibe-start` |
 
 ```bash
-S=plugins/vibe/skills/tasks
+git clone https://github.com/HoangThai18/vibe-code-pro
+mkdir -p .agents/skills && cp -r vibe-code-pro/plugins/vibe/skills/* .agents/skills/
+```
+
+Keep all skills together: they refer to each other by name (`vibe-backend`, `vibe-tasks`...). Project instructions go in `AGENTS.md`; the plan skill also writes a one-line `CLAUDE.md` (`@AGENTS.md`) because Claude Code reads that file instead.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/vibe-start <idea>` | New project: clarify, analyze the domain, plan, create task cards. Existing code: survey it, write `AGENTS.md`, create task cards |
+| `/vibe-status` | Where are we: progress, task in progress, blocked tasks, what to do next |
+| `/vibe-next [P1-T03]` | Do the next task (or that one): code with tests, update the task card |
+| `/vibe-check` | Before merging: tests, independent review, PASS or BLOCK |
+| `/vibe-fix <bug>` | Fix a bug or a production incident |
+| `/vibe-ship <task>` | Deploy, rollback, backup, monitoring |
+| `/vibe-help` | Command table and a suggestion based on the project's state |
+
+A loop: `/vibe-start` → `/vibe-next` → `/vibe-check` → merge → `/vibe-next`. You can also just talk: *"plan a booking app for spas"*, *"where are we?"*, *"continue"*, *"500 error when creating a customer"*.
+
+**Upgrading from 0.x**: every skill now has a `vibe-` prefix (`/vibe:start` → `/vibe-start`, `/vibe:check` → `/vibe-check`) and the skills are in English. New projects get `AGENTS.md`; an existing `CLAUDE.md` is kept and gains an `@AGENTS.md` line. Task cards and `docs/` need no change. Update with `claude plugin update vibe`, or run `npx skills add HoangThai18/vibe-code-pro` again.
+
+## Workflow
+
+<p align="center">
+  <img src="assets/flow.svg" width="100%" alt="Idea → plan → tasks → build → review → ship → live. Build uses the architecture, backend, frontend, mobile, desktop and ai skills. Bugs go to fix, then back to tasks.">
+</p>
+
+Following Anthropic's guidance for agents: **one main agent + skills + tools**. Knowledge lives in skills and loads on demand; subagents only where they pay off (independent review, large independent tasks in parallel). Every session carries only the short skill descriptions: about **3.6k tokens** for the 12 skills and 2 subagents (Claude Code's `plugin details` estimate). The 5 commands cost nothing until you type them in agents that honor `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
+
+| Skill | Covers | Loaded on demand |
+|---|---|---|
+| `vibe-plan` | Requirements, domain analysis, user/competitor/tech research, PRD, architecture, phases, dev tools (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 7 templates |
+| `vibe-tasks` | Task cards with deps and touched files, progress, next task, handoff between sessions | `tasks.py`, templates, mini CRM example |
+| `vibe-architecture` | Follow the codebase's conventions; pick an architecture that fits (modular monolith, layered, hexagonal, DDD, CQRS, events, microservices); SOLID, patterns, refactoring | codebase-conventions, architecture-styles, ddd, design-principles |
+| `vibe-backend` | Schema, indexes, transactions, safe migrations, 8 ORMs, multi-tenant + Postgres RLS, API contracts, auth, **background jobs**, **app security** (uploads, SSRF, rate limits, secret scanning), **Vietnam personal data law** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy |
+| `vibe-frontend` | Web UI from mockups (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), safe workspace switching | design-to-code, motion-spec, state-management |
+| `vibe-mobile` | iOS and Android: stack choice (Expo/React Native, Flutter, native, PWA), Keychain/Keystore tokens, offline outbox, push, deep links, tests (Jest, Maestro), EAS Build, OTA, store review, forced updates | choose-stack, app-data, platform-features, testing, release |
+| `vibe-desktop` | Windows, macOS, Linux: Tauri / Electron / PWA, Electron security (isolation, sandbox, IPC sender checks), OS keychain tokens, Playwright tests, signing, notarization, auto-update | choose-stack, security, app-data, testing, release |
+| `vibe-ai` | AI features in apps: Claude API from the server, structured output, streaming, prompt injection, tenant isolation, per-tenant budgets and usage, free tests, quality evals | design, integration, safety, cost, testing |
+| `vibe-build` | One agent writes code and tests per task, test levels, **Playwright UI and user-flow tests**, when to parallelize | testing, e2e-playwright, parallel, agent-brief |
+| `vibe-review` | Evidence-based acceptance, independent verifier, PASS / BLOCK, report | checklist |
+| `vibe-ship` | CI/CD, deploys with migrations in the right order, feature flags, **rollback**, monitoring, **backup and restore**, maintenance, **performance and load tests** (k6, slow queries, Web Vitals) | ci-cd, release-rollback, observability, backup-restore, maintenance, performance |
+| `vibe-fix` | Bug fixes that start with a failing repro test, production incidents, suspected data leaks, postmortems | POSTMORTEM template |
+
+| Subagent | When |
+|---|---|
+| `vibe-verifier` | Independent review: fresh context, read-only, runs checks and reads the diff without the author's reasoning. Without subagent support, the review skill uses a fresh session instead |
+| `vibe-implementer` | Only for running several **large, independent** tasks in parallel, one git worktree each. By default the main session does the work |
+
+## Progress lives in the repo, not in chat memory
+
+<p align="center">
+  <img src="assets/terminal.svg" width="90%" alt="Real output of tasks.py status and next on the mini-crm example: progress per phase, task in progress, ready tasks, tasks waiting on deps.">
+</p>
+
+Task cards are Markdown files in `docs/tasks/`, so any session on any machine can continue. `tasks.py` (Python 3.8+, no dependencies) checks deps, orders work, flags two tasks touching the same file and suggests exactly one next task:
+
+```bash
+S=plugins/vibe/skills/vibe-tasks
 python3 $S/scripts/tasks.py status --dir $S/examples/mini-crm
 python3 $S/scripts/tasks.py next   --dir $S/examples/mini-crm
 ```
 
-## Đã chạy thật, không chỉ viết ra
+## Executed, not just written
 
-Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không có. Các đoạn code, SQL, workflow trong bộ skill được chạy thử trước khi đưa vào:
+Wrong examples in docs for real software do more harm than no docs. Code, SQL and workflows were run before they went in. In 1.0.0 the prose was translated; code blocks are unchanged except comments and test titles (checked block by block).
 
-| Phần | Cách kiểm | Kết quả |
+| Area | How it was checked | Result |
 |---|---|---|
-| Multi-tenant SQL: RLS, policy đọc/ghi tách riêng, composite FK, kiểm membership theo request, tra workspace trước đăng nhập, Supabase | Chạy nguyên văn trên PostgreSQL 16 bằng role app, kèm các phép thử tấn công chéo tenant | Chặn đúng. Hai lỗ hổng của bản cũ đã được sửa: policy có `OR` cho ghi chéo tenant, và bảng tra slug ghi được bằng role app (chiếm slug của tenant khác) |
-| Backup và restore | `pg_dump` bằng role backup, restore sang cluster mới bằng admin **không** phải superuser, rồi kiểm owner, RLS, số dòng, migration tiếp theo | 0 lỗi. Quá trình kiểm bắt được 2 lỗi thật của tài liệu cũ (role backup thiếu quyền trên bảng mới; `ALTER DEFAULT PRIVILEGES` thiếu `FOR ROLE`) |
-| Test giao diện Playwright | 21 test (nhiều vai trò, giờ server/trình duyệt, mock lỗi, so ảnh, a11y) trên Chromium, lặp 5 lần × 4 worker, trên bản app thường, bản huỷ request khi đổi trang và bản có `role="alert"` sẵn như Next.js | Không chập chờn. Hai test đổi workspace fail mọi lần trên hai bản app cố ý cài lỗi (response cũ đè màn hình mới; giữ danh sách cũ lúc đang tải) |
-| Test cô lập tenant | Chạy trên app đúng và 3 bản lỗi: rò dữ liệu theo id, quên kiểm membership, route sai path | Bắt được cả 3; phần đối chứng bắt được trường hợp test "pass mà không kiểm gì" |
-| 8 ORM: Prisma 7, Drizzle, TypeORM, Sequelize, SQLAlchemy 2, Django, GORM, ActiveRecord | Mỗi ví dụ "trừ kho + tạo đơn" chạy trên PostgreSQL 16: còn hàng, hết hàng, và hai transaction tranh nhau cùng lúc | Đạt cả 8. Quá trình kiểm bắt được lỗi bán vượt tồn ở bản cũ (trừ kho không kiểm số dòng bị ảnh hưởng) |
-| Ví dụ TypeScript (DDD, state, auth, webhook, chặn bản app quá cũ bằng `426 app_update_required`) | `tsc --strict` + unit test | Đạt |
-| App mobile Expo SDK 58: điều hướng có guard, token trong SecureStore, API client, hàng đợi offline SQLite, push, test component, `app.config.ts`, `eas.json` | `tsc --strict`, Jest (jest-expo, React Native Testing Library 14) chạy cả khi chưa có cache; `eas.json` kiểm bằng bộ đọc cấu hình của `eas-cli`; đo runtime version theo từng biến thể | Đạt. Quá trình kiểm bắt được lỗi của bản nháp: thiếu `types: ["jest"]` với TypeScript 6, Jest không thoát vì hẹn giờ của QueryClient, test quá giờ trên CI chưa có cache, và quy trình OTA sai (mỗi biến thể có runtime version riêng; `eas update` không đọc `env` của profile build; thiếu `--environment`) |
-| App desktop: cấu hình bảo mật Electron (scheme `app://`, IPC kiểm nguồn gửi, chặn điều hướng), `safeStorage`; Tauri: capability, command Rust, updater | Electron 45 + Playwright 1.64 (`tsc --strict`, 100 lượt liên tiếp) trên app mẫu và 8 bản cố ý cấu hình sai; build Tauri 2.12 thật, ký file cập nhật | Bắt được cả 8 bản lỗi. Quá trình kiểm bắt được lỗi của bản nháp: test điều hướng bị treo, test path traversal không kiểm gì (URL tự chuẩn hoá `%2e%2e`), lỗi type, một test chập chờn, `safeStorage` dùng API đã deprecated |
-| Tính năng AI: gọi Claude API, structured output, streaming có huỷ, ngân sách và usage theo tenant | `@anthropic-ai/sdk` 1.3 với fetch giả (không gọi API thật), `tsc --strict`; bảng usage trên PostgreSQL 16; bỏ từng lớp bảo vệ xem test có bắt không | Đạt. Bỏ che số điện thoại, bỏ JSON hoá dữ liệu, bỏ huỷ stream, bỏ ghi usage hay bỏ kiểm ngân sách thì đều có test fail. Eval gọi API thật chưa chạy được vì môi trường kiểm không có API key |
-| Job nền với pg-boss: nhắc lịch hẹn, retry, dead letter, chạy theo lịch | pg-boss 12.38 trên PostgreSQL 16 có RLS `FORCE`, worker thật, nhà cung cấp SMS giả | 6 test đạt; bỏ UNIQUE, bỏ kiểm trạng thái, bỏ kiểm lịch đã huỷ hay nới cửa sổ thời gian thì có test fail |
-| Hiệu năng: `pg_stat_statements`, index, kiểm tải k6, Web Vitals | k6 1.8.2 vào API mẫu có 500.000 khách; Playwright 1.64 + `web-vitals` 6 | Thêm đúng index: p95 từ 2,74 giây xuống 1,97 ms ở cùng mức tải. Test ngân sách bắt được trang có CLS 0,23 |
-| Bảo mật ứng dụng: chống SSRF, kiểm file upload, rate limit, quét secret | Node 22, PostgreSQL 16, gitleaks 8.30 | 12 test đạt; bỏ từng lớp chặn SSRF thì có test fail; 50 request song song với giới hạn 10 thì đúng 10 request qua; gitleaks bắt được key giả kể cả khi file đã bị xoá |
-| Dữ liệu cá nhân: lưu đồng ý, hạn xử lý yêu cầu của chủ dữ liệu | PostgreSQL 16 có RLS; test hàm tính hạn | Đạt. Quá trình kiểm cho thấy view thiếu `security_invoker` (owner là superuser) để tenant B đọc được dữ liệu đồng ý của tenant A |
-| GitHub Actions (CI, deploy, E2E) | actionlint; script role cho CI chạy trên Postgres sạch | Đạt |
+| Multi-tenant SQL: RLS, split read/write policies, composite FKs, per-request membership check, workspace lookup before login, Supabase | Run verbatim on PostgreSQL 16 as the app role, with cross-tenant attack attempts | Blocked correctly. Two holes in an earlier draft were fixed: an `OR` policy allowing cross-tenant writes, and a slug table writable by the app role |
+| Backup and restore | `pg_dump` with the backup role, restore to a new cluster as a non-superuser admin, then check owners, RLS, row counts, next migration | 0 errors; found 2 real doc bugs (backup role missing grants on new tables; `ALTER DEFAULT PRIVILEGES` without `FOR ROLE`) |
+| Playwright UI tests | 21 tests (roles, server/browser time, error mocks, screenshots, a11y), 5 repeats × 4 workers, on a normal app, an app that aborts requests on navigation, and one with a Next.js-style `role="alert"` | No flakes; the two workspace-switch tests fail every time on two deliberately broken apps |
+| Tenant isolation tests | On a correct app and 3 broken ones (id leak, missing membership check, wrong path) | All 3 caught; the control caught a "passes without checking anything" test |
+| 8 ORMs: Prisma 7, Drizzle, TypeORM, Sequelize, SQLAlchemy 2, Django, GORM, ActiveRecord | "Deduct stock + create order" on PostgreSQL 16: in stock, out of stock, two concurrent transactions | All 8 pass; found an overselling bug in an earlier draft |
+| TypeScript examples (DDD, state, auth, webhooks, `426 app_update_required`) | `tsc --strict` + unit tests | Pass |
+| Mobile, Expo SDK 58: guarded navigation, SecureStore tokens, API client, SQLite outbox, push, component tests, `app.config.ts`, `eas.json` | `tsc --strict`, Jest with a cold cache, `eas.json` through `eas-cli`'s own config reader, runtime version per variant | Pass; found draft bugs (TypeScript 6 types, Jest not exiting, cold-cache timeouts, a wrong OTA flow) |
+| Desktop: Electron security (`app://` scheme, IPC sender checks, navigation blocking), `safeStorage`; Tauri capabilities, Rust command, updater | Electron 45 + Playwright 1.64 (100 consecutive runs) on a sample app and 8 deliberately misconfigured ones; real Tauri 2.12 build with signed updates | All 8 caught; found draft bugs (hanging navigation test, a traversal test that tested nothing, a flaky test, deprecated `safeStorage` API) |
+| AI features: Claude API, structured output, cancellable streaming, per-tenant budget and usage | `@anthropic-ai/sdk` 1.3 with a fake fetch, `tsc --strict`, usage table on PostgreSQL 16, safeguards removed one at a time | Pass; removing any of 5 safeguards fails a test. Evals against the real API were not run (no API key in the test environment) |
+| Background jobs with pg-boss: reminders, retries, dead letter, schedules | pg-boss 12.38 on PostgreSQL 16 with `FORCE` RLS, real worker, fake SMS provider | 6 tests pass; 4 removed safeguards each fail a test |
+| Performance: `pg_stat_statements`, indexes, k6, Web Vitals | k6 1.8.2 against a sample API with 500,000 customers; Playwright + `web-vitals` 6 | The right index took p95 from 2.74 s to 1.97 ms at the same load; the budget test caught a page with CLS 0.23 |
+| App security: SSRF guard, upload checks, rate limiting, secret scanning | Node 22, PostgreSQL 16, gitleaks 8.30 | 12 tests pass; removing each SSRF layer fails a test; 50 parallel requests with a limit of 10 let exactly 10 through; gitleaks caught a planted key even after the file was deleted |
+| Personal data: consent log, request deadlines | PostgreSQL 16 with RLS; deadline tests | Pass; found that a view without `security_invoker` (superuser owner) leaked tenant A's consents to tenant B |
+| GitHub Actions (CI, deploy, E2E, load test, security) | actionlint | Pass |
+| Agent Skills format | `agentskills validate` (reference validator) on all 12 domain skills, in CI | Pass |
 
-## Cài đặt
+Not run here: the skills inside agents other than Claude Code (no Codex, Cursor, Copilot or Gemini sessions were available in the test environment). They follow the standard and pass its validator; please report issues.
 
-**Qua GitHub (khuyên dùng):**
+## Evals: with and without the skills
 
-```bash
-claude plugin install vibe --marketplace HoangThai18/vibe-code-pro    # Claude Code 2.1.275 trở lên
-```
+`plugins/vibe/evals/` holds 19 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.0.0, run in Claude Code:
 
-Bản Claude Code cũ hơn: `claude plugin marketplace add HoangThai18/vibe-code-pro` rồi `claude plugin install vibe@vibe-code-pro` (trong phiên thì dùng `/plugin ...` tương ứng). Cập nhật: `claude plugin marketplace update vibe-code-pro`.
-
-**Thử từ thư mục đã clone:**
-
-```bash
-claude --plugin-dir ./plugins/vibe
-```
-
-**Copy thẳng vào một dự án** (lệnh thành `/vibe-start`, `/vibe-next`, `/vibe-plan`...):
-
-```bash
-# 1. Kiểm trùng tên: lệnh này phải không in ra gì. Có thì đổi tên thư mục/file của bạn trước.
-ls -d .claude/skills/{plan,tasks,architecture,backend,frontend,mobile,desktop,ai,build,review,ship,fix,help,start,status,next,check} .claude/agents/{verifier,implementer}.md 2>/dev/null
-
-# 2. Copy, rồi thêm tiền tố vibe- vào tên lệnh để không trùng lệnh có sẵn của Claude Code (vd /review)
-mkdir -p .claude/skills .claude/agents
-cp -r plugins/vibe/skills/* .claude/skills/
-cp plugins/vibe/agents/*.md .claude/agents/
-sed -i.bak 's/^name: /name: vibe-/' .claude/skills/{plan,tasks,architecture,backend,frontend,mobile,desktop,ai,build,review,ship,fix,help,start,status,next,check}/SKILL.md
-rm .claude/skills/{plan,tasks,architecture,backend,frontend,mobile,desktop,ai,build,review,ship,fix,help,start,status,next,check}/SKILL.md.bak
-```
-
-Giữ nguyên tên thư mục để các skill tìm thấy tài liệu của nhau.
-
-**Trên claude.ai:** `plan`, `architecture`, `backend`, `frontend`, `mobile`, `desktop`, `ai`, phần kế hoạch của `ship` và phương pháp của `fix` dùng được: nén từng thư mục skill thành `.zip` rồi tải lên ở mục Skills trong cài đặt. `tasks`, `build`, `review` cần Claude Code (git, script, sub-agent).
-
-## Dùng trong dự án
-
-- `CLAUDE.md`: skill `plan` tạo theo template (lệnh, quy ước, quy tắc bắt buộc). Mọi agent đều đọc file này.
-- Việc nhỏ (sửa chữ, đổi màu một nút) cứ làm thẳng: skill nào cũng có phần "cân đúng mức" để không dựng quy trình cho việc không cần.
-- Chỉ khi muốn chạy song song nhiều agent, thêm vào `.claude/settings.json` (và `.claude/worktrees/` vào `.gitignore`):
-
-```json
-{
-  "worktree": { "baseRef": "head" },
-  "permissions": {
-    "allow": ["Bash(pnpm test:*)", "Bash(pnpm typecheck)", "Bash(pnpm lint)", "Bash(pnpm install)", "Bash(git add:*)", "Bash(git commit:*)"]
-  }
-}
-```
-
-<details>
-<summary>File quy trình tạo trong dự án</summary>
-
-```text
-CLAUDE.md            lệnh, quy ước, quy tắc bắt buộc, ghi chú stack
-docs/domain/         DOMAIN.md: thuật ngữ, vai trò, quy trình, vòng đời, quy tắc BR-xx
-docs/research/       ghi chú research, so sánh thư viện, kết quả spike
-docs/plan/           PRD.md · ARCHITECTURE.md · PHASES.md
-docs/contracts/      danh sách endpoint, ví dụ payload
-docs/design/         kiểm kê design, motion spec, ảnh verify
-docs/tasks/          task card, vd P1-T03-customers-api.md
-docs/reviews/        báo cáo review
-docs/releases/       checklist release + kế hoạch rollback
-docs/postmortems/    postmortem sự cố
-docs/STATUS.md       tiến độ, quyết định, rủi ro
-docs/HANDOFF.md      lời nhắn cho phiên sau
-```
-</details>
-
-<details>
-<summary>Cấu trúc repo</summary>
-
-```text
-.claude-plugin/marketplace.json
-assets/              hình README + make_graphics.py
-plugins/vibe/
-├── .claude-plugin/plugin.json
-├── agents/          verifier · implementer
-├── evals/           case đánh giá chất lượng (claude plugin eval)
-└── skills/
-    ├── plan/          domain-analysis, tech-research, dev-tools · template PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, CLAUDE
-    ├── tasks/         scripts/tasks.py · template task, STATUS, HANDOFF · examples/mini-crm
-    ├── architecture/  codebase-conventions, architecture-styles, ddd, design-principles
-    ├── backend/       data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy
-    ├── frontend/      design-to-code, motion-spec, state-management
-    ├── mobile/        choose-stack, app-data, platform-features, testing, release
-    ├── desktop/       choose-stack, security, app-data, testing, release
-    ├── ai/            design, integration, safety, cost, testing
-    ├── build/         testing, e2e-playwright, parallel, agent-brief
-    ├── review/        checklist
-    ├── ship/          ci-cd, release-rollback, observability, backup-restore, maintenance, performance · template RELEASE
-    ├── fix/           template POSTMORTEM
-    └── help/ start/ status/ next/ check/   lệnh tắt (chỉ chạy khi gõ)
-```
-</details>
-
-## Đo chất lượng: có plugin và không có plugin
-
-`plugins/vibe/evals/` có 19 case là yêu cầu thật kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, gọi theo thứ tự nào (viết test trước khi sửa code), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có plugin và 3 lượt không có plugin (`claude plugin eval`, model mặc định của lệnh, judge mặc định). Kết quả bản 0.5.0:
-
-| Case | Có plugin | Không có | Khác biệt chính |
+| Case | With | Without | Main difference |
 |---|---|---|---|
-| Màn danh sách chậm, team định thêm Redis | **1.00** | 0.44 | Kiểm tải có ngưỡng trên staging: 3/3 so với 0/3; index theo tenant và cột sắp xếp: 3/3 so với 1/3 |
-| Sửa bug `slugify('Đường')` | **1.00** | 0.67 | Thấy test tái hiện fail trước khi sửa: 3/3 so với 0/3 |
-| Phát hành app mobile vừa thêm `expo-camera` qua EAS Update | **1.00** | 0.67 | Đủ quy trình (build mới, thử trước, phát hành dần, khai báo quyền camera): 3/3 so với 0/3 |
-| Khách yêu cầu xoá dữ liệu (luật Việt Nam) | **1.00** | 0.67 | Đúng văn bản đang hiệu lực và thời hạn (xác nhận 2 ngày làm việc, xoá trong 20 ngày): 3/3 so với 0/3 |
-| Thêm tính năng AI tóm tắt ghi chú | **1.00** | 0.75 | Có `max_tokens`, kiểm `stop_reason`, lỗi API thành thông báo thân thiện: 3/3 so với 0/3 |
-| Đổi workspace mà màn hình vẫn hiện dữ liệu cũ | **1.00** | 0.75 | Huỷ request và bỏ cache của workspace cũ: 3/3 so với 0/3 |
-| "Tới đâu rồi, làm gì tiếp?" trên task card | **0.93** | 0.73 | Làm nốt task dở: 2/3 (lượt còn lại hỏi lại user trước) so với 0/3 |
-| Chuyển token app mobile khỏi AsyncStorage | **1.00** | 0.78 | Xoá token Keychain iOS còn giữ sau khi cài lại app: 3/3 so với 0/3 |
-| Viết test Playwright cho luồng đổi workspace | **1.00** | 0.80 | Locator theo role/label: 3/3 so với 1/3 |
-| Chọn kiến trúc cho team 3 người | **1.00** | 0.93 | Có điều kiện cụ thể để xem lại quyết định: 3/3 so với 2/3 |
-| Xem trước link (SSRF) | **1.00** | 0.92 | Chặn theo địa chỉ sau khi phân giải DNS: 3/3 so với 2/3 |
-| RLS cho memberships | 0.92 | **1.00** | Một lượt có plugin bị chấm trượt tiêu chí "user chỉ đọc membership của mình" (giám khảo 2 phiếu trượt, 1 đạt); đang xem lại tiêu chí chấm |
-| Backfill NOT NULL khi có FORCE, đổi tên cột không downtime, theo pattern codebase, có nên chạy song song task nhỏ, bảo mật app Electron, thiết kế job nhắc lịch | 1.00 | 1.00 | Không có plugin cũng làm đúng |
-| **Việc nhỏ** ("đổi chữ nút Lưu"): không dựng quy trình, không spawn agent | 1.00 | 1.00 | Plugin không làm Claude "quan liêu" hơn |
-| **Trung bình 19 case** | **0.99** | 0.85 | Một case thấp hơn khi có plugin (RLS, ở trên) |
+| Slow list page, team wants to add Redis | **1.00** | 0.56 | Load test with thresholds on staging: 3/3 vs 0/3 |
+| Fix `slugify('Đường')` | **1.00** | 0.58 | Saw the repro test fail before fixing: 3/3 vs 0/3 |
+| Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines (acknowledge in 2 working days, delete in 20 days): 3/3 vs 0/3 |
+| Pick an architecture for a 3-person team | **1.00** | 0.73 | Concrete conditions for revisiting the decision: 3/3 vs 0/3 |
+| Move mobile tokens out of AsyncStorage | **0.94** | 0.72 | Clear Keychain tokens left over after a reinstall: 2/3 vs 0/3. After this run the mobile skill got one line on it; re-run of this case: 3/3 vs 0/3, score 1.00 |
+| AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, API errors become friendly messages: 3/3 vs 0/3 |
+| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.75 | Plan for users on old builds (gate the camera feature, OTA only for JS fixes): 3/3 vs 1/3 |
+| Switching workspace still shows old data | **1.00** | 0.75 | Cancel requests and drop the old workspace's cache: 3/3 vs 0/3 |
+| "Where are we, what's next?" on task cards | **0.93** | 0.80 | Right next step: 2/3 vs 1/3 (the failing run put P1-T02 first, as it should, but then planned P1-T03 before P1-T04) |
+| Playwright test for workspace switching | **1.00** | 0.87 | Role/label locators: 3/3 vs 1/3 |
+| Rename a column with no downtime | **1.00** | 0.93 | Old column's NOT NULL dropped (or given a default) before code stops writing it: 3/3 vs 2/3 |
+| NOT NULL backfill under FORCE RLS, RLS for memberships, link preview (SSRF), follow the codebase's patterns, parallel agents for small tasks?, Electron security, reminder job design | 1.00 | 1.00 | Done right without the skills too |
+| **Small change** ("rename the Save button"): no process docs, no agents | 1.00 | 1.00 | The skills don't add ceremony |
+| **Mean of 19 cases** | **0.99** | 0.85 | No case scores lower with the skills |
 
-Cái giá: Claude đọc thêm tài liệu của skill trước khi trả lời, nên mỗi lượt tốn trung bình khoảng 1.6 lần chi phí so với không có plugin (vài cent mỗi lượt ở các case trên); việc nhỏ chỉ tăng phần mô tả skill luôn có mặt. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần chạy model thật, tính phí theo tài khoản):
+Compared with 0.5.0 (Vietnamese skills), same cases and settings:
+
+| | 0.5.0 | 1.0.0 |
+|---|---|---|
+| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 |
+| Skill descriptions always in context | 4,581 tokens | 3,620 (−21%) |
+| SKILL.md bodies, all 12 domain skills | about 22,400 tokens | about 16,900 (−25%) |
+| Run cost with the skills, relative to without | 1.59× | 1.46× |
+| Runs where the skill loaded | 42/54 | 44/54 |
+
+The English skills still trigger on Vietnamese requests, and the agent answers in Vietnamese. The five commands (`vibe-help`, `vibe-start`...) are kept out of context until you type them.
+
+The cost: the agent reads skill docs before answering, so a run costs about 1.46× a run without the skills (a few cents per run in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
 
 ```bash
 claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
 ```
 
-Linux cần `bubblewrap` và `socat` để eval chạy được Bash trong sandbox.
+On Linux the eval sandbox needs `bubblewrap` and `socat` to run Bash.
 
-## Tuỳ biến và đóng góp
+## In your project
 
-- Checklist review riêng của team: `skills/review/references/checklist.md`; quy ước API: `skills/backend/references/api-conventions.md`.
-- Phát hành bản mới thì tăng `version` trong `plugins/vibe/.claude-plugin/plugin.json`.
-- Tác giả: thaiphan ([@HoangThai18](https://github.com/HoangThai18)).
-- Đóng góp: đọc [CONTRIBUTING.md](CONTRIBUTING.md). Nguyên tắc số một: ví dụ nào thêm vào cũng phải chạy được.
+- `AGENTS.md` (from the plan skill): commands, conventions, rules. Every agent reads it.
+- Small changes (a label, a color) are done directly: every skill has a "size it right" rule so it doesn't build process where none is needed.
+- Parallel agents are optional and need an agent that can run subagents or several sessions (Claude Code settings in `vibe-build`'s `references/parallel.md`).
 
-## English
+<details>
+<summary>Files the workflow creates</summary>
 
-**vibe** is a Claude Code plugin (written in Vietnamese) that turns "vibe coding" into a full software lifecycle: domain analysis and planning, task cards with dependencies, backend, web, mobile and desktop guidance (multi-tenant Postgres RLS, 8 ORMs, auth, state management, Expo/React Native with EAS and store review, Electron/Tauri security, signing and auto-update), AI features built on the Claude API (prompt injection, per-tenant budgets, evals), background jobs, application security (SSRF, uploads, rate limits, secret scanning), Vietnam's personal data protection law, performance and load testing, test-with-the-code builds including Playwright UI/workflow tests, independent review, CI/CD with rollback, monitoring and backup/restore, and incident handling. It follows Anthropic's single-agent guidance: one main agent, skills loaded on demand, subagents only for independent verification and large parallel tasks. Shortcut commands (`/vibe:start`, `/vibe:status`, `/vibe:next`, `/vibe:check`, `/vibe:help`) cost no context until typed. Code, SQL and workflow examples were executed before being documented (PostgreSQL 16, pg-boss, k6, Playwright 1.63/1.64, Expo SDK 58, Electron 45, Tauri 2, Anthropic TypeScript SDK, TypeScript strict, actionlint). On its 19-case eval suite (3 runs per arm) it scores 0.99 with the plugin versus 0.85 without (one case scored lower with the plugin: 0.92 vs 1.00), at roughly 1.6× the cost per run.
+```text
+AGENTS.md            commands, conventions, rules, stack notes (+ CLAUDE.md with @AGENTS.md)
+docs/domain/         DOMAIN.md: glossary, roles, workflows, lifecycles, BR-xx rules
+docs/research/       research notes, library comparisons, spike results
+docs/plan/           PRD.md · ARCHITECTURE.md · PHASES.md
+docs/privacy/        DATA-MAP.md: personal data, purposes, processors, retention
+docs/contracts/      endpoints, sample payloads
+docs/design/         design inventory, motion spec, verification screenshots
+docs/tasks/          task cards, e.g. P1-T03-customers-api.md
+docs/reviews/        review reports
+docs/releases/       release checklist + rollback plan
+docs/postmortems/    incident postmortems
+docs/STATUS.md       progress, decisions, risks
+docs/HANDOFF.md      notes for the next session
+```
+</details>
 
-Install: `claude plugin install vibe --marketplace HoangThai18/vibe-code-pro` (Claude Code 2.1.275+). MIT licensed.
+<details>
+<summary>Repository layout</summary>
+
+```text
+.claude-plugin/marketplace.json
+assets/              README images + make_graphics.py
+plugins/vibe/
+├── .claude-plugin/plugin.json
+├── agents/          vibe-verifier · vibe-implementer
+├── evals/           eval cases (claude plugin eval)
+└── skills/
+    ├── vibe-plan/          domain-analysis, tech-research, dev-tools · templates PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, AGENTS
+    ├── vibe-tasks/         scripts/tasks.py · templates task, STATUS, HANDOFF · examples/mini-crm
+    ├── vibe-architecture/  codebase-conventions, architecture-styles, ddd, design-principles
+    ├── vibe-backend/       data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy
+    ├── vibe-frontend/      design-to-code, motion-spec, state-management
+    ├── vibe-mobile/        choose-stack, app-data, platform-features, testing, release
+    ├── vibe-desktop/       choose-stack, security, app-data, testing, release
+    ├── vibe-ai/            design, integration, safety, cost, testing
+    ├── vibe-build/         testing, e2e-playwright, parallel, agent-brief
+    ├── vibe-review/        checklist
+    ├── vibe-ship/          ci-cd, release-rollback, observability, backup-restore, maintenance, performance · RELEASE template
+    ├── vibe-fix/           POSTMORTEM template
+    └── vibe-help/ vibe-start/ vibe-status/ vibe-next/ vibe-check/   commands (run only when typed)
+```
+</details>
+
+## Contributing
+
+- Read [CONTRIBUTING.md](CONTRIBUTING.md). Rule one: every example you add must run.
+- Team-specific review checklist: `vibe-review/references/checklist.md`; API conventions: `vibe-backend/references/api-conventions.md`.
+- Bump `version` in `plugins/vibe/.claude-plugin/plugin.json` for each release.
+- Author: thaiphan ([@HoangThai18](https://github.com/HoangThai18)). MIT licensed.

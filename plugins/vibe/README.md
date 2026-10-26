@@ -1,13 +1,7 @@
-# vibe (Vibe Code Pro)
+# vibe
 
-Bộ 11 skill và 2 agent cho Claude Code để vibe code ra phần mềm thật: phân tích nghiệp vụ và lên kế hoạch (`plan`), chia task và theo dõi tiến độ (`tasks`), code theo đúng kiến trúc của codebase (`architecture`), backend với DB, ORM, multi-tenant, Postgres RLS, xác thực và phân quyền (`backend`), frontend web theo design và quản lý state (`frontend`), app mobile iOS/Android với Expo, offline, push, phát hành qua store (`mobile`), app desktop với Electron/Tauri, bảo mật, ký số, tự cập nhật (`desktop`), làm code cùng test kể cả test giao diện bằng Playwright (`build`), nghiệm thu có bằng chứng với verifier độc lập (`review`), CI/CD, rollback, giám sát, backup và restore (`ship`), sửa bug và xử lý sự cố (`fix`).
+12 Agent Skills, 5 commands and 2 subagents for shipping real software with any coding agent (Claude Code, Codex, Cursor, Copilot, Gemini CLI, OpenCode...): planning and domain analysis (`vibe-plan`), task cards and progress (`vibe-tasks`), following the codebase's architecture (`vibe-architecture`), backend with multi-tenant Postgres RLS, ORMs, auth, jobs, security and personal data (`vibe-backend`), web frontend (`vibe-frontend`), mobile (`vibe-mobile`), desktop (`vibe-desktop`), AI features (`vibe-ai`), code with tests including Playwright (`vibe-build`), evidence-based review (`vibe-review`), CI/CD, rollback, monitoring, backups and performance (`vibe-ship`), bugs and incidents (`vibe-fix`).
 
-Skill tự kích hoạt theo câu nói tự nhiên, ví dụ "phân tích nghiệp vụ app đặt lịch spa", "tới đâu rồi, làm gì tiếp?", "làm task P1-T03", "deploy lên production", "lỗi 500 khi tạo khách". Không cần thiết lập gì thêm; chỉ khi muốn chạy song song nhiều agent mới cần thêm `worktree.baseRef: "head"` vào `.claude/settings.json`.
+Commands: `/vibe-start`, `/vibe-status`, `/vibe-next`, `/vibe-check`, `/vibe-help` (Codex: `$vibe-start`). Or just talk: "plan a booking app for spas", "where are we?", "500 error when creating a customer".
 
-Cài đặt (Claude Code 2.1.275 trở lên):
-
-```bash
-/plugin install vibe --marketplace HoangThai18/vibe-code-pro
-```
-
-Hướng dẫn đầy đủ, quy trình, và danh sách những gì đã được chạy kiểm chứng: xem README ở thư mục gốc của repo.
+Install (Claude Code 2.1.275+): `/plugin install vibe --marketplace HoangThai18/vibe-code-pro`. Other agents: `npx skills add HoangThai18/vibe-code-pro`. Full guide and verification notes: the repository README.

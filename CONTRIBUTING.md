@@ -1,27 +1,29 @@
-# Đóng góp cho vibe
+# Contributing to vibe
 
-Cảm ơn bạn muốn làm bộ skill tốt hơn. Người dùng sẽ làm theo những gì skill viết để xây phần mềm thật, nên tiêu chuẩn ở đây là **đúng trước, gọn sau**.
+Thanks for making the skills better. People follow these skills to build real software, so the bar is **correct first, short second**.
 
-## Nguyên tắc
+## Principles
 
-1. **Ví dụ phải chạy được.** Mọi đoạn code, SQL, YAML, lệnh shell thêm vào tài liệu phải được chạy thử trên version cụ thể (ghi version trong PR). SQL chạy trên PostgreSQL thật bằng đúng role mà tài liệu nói tới (role app không phải superuser). Workflow GitHub Actions qua `actionlint`. TypeScript qua `tsc --strict`.
-2. **Test phải bắt được lỗi.** Ví dụ test (cô lập tenant, Playwright...) cần được chạy cả trên bản code đúng lẫn bản cố ý cài lỗi, và fail ở bản lỗi.
-3. **Giữ một agent chính.** Đừng thêm sub-agent cho việc mà session chính làm được. Sub-agent chỉ cho kiểm chứng độc lập, chạy song song việc lớn và độc lập, hoặc đọc một lượng lớn tài liệu/code mà chỉ cần kết luận (giữ context chính gọn).
-4. **Nạp khi cần.** `SKILL.md` chỉ gồm: khi nào dùng, bảng chọn file tài liệu, vài quy tắc luôn áp dụng, phần "cân đúng mức". Chi tiết để trong `references/`; file trên 100 dòng có mục lục. Mô tả skill (`description`) dưới 1024 ký tự, không có dấu `<` `>`.
-5. **Viết tiếng Việt rõ ràng.** Giữ thuật ngữ tiếng Anh khi đó là tên gọi phổ biến (migration, rollback, worktree). Không viết kiểu marketing; nói điều cần làm và vì sao.
-6. **Không đoán API.** Thư viện đổi nhanh: kiểm tài liệu đúng version trước khi viết, và ghi rõ khi một chi tiết phụ thuộc version.
+1. **Examples must run.** Every code, SQL, YAML or shell snippet you add is run on a specific version (state it in the PR). SQL runs on real PostgreSQL as the role the doc talks about (the app role is not a superuser). GitHub Actions pass `actionlint`. TypeScript passes `tsc --strict`.
+2. **Tests must catch bugs.** Run example tests (tenant isolation, Playwright...) against correct code and against deliberately broken code; they must fail on the broken one.
+3. **One main agent.** Don't add a subagent for work the main session can do. Subagents are for independent verification, large independent work in parallel, or reading a lot when only the conclusion matters. Skills must still work in agents without subagents.
+4. **Load on demand, spend few tokens.** `SKILL.md` holds when to use it, a table pointing to reference files, a few always-on rules and a "size it right" note. Details go in `references/`; files over 100 lines get a table of contents. Write plain, direct English.
+5. **Agent Skills standard.** Domain skills use only `name` and `description` in frontmatter (`description` under 1024 characters, no `<` or `>`), end the description with a few Vietnamese trigger phrases, never use agent-specific variables such as `${CLAUDE_SKILL_DIR}`, and refer to other skills by name (`the vibe-backend skill`). Agent-specific features (subagents, Claude Code settings) are optional notes.
+6. **Don't guess APIs.** Libraries change fast: check the docs for the installed version before writing, and say when a detail depends on the version.
 
-## Trước khi mở PR
+## Before opening a PR
 
 ```bash
+pip install skills-ref==0.1.1
+for d in plugins/vibe/skills/*/; do agentskills validate "$d"; done   # the 5 vibe-* commands also use disable-model-invocation and argument-hint
 claude plugin validate ./plugins/vibe
-python3 plugins/vibe/skills/tasks/scripts/tasks.py check --dir plugins/vibe/skills/tasks/examples/mini-crm
+python3 plugins/vibe/skills/vibe-tasks/scripts/tasks.py check --dir plugins/vibe/skills/vibe-tasks/examples/mini-crm
 ```
 
-- Sửa hành vi của một skill: thêm hoặc cập nhật case trong `plugins/vibe/evals/`, chạy `claude plugin eval` có và không có thay đổi, ghi kết quả vào PR.
-- Sửa `tasks.py` hoặc ví dụ mini-crm: chạy lại `python3 assets/make_graphics.py` để hình terminal trong README khớp output thật.
-- Tăng `version` trong `plugins/vibe/.claude-plugin/plugin.json` khi phát hành.
+- Changed how a skill behaves: add or update a case in `plugins/vibe/evals/`, run `claude plugin eval` with and without your change, and put the results in the PR.
+- Changed `tasks.py` or the mini-crm example: run `python3 assets/make_graphics.py` so the README terminal image matches real output.
+- Bump `version` in `plugins/vibe/.claude-plugin/plugin.json` when releasing.
 
-## Báo lỗi
+## Reporting problems
 
-Mở issue kèm: skill nào, câu bạn đã nói với Claude, Claude đã làm gì, bạn mong đợi gì. Lỗi trong ví dụ code thì kèm version và output lỗi. Lỗ hổng bảo mật trong hướng dẫn (vd policy RLS để lọt dữ liệu) thì ghi rõ kịch bản tấn công.
+Open an issue with: which skill, which agent, what you said, what the agent did, what you expected. For a broken example, include the version and the error output. For a security hole in the guidance (e.g. an RLS policy that leaks data), describe the attack.

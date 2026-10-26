@@ -1,7 +1,7 @@
-"""Sinh 3 SVG động cho README: hero, flow, terminal.
+"""Generate the 3 animated SVGs for the README: hero, flow, terminal.
 
-Chỉ dùng CSS animation, nên người xem bật "giảm chuyển động" sẽ thấy bản tĩnh đầy đủ nội dung.
-Hình terminal lấy output thật của tasks.py trên ví dụ mini-crm, nên sửa script hay ví dụ thì chạy lại:
+CSS animation only, so viewers with reduced motion get a complete static image.
+The terminal image uses real tasks.py output on the mini-crm example; after changing the script or the example, rerun:
 
     python3 assets/make_graphics.py
 """
@@ -46,7 +46,7 @@ BLOB_CSS = """
 """
 
 def seq_keyframes(name, i, n, prop_on, prop_off):
-    """Keyframes cho phần tử thứ i trong chuỗi n bước sáng lần lượt (một chu kỳ chung)."""
+    """Keyframes for element i in a sequence of n steps that light up in turn (one shared cycle)."""
     step = 100 / n
     a = i * step
     b = a + step * 0.9
@@ -75,7 +75,7 @@ def hero():
     x0, y0, cw, ch, gx, gy = 796, 96, 142, 48, 14, 12
     for i, s in enumerate(skills):
         r, c = divmod(i, 3)
-        indent = (cw + gx) / 2 if r == (n - 1) // 3 and n % 3 == 2 else 0   # hàng cuối 2 ô thì canh giữa
+        indent = (cw + gx) / 2 if r == (n - 1) // 3 and n % 3 == 2 else 0   # center a last row of 2
         x, y = x0 + indent + c * (cw + gx), y0 + r * (ch + gy)
         css.append(seq_keyframes("lit", i, n, "fill-opacity: 1;", "fill-opacity: 0;"))
         css.append(f".glow{i} {{ animation: lit{i} {cyc}s ease-in-out infinite; }}")
@@ -85,8 +85,8 @@ def hero():
   <text x="{x + cw/2}" y="{y + 31}" text-anchor="middle" font-family="{MONO}" font-size="16">{E(s)}</text>
 </g>''')
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">
-<title id="t">vibe: bộ skill Claude Code cho phát triển phần mềm thật</title>
-<desc id="d">Logo vibe và 12 skill: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix, lần lượt sáng lên. Cho web, app mobile, app desktop và tính năng AI.</desc>
+<title id="t">vibe: Agent Skills for shipping real software</title>
+<desc id="d">The vibe logo and 12 skills: plan, tasks, architecture, backend, frontend, mobile, desktop, ai, build, review, ship, fix, lighting up in turn. Works with Claude Code, Codex, Cursor, Copilot, Gemini CLI and OpenCode.</desc>
 <defs>{bg_defs(W, H)}
   <linearGradient id="titleGrad" x1="0" y1="0" x2="640" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
     <stop offset="0" stop-color="#A78BFA"/><stop offset="0.35" stop-color="#22D3EE"/>
@@ -102,16 +102,16 @@ def hero():
 <g>
   <rect x="64" y="56" width="292" height="36" rx="18" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.18"/>
   <circle cx="86" cy="74" r="5" fill="#34D399"/>
-  <text x="100" y="80" font-family="{SANS}" font-size="16" fill="#E2E8F0">Claude Code plugin · open source</text>
+  <text x="100" y="80" font-family="{SANS}" font-size="16" fill="#E2E8F0">Agent Skills · any coding agent</text>
 </g>
 <g clip-path="url(#titleClip)">
   <rect class="shine" x="-640" y="90" width="1920" height="200" fill="url(#titleGrad)"/>
 </g>
-<text x="64" y="312" font-family="{SANS}" font-size="30" font-weight="650" fill="#F8FAFC">Bộ skill để vibe code ra phần mềm thật</text>
-<text x="64" y="352" font-family="{SANS}" font-size="20" fill="#94A3B8">nghiệp vụ → plan → task → code + test → review → deploy → vận hành</text>
-<text x="64" y="386" font-family="{SANS}" font-size="17" fill="#A5B4FC">web · mobile · desktop · AI · /vibe:start → /vibe:next → /vibe:check</text>
+<text x="64" y="312" font-family="{SANS}" font-size="30" font-weight="650" fill="#F8FAFC">Agent Skills for shipping real software</text>
+<text x="64" y="352" font-family="{SANS}" font-size="20" fill="#94A3B8">domain → plan → tasks → code + tests → review → deploy → operate</text>
+<text x="64" y="386" font-family="{SANS}" font-size="17" fill="#A5B4FC">Claude Code · Codex · Cursor · Copilot · Gemini CLI · OpenCode</text>
 {"".join(chips)}
-<text x="{x0}" y="{y0 + 4*(ch+gy) + 22}" font-family="{SANS}" font-size="15" fill="#64748B">12 skill · 5 lệnh tắt · 2 agent</text>
+<text x="{x0}" y="{y0 + 4*(ch+gy) + 22}" font-family="{SANS}" font-size="15" fill="#64748B">12 skills · 5 commands · 2 subagents</text>
 </svg>'''
     open(OUT + "hero.svg", "w").write(svg)
 
@@ -119,13 +119,13 @@ def hero():
 def flow():
     W, H = 1280, 600
     main = [
-        ("Ý tưởng", "", "", "muted"),
-        ("plan", "nghiệp vụ · PRD", "kiến trúc · phase", ""),
-        ("tasks", "task card", "tiến độ · handoff", ""),
-        ("build", "code + test", "một agent chính", ""),
-        ("review", "verifier độc lập", "PASS · BLOCK", ""),
-        ("ship", "CI/CD · rollback", "giám sát · backup", ""),
-        ("Chạy thật", "", "", "live"),
+        ("Idea", "", "", "muted"),
+        ("plan", "domain · PRD", "architecture · phases", ""),
+        ("tasks", "task cards", "progress · handoff", ""),
+        ("build", "code + tests", "one main agent", ""),
+        ("review", "independent check", "PASS · BLOCK", ""),
+        ("ship", "CI/CD · rollback", "monitoring · backup", ""),
+        ("Live", "", "", "live"),
     ]
     nw, nh, gap, top = 148, 120, 30, 120
     x0 = (W - (len(main) * nw + (len(main) - 1) * gap)) / 2
@@ -185,26 +185,26 @@ def flow():
         parts.append(f'''<g class="support"><rect x="{x}" y="{sy}" width="{sw}" height="{sh}" rx="16"/>
   <text x="{mx}" y="{sy+30}" text-anchor="middle" font-family="{MONO}" font-size="19" font-weight="700">{E(t)}</text>
   <text x="{mx}" y="{sy+54}" text-anchor="middle" font-family="{SANS}" font-size="13" fill-opacity="0.85">{E(c)}</text></g>''')
-    parts.append(f'<text x="{bx}" y="{sy+sh+28}" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#64748B">skill chuyên môn: chỉ nạp phần tài liệu cần cho việc đang làm</text>')
-    # fix loop: from "Chạy thật" down to fix, then back to tasks
+    parts.append(f'<text x="{bx}" y="{sy+sh+28}" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#64748B">domain skills: load only the docs the current work needs</text>')
+    # fix loop: from "Live" down to fix, then back to tasks
     lx = xs[6] + nw / 2
     fx, fy, fw, fh = xs[6] - 10, 470, nw + 20, 84
     parts.append(f'<path class="wire" d="M{lx} {top+nh-26} V{fy-4}"/><path class="flow slow" d="M{lx} {top+nh-26} V{fy-10}" style="stroke:#FB7185"/>')
     parts.append(f'''<g class="node"><rect x="{fx}" y="{fy}" width="{fw}" height="{fh}" rx="18" fill="#E11D48" fill-opacity="0.16" stroke="#FB7185" stroke-opacity="0.7"/>
   <text class="t" x="{fx+fw/2}" y="{fy+36}" text-anchor="middle" font-family="{MONO}" font-size="24" font-weight="700">fix</text>
-  <text class="c" x="{fx+fw/2}" y="{fy+62}" text-anchor="middle" font-family="{SANS}" font-size="14">test tái hiện · gốc rễ</text></g>''')
+  <text class="c" x="{fx+fw/2}" y="{fy+62}" text-anchor="middle" font-family="{SANS}" font-size="14">repro test · root cause</text></g>''')
     tx = xs[2] + nw / 2
     ry = fy + fh / 2
-    lane = sx0 - 28                      # chạy vòng bên trái các skill hỗ trợ, không cắt qua ô nào
+    lane = sx0 - 28                      # runs left of the support boxes without crossing any
     mid = top + nh + 40
     path = (f"M{fx-4} {ry} H{lane+16} Q{lane} {ry} {lane} {ry-16} V{mid+16} Q{lane} {mid} {lane+16} {mid} "
             f"H{tx-16} Q{tx} {mid} {tx} {mid-16} V{top+nh+8}")
     parts.append(f'<path class="wire" d="{path}"/><path class="flow slow" d="{path}" style="stroke:#FB7185"/>')
     parts.append(f'<path d="M{tx-6} {top+nh+16} L{tx} {top+nh+8} L{tx+6} {top+nh+16}" fill="none" stroke="#FB7185" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>')
-    parts.append(f'<text x="{(lane + fx)/2 + 120}" y="{ry - 12}" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#FDA4AF">có lỗi → test tái hiện → sửa → thêm task phòng ngừa</text>')
+    parts.append(f'<text x="{(lane + fx)/2 + 120}" y="{ry - 12}" text-anchor="middle" font-family="{SANS}" font-size="15" fill="#FDA4AF">bug → repro test → fix → prevention task</text>')
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" role="img" aria-labelledby="t d">
-<title id="t">Quy trình của vibe</title>
-<desc id="d">Ý tưởng, plan, tasks, build, review, ship, chạy thật. Build dùng các skill architecture, backend, frontend, mobile, desktop, ai. Khi chạy thật có lỗi thì qua fix rồi quay lại tasks.</desc>
+<title id="t">The vibe workflow</title>
+<desc id="d">Idea, plan, tasks, build, review, ship, live. Build uses the architecture, backend, frontend, mobile, desktop and ai skills. Bugs in production go to fix, then back to tasks.</desc>
 <defs>{bg_defs(W, H)}
   <linearGradient id="nodeGrad" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#7C3AED" stop-opacity="0.75"/><stop offset="1" stop-color="#0891B2" stop-opacity="0.75"/>
@@ -213,14 +213,14 @@ def flow():
   <style>{"".join(css)}</style>
 </defs>
 {backdrop(W, H, [(120, 520, 160, "#7C3AED"), (700, 40, 170, "#0891B2"), (1200, 560, 150, "#DB2777")])}
-<text x="64" y="70" font-family="{SANS}" font-size="26" font-weight="700" fill="#F8FAFC">Một agent chính, đi trọn vòng đời phần mềm</text>
+<text x="64" y="70" font-family="{SANS}" font-size="26" font-weight="700" fill="#F8FAFC">One main agent, the whole software lifecycle</text>
 {"".join(parts)}
 </svg>'''
     open(OUT + "flow.svg", "w").write(svg)
 
 # ---------------------------------------------------------------- terminal
 def terminal():
-    S = str(ROOT / "plugins/vibe/skills/tasks") + "/"
+    S = str(ROOT / "plugins/vibe/skills/vibe-tasks") + "/"
     run = lambda *a: subprocess.run(["python3", S + "scripts/tasks.py", *a, "--dir", S + "examples/mini-crm"],
                                     capture_output=True, text=True, check=True).stdout.rstrip("\n").split("\n")
     blocks = [("python3 tasks.py status --dir docs/tasks", run("status")),
