@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: mobile-token-storage
+expected_outcome: |
+  Chuyển refresh token sang expo-secure-store (Keychain/Keystore), access token giữ trong bộ nhớ hoặc
+  SecureStore, không còn token nào trong AsyncStorage; xử lý token cũ của người dùng hiện có (chuyển sang
+  SecureStore rồi xoá khỏi AsyncStorage, hoặc xoá); đăng xuất xoá token khỏi SecureStore;
+  xử lý Keychain iOS còn giữ token sau khi gỡ app (cài lại thì xoá token cũ).
+context:
+  scaffold_script: place-files.sh

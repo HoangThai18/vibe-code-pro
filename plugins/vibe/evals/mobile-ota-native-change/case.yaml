@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: mobile-ota-native-change
+expected_outcome: |
+  Không đẩy được qua OTA: thêm thư viện có code native (expo-camera) cần build native mới và qua duyệt store;
+  OTA chỉ thay JS/asset và phải khớp runtime version. Quy trình đúng: build mới, thử nội bộ, phát hành dần;
+  khai báo câu giải thích quyền camera.

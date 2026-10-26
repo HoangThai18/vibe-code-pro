@@ -51,6 +51,14 @@ Dùng để gợi nhớ, không phải để điền cho đủ. Chỉ báo vấn
 - Không lộ secret trong bundle client; không lưu token hay dữ liệu nhạy cảm vào localStorage nếu dự án có phương án an toàn hơn (cookie httpOnly).
 - Lỗi từ API hiển thị đúng chỗ (theo field) và bằng ngôn ngữ người dùng hiểu.
 
+## App mobile và desktop
+- Token trong Keychain/Keystore hoặc `safeStorage`, không trong AsyncStorage, localStorage, file text; không có secret của server trong app.
+- Thay đổi API tương thích với các bản app còn hỗ trợ (skill `backend`, `api-conventions.md` mục 8); app gửi header phiên bản.
+- Đăng xuất xoá token, cache, dữ liệu cục bộ, hủy đăng ký push của thiết bị.
+- Electron: `contextIsolation`, `sandbox` bật; preload chỉ expose hàm cụ thể; IPC kiểm nguồn và tham số; chặn điều hướng, cửa sổ mới (skill `desktop`, `security.md` mục 7). Tauri: capability chỉ có permission cần.
+- Quyền hệ thống (camera, vị trí...) xin đúng lúc, có câu giải thích, app vẫn chạy khi bị từ chối.
+- Đổi code native thì không đẩy qua OTA.
+
 ## Test
 - Test kiểm hành vi thật và có assert có ý nghĩa; không mock chính thứ đang được test.
 - Bug fix có test tái hiện bug (fail trước khi sửa, pass sau khi sửa).

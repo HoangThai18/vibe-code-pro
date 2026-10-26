@@ -14,6 +14,8 @@ Thư mục skill: `${CLAUDE_SKILL_DIR}`. Chỉ đọc phần cần cho việc đ
 | Log, metric, cảnh báo, error tracking, healthcheck | `references/observability.md` |
 | Backup, khôi phục, diễn tập restore, xuất dữ liệu theo tenant | `references/backup-restore.md` |
 | Nâng cấp dependency, vá bảo mật, dọn dữ liệu, việc định kỳ | `references/maintenance.md` |
+| Phát hành app mobile: build, ký, store, OTA, phát hành dần, buộc cập nhật | `${CLAUDE_SKILL_DIR}/../mobile/references/release.md` |
+| Phát hành app desktop: đóng gói, ký số, notarize, tự cập nhật | `${CLAUDE_SKILL_DIR}/../desktop/references/release.md` |
 
 Nền tảng deploy (Vercel, Fly, Railway, Render, AWS, GCP, VPS + Docker...) thay đổi cấu hình thường xuyên: đọc tài liệu hiện hành của nền tảng mà dự án dùng (`${CLAUDE_SKILL_DIR}/../plan/references/tech-research.md`) trước khi viết cấu hình.
 
@@ -22,7 +24,7 @@ Nền tảng deploy (Vercel, Fly, Railway, Render, AWS, GCP, VPS + Docker...) th
 ## Quy tắc luôn áp dụng
 
 1. **Không có secret trong repo**. Secret nằm trong secret manager hoặc biến môi trường của nền tảng; repo chỉ có `.env.example`.
-2. **Mỗi bản deploy là một artifact bất biến** (image hoặc build có version, gắn commit SHA). Rollback code là deploy lại artifact cũ, không build lại từ source.
+2. **Mỗi bản deploy là một artifact bất biến** (image hoặc build có version, gắn commit SHA). Rollback code là deploy lại artifact cũ, không build lại từ source. App mobile, desktop đã cài thì **không rollback được**: phát hành dần, tắt bằng feature flag phía server, sửa bằng bản mới hơn.
 3. **Migration tương thích ngược với bản code đang chạy** (expand → contract). Nhờ vậy rollback code luôn làm được. Thay đổi phá vỡ thì tách ra nhiều release.
 4. **Có kế hoạch rollback trước khi deploy**, ghi trong `RELEASE.md`: tiêu chí quyết định rollback, ai quyết, rollback bằng cách nào.
 5. **Tính năng rủi ro đi sau feature flag**, bật dần (nội bộ → vài tenant thử → toàn bộ). Tắt flag là cách rollback nhanh nhất.
