@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img alt="Chuẩn Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
   <img alt="12 skill, 5 lệnh, 2 subagent" src="https://img.shields.io/badge/skills-12%20·%20lệnh%205%20·%20subagents%202-DB2777?style=flat-square">
   <img alt="Ví dụ đã chạy thật" src="https://img.shields.io/badge/ví%20dụ-đã%20chạy%20thật-059669?style=flat-square">
-  <a href="#eval-có-và-không-có-skill"><img alt="Eval: 0.99 có skill, 0.85 không có, 19 case" src="https://img.shields.io/badge/eval-0.99%20có%20skill%20·%200.85%20không-F59E0B?style=flat-square"></a>
+  <a href="#eval-có-và-không-có-skill"><img alt="Eval: 0.98 có skill, 0.80 không có, 26 case" src="https://img.shields.io/badge/eval-0.98%20có%20skill%20·%200.80%20không-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>Tiếng Việt</b></p>
@@ -72,15 +72,15 @@ Một vòng: `/vibe-start` → `/vibe-next` → `/vibe-check` → merge → `/vi
   <img src="assets/flow.svg" width="100%" alt="Ý tưởng → plan → tasks → build → review → ship → chạy thật. Build dùng các skill architecture, backend, frontend, mobile, desktop, ai. Có lỗi thì qua fix rồi quay lại tasks.">
 </p>
 
-Theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills + tools**. Kiến thức nằm trong skill và chỉ nạp khi cần; subagent chỉ dùng khi đáng (review độc lập, chạy song song việc lớn và độc lập). Mỗi phiên chỉ mang theo mô tả ngắn của skill: khoảng **3.6k token** cho 12 skill và 2 subagent (ước tính của `claude plugin details`), giảm từ 4.6k ở bản tiếng Việt. 5 lệnh nhanh không tốn token nào cho tới khi bạn gõ, trên các agent hỗ trợ `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
+Theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills + tools**. Kiến thức nằm trong skill và chỉ nạp khi cần; subagent chỉ dùng khi đáng (review độc lập, chạy song song việc lớn và độc lập). Mỗi phiên chỉ mang theo mô tả ngắn của skill: khoảng **3.8k token** cho 12 skill và 2 subagent (ước tính của `claude plugin details`), giảm từ 4.6k ở bản tiếng Việt. 5 lệnh nhanh không tốn token nào cho tới khi bạn gõ, trên các agent hỗ trợ `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
 
 | Skill | Lo phần | Tài liệu nạp khi cần |
 |---|---|---|
 | `vibe-plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase, công cụ cho agent (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 7 template |
 | `vibe-tasks` | Task card có deps và file sẽ đụng, tiến độ, việc tiếp theo, handoff giữa các phiên | `tasks.py`, template, ví dụ mini CRM |
 | `vibe-architecture` | Code theo đúng quy ước của codebase; chọn kiến trúc hợp với yêu cầu (modular monolith, layered, hexagonal, DDD, CQRS, event, microservices); SOLID, pattern, refactor | codebase-conventions, architecture-styles, ddd, design-principles |
-| `vibe-backend` | Schema, index, transaction, migration an toàn, 8 ORM, multi-tenant + Postgres RLS, API contract, xác thực và phân quyền, **job nền**, **bảo mật ứng dụng** (upload, SSRF, rate limit, quét secret), **dữ liệu cá nhân theo luật Việt Nam** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy |
-| `vibe-frontend` | Web: UI theo mockup (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), đổi workspace an toàn | design-to-code, motion-spec, state-management |
+| `vibe-backend` | Schema, index, transaction, migration an toàn, 8 ORM, multi-tenant + Postgres RLS, API contract, xác thực và phân quyền, job nền, bảo mật ứng dụng, dữ liệu cá nhân theo luật Việt Nam, **thanh toán** (VNPay, MoMo, VietQR, hoá đơn điện tử), **tìm kiếm tiếng Việt**, **gửi email/Zalo/SMS**, **realtime**, **nhập Excel/CSV** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy, payments, search, notifications, realtime, data-import |
+| `vibe-frontend` | Web: UI theo mockup (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), đổi workspace an toàn, **đa ngôn ngữ** (VND, múi giờ, số nhiều), **SEO trang công khai** | design-to-code, motion-spec, state-management, i18n, seo |
 | `vibe-mobile` | iOS và Android: chọn stack (Expo/React Native, Flutter, native, PWA), token trong Keychain/Keystore, hàng đợi ghi offline, push, deep link, test (Jest, Maestro), EAS Build, OTA, duyệt store, buộc cập nhật | choose-stack, app-data, platform-features, testing, release |
 | `vibe-desktop` | Windows, macOS, Linux: Tauri / Electron / PWA, bảo mật Electron (isolation, sandbox, IPC kiểm nguồn gửi), token qua kho khoá hệ điều hành, test Playwright, ký số, notarize, tự cập nhật | choose-stack, security, app-data, testing, release |
 | `vibe-ai` | Tính năng AI trong app: gọi Claude API từ server, structured output, streaming, chống prompt injection, cô lập tenant, ngân sách và usage theo tenant, test không tốn tiền, eval chất lượng | design, integration, safety, cost, testing |
@@ -127,6 +127,13 @@ Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không
 | Hiệu năng | k6 1.8.2 vào API mẫu 500.000 khách; Playwright + `web-vitals` 6 | Index đúng: p95 từ 2,74 giây xuống 1,97 ms; test ngân sách bắt được trang CLS 0,23 |
 | Bảo mật ứng dụng | Node 22, PostgreSQL 16, gitleaks 8.30 | 12 test đạt; bỏ lớp chặn SSRF nào cũng có test fail; rate limit đúng 10/50; gitleaks bắt key giả kể cả khi file đã xoá |
 | Dữ liệu cá nhân | PostgreSQL 16 có RLS; test hàm tính hạn | Đạt; phát hiện view thiếu `security_invoker` làm lộ dữ liệu giữa tenant |
+| Thanh toán: VNPay, MoMo, webhook chuyển khoản, hoàn tiền | So cách ký với code mẫu chính thức của VNPay và MoMo; xử lý IPN và webhook SePay trên PostgreSQL 16 bằng role của app, có callback trùng chạy đồng thời | 18 test đạt; bỏ 1 trong 6 lớp chặn (khoá dòng, kiểm số tiền, kiểm `vnp_TransactionStatus`, chống nhận trùng...) là có test fail. Chưa chạy với sandbox thật của VNPay, MoMo (không có tài khoản merchant) |
+| Tìm kiếm tiếng Việt: tên không dấu, số điện thoại, ghi chú | PostgreSQL 16 với 500.000 khách, đo bằng role của app | Phát hiện dưới RLS `LIKE` không dùng được index trigram (380 ms với spa 200.000 khách); hàm tìm `SECURITY DEFINER` mất 2–25 ms. 13 test; 9 lớp chặn, bỏ cái nào cũng có test fail |
+| Gửi tin: huỷ đăng ký một chạm, làm mới token Zalo, giới hạn tin quảng cáo, số phần SMS | PostgreSQL 16, Zalo giả lập có xoay vòng refresh token | 6 test; ba lần làm mới đồng thời chỉ dùng refresh token một lần; 6 lớp chặn, bỏ cái nào cũng có test fail. Chưa gửi qua Zalo hay nhà mạng thật |
+| Realtime: SSE, LISTEN/NOTIFY, client TanStack Query | Hai instance app trên PostgreSQL 16 (`FORCE` RLS), stream HTTP thật, client jsdom | 21 test; ghi bị rollback không phát sự kiện; sự kiện tenant A không tới B; 11 lớp chặn, bỏ cái nào cũng có test fail |
+| Đa ngôn ngữ: VND, giờ theo múi giờ tenant, file dịch, sắp xếp tiếng Việt | ICU của Node 22, PostgreSQL 16, next-intl 4.14 + Next.js 16 trên Chromium ở 3 múi giờ | 32 test; phát hiện `1.250.000 ₫` dùng dấu cách không ngắt, Postgres đọc `'GMT+7'` thành UTC−7, định dạng thiếu múi giờ làm lỗi hydration; 11 lớp chặn, bỏ cái nào cũng có test fail |
+| Nhập Excel/CSV | exceljs 4.4 và csv-parse 7 trên file .xlsx và CSV thật, pg-boss 12.38, tắt ngang worker giữa chừng | 19 test; nhập lại không tạo bản trùng; phát hiện đọc `columnCount` của exceljs mỗi dòng làm 50.000 dòng mất 432 giây, và `delimiter_auto` của csv-parse hỏng với chữ tiếng Việt; 7 lớp chặn, bỏ cái nào cũng có test fail |
+| SEO trang công khai | `next build` + `next start` (Next.js 16.4), tải trang không qua trình duyệt | 11 test; phát hiện `loading.tsx` ở trang spa biến 404 và 308 thành 200, và header trong `next.config` bị cố định lúc build; 7 lớp chặn, bỏ cái nào cũng có test fail |
 | GitHub Actions (CI, deploy, E2E, kiểm tải, bảo mật) | actionlint | Đạt |
 | Chuẩn Agent Skills | `agentskills validate` (bộ kiểm tham chiếu) cho cả 12 skill, chạy trong CI | Đạt |
 
@@ -134,38 +141,51 @@ Chưa chạy ở đây: dùng skill trong agent khác Claude Code (môi trườn
 
 ## Eval: có và không có skill
 
-`plugins/vibe/evals/` có 19 case: yêu cầu thật (bằng tiếng Việt, như người dùng gõ) kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, theo thứ tự nào (viết test và thấy fail trước khi sửa), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có skill và 3 lượt không (`claude plugin eval`, model và judge mặc định của lệnh). Kết quả bản 1.0.0, chạy trong Claude Code:
+`plugins/vibe/evals/` có 26 case: yêu cầu thật (bằng tiếng Việt, như người dùng gõ) kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, theo thứ tự nào (viết test và thấy fail trước khi sửa), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có skill và 3 lượt không (`claude plugin eval`, model và judge mặc định của lệnh). Kết quả bản 1.1.0, chạy trong Claude Code:
 
 | Case | Có skill | Không | Khác biệt chính |
 |---|---|---|---|
+| **Mới ở 1.1.0:** màn hình lịch hẹn tự cập nhật (realtime) | **1.00** | 0.53 | Stream kiểm quyền theo từng spa, có test chứng minh sự kiện của spa này không tới spa khác: 3/3 so với 0/3; mỗi instance một kết nối LISTEN, stream kết thúc khi nhân viên bị gỡ: 3/3 so với 0/3 |
+| **Mới:** nhập 20.000 khách từ Excel/CSV | **1.00** | 0.60 | Job chạy tiếp được theo từng lô đã commit, có ngữ cảnh tenant: 3/3 so với 0/3; chống chèn công thức trong CSV xuất ra và kiểm UTF-8: 3/3 so với 0/3 |
+| **Mới:** nhắc lịch qua Zalo, dự phòng SMS, tin khuyến mãi | **1.00** | 0.60 | Refresh token Zalo xoay vòng, làm mới từ một nơi: 3/3 so với 0/3; luật tin quảng cáo (đồng ý, 7h–22h, 3 tin/24 giờ): 3/3 so với 0/3 |
+| **Mới:** SEO trang spa công khai, ẩn app và staging | **1.00** | 0.60 | Trang spa trả 404/308 thật, không có `loading.tsx` bọc phần tra cứu: 3/3 so với 0/3; noindex cho staging quyết định lúc chạy: 3/3 so với 1/3 |
+| **Mới:** đặt cọc online qua chuyển khoản QR hoặc VNPay | **1.00** | 0.73 | Nội dung chuyển khoản bị sửa, trả thiếu, webhook trùng: 3/3 so với 0/3 |
+| **Mới:** Việt/Anh, giá và giờ cho chi nhánh Singapore | **0.80** | 0.60 | "Hôm nay" tính theo nửa đêm địa phương, có test ở 16:59:59Z/17:00:00Z: 3/3 so với 0/3; kiểm file dịch trong CI: 1/3 so với 0/3 |
+| **Mới:** gõ "nguyen thao" ra "Nguyễn Thị Thảo" khi có RLS | **1.00** | 0.80 | Nhận ra RLS khiến LIKE không dùng được index trigram và xử lý: 3/3 so với 1/3 |
 | Màn danh sách chậm, team định thêm Redis | **1.00** | 0.56 | Kiểm tải có ngưỡng trên staging: 3/3 so với 0/3 |
-| Sửa bug `slugify('Đường')` | **1.00** | 0.58 | Thấy test tái hiện fail trước khi sửa: 3/3 so với 0/3 |
+| Sửa bug `slugify('Đường')` | **1.00** | 0.67 | Thấy test tái hiện fail trước khi sửa: 3/3 so với 1/3 |
+| Phát hành app mobile vừa thêm `expo-camera` qua EAS Update | **1.00** | 0.67 | Build mới, thử trước, phát hành dần, khai báo quyền camera: 3/3 so với 0/3 |
 | Khách yêu cầu xoá dữ liệu (luật Việt Nam) | **1.00** | 0.67 | Đúng văn bản đang hiệu lực và thời hạn (xác nhận trong 2 ngày làm việc, xoá trong 20 ngày): 3/3 so với 0/3 |
-| Chọn kiến trúc cho team 3 người | **1.00** | 0.73 | Có điều kiện cụ thể để xem lại quyết định: 3/3 so với 0/3 |
-| Chuyển token app mobile khỏi AsyncStorage | **0.94** | 0.72 | Xoá token Keychain còn sót sau khi cài lại app: 2/3 so với 0/3. Sau lượt chạy này, skill mobile được thêm một dòng về việc đó; chạy lại riêng case này: 3/3 so với 0/3, điểm 1.00 |
 | Tính năng AI tóm tắt ghi chú khách | **1.00** | 0.75 | Có `max_tokens`, kiểm `stop_reason`, lỗi API thành thông báo dễ hiểu: 3/3 so với 0/3 |
-| Phát hành app mobile vừa thêm `expo-camera` qua EAS Update | **1.00** | 0.75 | Tính đến người dùng bản cũ (khoá tính năng camera, OTA chỉ cho sửa JS): 3/3 so với 1/3 |
 | Đổi workspace mà màn hình vẫn hiện dữ liệu cũ | **1.00** | 0.75 | Huỷ request và bỏ cache của workspace cũ: 3/3 so với 0/3 |
-| "Tới đâu rồi, làm gì tiếp?" trên task card | **0.93** | 0.80 | Đúng bước tiếp theo: 2/3 so với 1/3 (lượt trượt vẫn đặt P1-T02 lên trước, nhưng sau đó định làm P1-T03 trước P1-T04) |
-| Viết test Playwright cho luồng đổi workspace | **1.00** | 0.87 | Locator theo role/label: 3/3 so với 1/3 |
-| Đổi tên cột không downtime | **1.00** | 0.93 | Bỏ NOT NULL (hoặc thêm default) cho cột cũ trước khi code ngừng ghi vào nó: 3/3 so với 2/3 |
-| Backfill NOT NULL khi có FORCE RLS, RLS cho memberships, xem trước link (SSRF), theo pattern codebase, có nên chạy song song task nhỏ, bảo mật Electron, thiết kế job nhắc lịch | 1.00 | 1.00 | Không có skill cũng làm đúng |
+| Chuyển token app mobile khỏi AsyncStorage | **0.94** | 0.78 | Xoá token Keychain còn sót sau khi cài lại app: 2/3 so với 0/3 (lượt thiếu ý này không nạp skill) |
+| "Tới đâu rồi, làm gì tiếp?" trên task card | **1.00** | 0.80 | Báo tiến độ từ task card: 3/3 so với 1/3 |
+| Viết test Playwright cho luồng đổi workspace | **1.00** | 0.80 | Locator theo role/label: 3/3 so với 0/3 |
+| Chọn kiến trúc cho team 3 người | **1.00** | 0.93 | Ranh giới module được công cụ kiểm: 3/3 so với 2/3 |
+| Bảo mật app Electron | 0.96 | **1.00** | Một lượt có skill trượt tiêu chí renderer (giám khảo không thấy file renderer ở đường dẫn mong đợi) |
+| Xem trước link (SSRF) | 0.92 | **1.00** | Không lượt nào nạp skill; một lượt bị chấm là kiểm địa chỉ chưa đủ |
+| Backfill NOT NULL khi có FORCE RLS, RLS cho memberships, đổi tên cột không downtime, theo pattern codebase, có nên chạy song song task nhỏ, thiết kế job nhắc lịch | 1.00 | 1.00 | Không có skill cũng làm đúng |
 | **Việc nhỏ** ("đổi chữ nút Lưu"): không dựng quy trình, không spawn agent | 1.00 | 1.00 | Skill không làm agent "quan liêu" hơn |
-| **Trung bình 19 case** | **0.99** | 0.85 | Không case nào thấp hơn khi có skill |
+| **Trung bình 26 case** | **0.98** | 0.80 | 7 case mới: 0.97 so với 0.64 |
 
-So với bản 0.5.0 (skill tiếng Việt), cùng case và cùng thiết lập:
+Ghi chú về lượt chạy này:
+- **Chạy lại 6 case.** Lượt chạy dừng ở giới hạn 30 phút, nên 6 case cuối được chạy lại riêng.
+- **Case đa ngôn ngữ.** Sau lượt đầu, hai tiêu chí chấm được viết lại: một tiêu chí đánh trượt câu trả lời đúng chỉ vì nhắc lại câu query lỗi như nguyên nhân, một tiêu chí đòi hai thứ cùng lúc. Skill frontend cũng được thêm một dòng quy tắc. Số liệu của case này lấy từ lượt chạy lại.
+- **Case thanh toán.** Bản đầu bảo agent sửa một handler IPN VNPay lỗi quá lộ; cả hai bên đều được 1.00, nên đã thay bằng câu hỏi thiết kế ở trên.
 
-| | 0.5.0 | 1.0.0 |
-|---|---|---|
-| Điểm có / không có skill | 0.99 / 0.85 | 0.99 / 0.85 |
-| Mô tả skill luôn nằm trong context | 4.581 token | 3.620 (−21%) |
-| Nội dung SKILL.md, cả 12 skill | khoảng 22.400 token | khoảng 16.900 (−25%) |
-| Chi phí mỗi lượt có skill so với không | 1,59 lần | 1,46 lần |
-| Số lượt skill được nạp | 42/54 | 44/54 |
+So với các bản trước, cùng thiết lập:
+
+| | 0.5.0 | 1.0.0 | 1.1.0 |
+|---|---|---|---|
+| Số case | 19 | 19 | 26 |
+| Điểm có / không có skill | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 (cùng 19 case cũ: 0.99 / 0.86) |
+| Mô tả skill luôn nằm trong context | 4.581 token | 3.620 | 3.791 (7 tài liệu mới tốn thêm 171 token) |
+| Chi phí mỗi lượt có skill so với không | 1,59 lần | 1,46 lần | 1,52 lần |
+| Số lượt skill được nạp | 42/54 | 44/54 | 60/75 |
 
 Skill tiếng Anh vẫn được gọi đúng khi yêu cầu viết bằng tiếng Việt, và agent vẫn trả lời bằng tiếng Việt. Trong Claude Code, năm lệnh tắt (`vibe-help`, `vibe-start`...) không nằm trong context cho tới khi bạn gõ.
 
-Cái giá: agent đọc tài liệu của skill trước khi trả lời, nên mỗi lượt tốn khoảng 1,46 lần so với không có skill (trung bình khoảng 0,14 USD mỗi lượt ở các case trên); việc nhỏ chỉ tốn thêm phần mô tả skill. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần gọi model thật, tính phí theo tài khoản):
+Cái giá: agent đọc tài liệu của skill trước khi trả lời, nên mỗi lượt tốn khoảng 1,5 lần so với không có skill (trung bình khoảng 0,16 USD mỗi lượt ở các case trên); việc nhỏ chỉ tốn thêm phần mô tả skill. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần gọi model thật, tính phí theo tài khoản):
 
 ```bash
 claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"

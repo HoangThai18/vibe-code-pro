@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: notifications-zalo-sms
+expected_outcome: |
+  Nhắc lịch qua Zalo ZNS/ZBS (OA doanh nghiệp đã xác thực, mẫu được Zalo duyệt, số điện thoại dạng 84, không nội dung
+  quảng cáo trong mẫu giao dịch); refresh token xoay vòng và chỉ dùng được một lần nên làm mới từ một nơi và lưu cặp mới
+  nguyên tử, mất token thì spa phải kết nối lại; chỉ chuyển sang SMS khi Zalo không tới được người đó (không có Zalo,
+  từ chối nhận), không chuyển khi Zalo lỗi tạm thời, mỗi tin một id để không gửi trùng; tin quảng cáo: đồng ý trước,
+  7h-22h, tối đa 3 tin/24 giờ/người nhận, có cách từ chối (Nghị định 91/2020), kiểm lúc gửi; tách brandname
+  CSKH và quảng cáo.

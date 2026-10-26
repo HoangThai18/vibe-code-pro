@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img alt="Agent Skills standard" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
   <img alt="12 skills, 5 commands, 2 subagents" src="https://img.shields.io/badge/skills-12%20·%20commands%205%20·%20subagents%202-DB2777?style=flat-square">
   <img alt="Examples executed" src="https://img.shields.io/badge/examples-executed-059669?style=flat-square">
-  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.99 with the skills vs 0.85 without, 19 cases" src="https://img.shields.io/badge/eval-0.99%20with%20·%200.85%20without-F59E0B?style=flat-square"></a>
+  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.98 with the skills vs 0.80 without, 26 cases" src="https://img.shields.io/badge/eval-0.98%20with%20·%200.80%20without-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.vi.md">Tiếng Việt</a></p>
@@ -72,15 +72,15 @@ A loop: `/vibe-start` → `/vibe-next` → `/vibe-check` → merge → `/vibe-ne
   <img src="assets/flow.svg" width="100%" alt="Idea → plan → tasks → build → review → ship → live. Build uses the architecture, backend, frontend, mobile, desktop and ai skills. Bugs go to fix, then back to tasks.">
 </p>
 
-Following Anthropic's guidance for agents: **one main agent + skills + tools**. Knowledge lives in skills and loads on demand; subagents only where they pay off (independent review, large independent tasks in parallel). Every session carries only the short skill descriptions: about **3.6k tokens** for the 12 skills and 2 subagents (Claude Code's `plugin details` estimate). The 5 commands cost nothing until you type them in agents that honor `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
+Following Anthropic's guidance for agents: **one main agent + skills + tools**. Knowledge lives in skills and loads on demand; subagents only where they pay off (independent review, large independent tasks in parallel). Every session carries only the short skill descriptions: about **3.8k tokens** for the 12 skills and 2 subagents (Claude Code's `plugin details` estimate). The 5 commands cost nothing until you type them in agents that honor `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
 
 | Skill | Covers | Loaded on demand |
 |---|---|---|
 | `vibe-plan` | Requirements, domain analysis, user/competitor/tech research, PRD, architecture, phases, dev tools (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 7 templates |
 | `vibe-tasks` | Task cards with deps and touched files, progress, next task, handoff between sessions | `tasks.py`, templates, mini CRM example |
 | `vibe-architecture` | Follow the codebase's conventions; pick an architecture that fits (modular monolith, layered, hexagonal, DDD, CQRS, events, microservices); SOLID, patterns, refactoring | codebase-conventions, architecture-styles, ddd, design-principles |
-| `vibe-backend` | Schema, indexes, transactions, safe migrations, 8 ORMs, multi-tenant + Postgres RLS, API contracts, auth, **background jobs**, **app security** (uploads, SSRF, rate limits, secret scanning), **Vietnam personal data law** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy |
-| `vibe-frontend` | Web UI from mockups (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), safe workspace switching | design-to-code, motion-spec, state-management |
+| `vibe-backend` | Schema, indexes, transactions, safe migrations, 8 ORMs, multi-tenant + Postgres RLS, API contracts, auth, background jobs, app security, Vietnam personal data law, **payments** (VNPay, MoMo, VietQR, e-invoices), **Vietnamese search**, **email/Zalo/SMS delivery**, **realtime**, **Excel/CSV import** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy, payments, search, notifications, realtime, data-import |
+| `vibe-frontend` | Web UI from mockups (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), safe workspace switching, **i18n** (VND, time zones, plurals), **SEO for public pages** | design-to-code, motion-spec, state-management, i18n, seo |
 | `vibe-mobile` | iOS and Android: stack choice (Expo/React Native, Flutter, native, PWA), Keychain/Keystore tokens, offline outbox, push, deep links, tests (Jest, Maestro), EAS Build, OTA, store review, forced updates | choose-stack, app-data, platform-features, testing, release |
 | `vibe-desktop` | Windows, macOS, Linux: Tauri / Electron / PWA, Electron security (isolation, sandbox, IPC sender checks), OS keychain tokens, Playwright tests, signing, notarization, auto-update | choose-stack, security, app-data, testing, release |
 | `vibe-ai` | AI features in apps: Claude API from the server, structured output, streaming, prompt injection, tenant isolation, per-tenant budgets and usage, free tests, quality evals | design, integration, safety, cost, testing |
@@ -127,6 +127,13 @@ Wrong examples in docs for real software do more harm than no docs. Code, SQL an
 | Performance: `pg_stat_statements`, indexes, k6, Web Vitals | k6 1.8.2 against a sample API with 500,000 customers; Playwright + `web-vitals` 6 | The right index took p95 from 2.74 s to 1.97 ms at the same load; the budget test caught a page with CLS 0.23 |
 | App security: SSRF guard, upload checks, rate limiting, secret scanning | Node 22, PostgreSQL 16, gitleaks 8.30 | 12 tests pass; removing each SSRF layer fails a test; 50 parallel requests with a limit of 10 let exactly 10 through; gitleaks caught a planted key even after the file was deleted |
 | Personal data: consent log, request deadlines | PostgreSQL 16 with RLS; deadline tests | Pass; found that a view without `security_invoker` (superuser owner) leaked tenant A's consents to tenant B |
+| Payments: VNPay, MoMo, bank transfer webhooks, refunds | Signing compared with VNPay's and MoMo's official demo code; IPN and SePay webhook handlers on PostgreSQL 16 as the app role, with duplicate callbacks racing | 18 tests pass; removing any of 6 safeguards (row lock, amount check, `vnp_TransactionStatus` check, duplicate-delivery check...) fails a test. Not run against the real VNPay or MoMo sandboxes (no merchant account) |
+| Vietnamese search: names without accents, phone numbers, notes | PostgreSQL 16 with 500,000 customers, measured as the app role | Found that under RLS `LIKE` cannot use the trigram index (380 ms on a 200,000-customer tenant); the `SECURITY DEFINER` search function takes 2–25 ms. 13 tests; 9 safeguards each fail a test |
+| Notifications: one-click unsubscribe, Zalo token refresh, advertising limits, SMS parts | PostgreSQL 16, a fake Zalo that rotates refresh tokens | 6 tests; three concurrent refreshes use the refresh token once; 6 safeguards each fail a test. Not sent through real Zalo or SMS providers |
+| Realtime: SSE, LISTEN/NOTIFY, TanStack Query client | Two app instances on PostgreSQL 16 (`FORCE` RLS), real HTTP streams, jsdom client | 21 tests; a rolled-back write never emits; tenant A's events never reach B; 11 safeguards each fail a test |
+| i18n: VND, dates in the tenant's time zone, catalogs, Vietnamese sorting | Node 22 ICU, PostgreSQL 16, next-intl 4.14 + Next.js 16 in Chromium with 3 time zones | 32 tests; found that `1.250.000 ₫` uses a no-break space, Postgres reads `'GMT+7'` as UTC−7, and formatting without a zone breaks hydration; 11 safeguards each fail a test |
+| Excel/CSV import | exceljs 4.4 and csv-parse 7 on real .xlsx and CSV files, pg-boss 12.38, a worker killed mid-file | 19 tests; re-runs add no duplicates; found that reading exceljs `columnCount` per row made 50,000 rows take 432 s, and csv-parse's `delimiter_auto` breaks on Vietnamese text; 7 safeguards each fail a test |
+| SEO for public pages | `next build` + `next start` (Next.js 16.4), fetched without a browser | 11 tests; found that a `loading.tsx` on the spa route turns 404 and 308 into 200, and that `next.config` headers are fixed at build time; 7 safeguards each fail a test |
 | GitHub Actions (CI, deploy, E2E, load test, security) | actionlint | Pass |
 | Agent Skills format | `agentskills validate` (reference validator) on all 12 domain skills, in CI | Pass |
 
@@ -134,38 +141,51 @@ Not run here: the skills inside agents other than Claude Code (no Codex, Cursor,
 
 ## Evals: with and without the skills
 
-`plugins/vibe/evals/` holds 19 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.0.0, run in Claude Code:
+`plugins/vibe/evals/` holds 26 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.1.0, run in Claude Code:
 
 | Case | With | Without | Main difference |
 |---|---|---|---|
+| **New in 1.1.0:** live appointment board (realtime) | **1.00** | 0.53 | Stream authorized per spa, with a test that one spa's events never reach another: 3/3 vs 0/3; one LISTEN connection per instance, streams end when a member is removed: 3/3 vs 0/3 |
+| **New:** import 20,000 customers from Excel/CSV | **1.00** | 0.60 | Resumable job in committed chunks with tenant context: 3/3 vs 0/3; formula escaping in exported CSV and UTF-8 check: 3/3 vs 0/3 |
+| **New:** Zalo reminders with SMS fallback, promotions | **1.00** | 0.60 | Zalo refresh token rotates, refresh from one place: 3/3 vs 0/3; advertising rules (consent, 07:00–22:00, 3 per 24 h): 3/3 vs 0/3 |
+| **New:** SEO for public spa pages, app and staging hidden | **1.00** | 0.60 | Real 404/308 for spa pages, no `loading.tsx` around the lookup: 3/3 vs 0/3; staging noindex decided at runtime: 3/3 vs 1/3 |
+| **New:** online deposits by QR transfer or VNPay | **1.00** | 0.73 | Edited transfer notes, partial payments, duplicate webhooks: 3/3 vs 0/3 |
+| **New:** Vietnamese/English, prices and times for a Singapore branch | **0.80** | 0.60 | "Today" bounded by local midnight with a test at 16:59:59Z/17:00:00Z: 3/3 vs 0/3; catalog check in CI: 1/3 vs 0/3 |
+| **New:** search "nguyen thao" finds "Nguyễn Thị Thảo" under RLS | **1.00** | 0.80 | Saw that RLS keeps LIKE off the trigram index and handled it: 3/3 vs 1/3 |
 | Slow list page, team wants to add Redis | **1.00** | 0.56 | Load test with thresholds on staging: 3/3 vs 0/3 |
-| Fix `slugify('Đường')` | **1.00** | 0.58 | Saw the repro test fail before fixing: 3/3 vs 0/3 |
+| Fix `slugify('Đường')` | **1.00** | 0.67 | Saw the repro test fail before fixing: 3/3 vs 1/3 |
+| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.67 | New build, test first, staged rollout, camera permission declared: 3/3 vs 0/3 |
 | Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines (acknowledge in 2 working days, delete in 20 days): 3/3 vs 0/3 |
-| Pick an architecture for a 3-person team | **1.00** | 0.73 | Concrete conditions for revisiting the decision: 3/3 vs 0/3 |
-| Move mobile tokens out of AsyncStorage | **0.94** | 0.72 | Clear Keychain tokens left over after a reinstall: 2/3 vs 0/3. After this run the mobile skill got one line on it; re-run of this case: 3/3 vs 0/3, score 1.00 |
 | AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, API errors become friendly messages: 3/3 vs 0/3 |
-| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.75 | Plan for users on old builds (gate the camera feature, OTA only for JS fixes): 3/3 vs 1/3 |
 | Switching workspace still shows old data | **1.00** | 0.75 | Cancel requests and drop the old workspace's cache: 3/3 vs 0/3 |
-| "Where are we, what's next?" on task cards | **0.93** | 0.80 | Right next step: 2/3 vs 1/3 (the failing run put P1-T02 first, as it should, but then planned P1-T03 before P1-T04) |
-| Playwright test for workspace switching | **1.00** | 0.87 | Role/label locators: 3/3 vs 1/3 |
-| Rename a column with no downtime | **1.00** | 0.93 | Old column's NOT NULL dropped (or given a default) before code stops writing it: 3/3 vs 2/3 |
-| NOT NULL backfill under FORCE RLS, RLS for memberships, link preview (SSRF), follow the codebase's patterns, parallel agents for small tasks?, Electron security, reminder job design | 1.00 | 1.00 | Done right without the skills too |
+| Move mobile tokens out of AsyncStorage | **0.94** | 0.78 | Clear Keychain tokens left over after a reinstall: 2/3 vs 0/3 (the run that missed it did not load the skill) |
+| "Where are we, what's next?" on task cards | **1.00** | 0.80 | Reports progress from the cards: 3/3 vs 1/3 |
+| Playwright test for workspace switching | **1.00** | 0.80 | Role/label locators: 3/3 vs 0/3 |
+| Pick an architecture for a 3-person team | **1.00** | 0.93 | Boundaries enforced by a tool: 3/3 vs 2/3 |
+| Electron app security | 0.96 | **1.00** | One run with the skills failed the renderer check (the grader found no renderer file at the expected path) |
+| Link preview (SSRF) | 0.92 | **1.00** | The skill was not loaded in any run; one run's address checks were judged incomplete |
+| NOT NULL backfill under FORCE RLS, RLS for memberships, column rename without downtime, follow the codebase's patterns, parallel agents for small tasks?, reminder job design | 1.00 | 1.00 | Done right without the skills too |
 | **Small change** ("rename the Save button"): no process docs, no agents | 1.00 | 1.00 | The skills don't add ceremony |
-| **Mean of 19 cases** | **0.99** | 0.85 | No case scores lower with the skills |
+| **Mean of 26 cases** | **0.98** | 0.80 | The 7 new cases: 0.97 vs 0.64 |
 
-Compared with 0.5.0 (Vietnamese skills), same cases and settings:
+Notes on this run:
+- **Cases rerun.** It stopped at the 30-minute limit, so the last 6 cases were rerun separately.
+- **i18n case.** Two graders were reworded after the first run: one failed correct answers that named the old buggy query as the cause, and one demanded two things at once. The frontend skill also got one rule line; the i18n case's numbers are from the rerun.
+- **Payments case.** An earlier version asked the agent to fix an obviously broken VNPay IPN handler. It scored 1.00 with and without the skills, so it was replaced by the design case above.
 
-| | 0.5.0 | 1.0.0 |
-|---|---|---|
-| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 |
-| Skill descriptions always in context | 4,581 tokens | 3,620 (−21%) |
-| SKILL.md bodies, all 12 domain skills | about 22,400 tokens | about 16,900 (−25%) |
-| Run cost with the skills, relative to without | 1.59× | 1.46× |
-| Runs where the skill loaded | 42/54 | 44/54 |
+Compared with earlier versions (same settings):
 
-The English skills still trigger on Vietnamese requests, and the agent answers in Vietnamese. In Claude Code the five commands (`vibe-help`, `vibe-start`...) stay out of context until you type them.
+| | 0.5.0 | 1.0.0 | 1.1.0 |
+|---|---|---|---|
+| Cases | 19 | 19 | 26 |
+| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 (the same 19 cases: 0.99 / 0.86) |
+| Skill descriptions always in context | 4,581 tokens | 3,620 | 3,791 (7 new references cost 171 tokens) |
+| Run cost with the skills, relative to without | 1.59× | 1.46× | 1.52× |
+| Runs where the skill loaded | 42/54 | 44/54 | 60/75 |
 
-The cost: the agent reads skill docs before answering, so a run costs about 1.46× a run without the skills (about $0.14 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
+The English skills trigger on Vietnamese requests, and the agent answers in Vietnamese. In Claude Code the five commands (`vibe-help`, `vibe-start`...) stay out of context until you type them.
+
+The cost: the agent reads skill docs before answering, so a run costs about 1.5× a run without the skills (about $0.16 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
 
 ```bash
 claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
@@ -213,8 +233,8 @@ plugins/vibe/
     ├── vibe-plan/          domain-analysis, tech-research, dev-tools · templates PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, AGENTS
     ├── vibe-tasks/         scripts/tasks.py · templates task, STATUS, HANDOFF · examples/mini-crm
     ├── vibe-architecture/  codebase-conventions, architecture-styles, ddd, design-principles
-    ├── vibe-backend/       data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy
-    ├── vibe-frontend/      design-to-code, motion-spec, state-management
+    ├── vibe-backend/       data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy, payments, search, notifications, realtime, data-import
+    ├── vibe-frontend/      design-to-code, motion-spec, state-management, i18n, seo
     ├── vibe-mobile/        choose-stack, app-data, platform-features, testing, release
     ├── vibe-desktop/       choose-stack, security, app-data, testing, release
     ├── vibe-ai/            design, integration, safety, cost, testing

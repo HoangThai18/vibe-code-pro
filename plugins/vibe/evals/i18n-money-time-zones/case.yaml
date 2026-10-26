@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: i18n-money-time-zones
+expected_outcome: |
+  Tiền là số nguyên theo đơn vị nhỏ nhất kèm mã tiền tệ theo giá/chi nhánh, không suy ra từ ngôn ngữ giao diện; mọi chỗ định
+  dạng ngày giờ truyền timeZone IANA của tenant/chi nhánh (Asia/Ho_Chi_Minh, Asia/Singapore), qua một module định dạng
+  chung; "lịch hẹn hôm nay" tính bằng nửa đêm theo múi giờ chi nhánh (AT TIME ZONE), có test hai phía 16:59:59Z/17:00:00Z;
+  câu dịch nguyên câu có tham số, số nhiều theo từng ngôn ngữ (vi chỉ other, en one/other); CI kiểm hai file ngôn ngữ
+  cùng khoá và tham số, thiếu khoá tiếng Anh thì dùng tiếng Việt.

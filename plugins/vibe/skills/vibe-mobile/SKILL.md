@@ -14,6 +14,7 @@ Read only what the current task needs (paths relative to this skill folder):
 | Push notifications, deep links, permissions, background, a11y, UI from design | `references/platform-features.md` |
 | Tests: unit, component, E2E on emulator and device | `references/testing.md` |
 | Build, signing, store release, OTA update, crash reports, forced update | `references/release.md` |
+| Multiple languages, money/date formatting, time zones (Expo + i18next) | the `vibe-frontend` skill (`references/i18n.md`) |
 
 Parts shared with web live in other skills; do not repeat them here: building UI from design (the `vibe-frontend` skill, `references/design-to-code.md`), server state and tenant switch (the `vibe-frontend` skill, `references/state-management.md`), API contract (the `vibe-backend` skill, `references/api-conventions.md`, which has a section for long-lived clients such as mobile apps).
 

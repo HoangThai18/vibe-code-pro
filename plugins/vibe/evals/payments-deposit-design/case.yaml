@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: payments-deposit-design
+expected_outcome: |
+  Tiền cọc vào tài khoản merchant/ngân hàng của từng spa (thu hộ cho spa qua tài khoản nền tảng là dịch vụ trung gian
+  thanh toán cần giấy phép NHNN, Nghị định 52/2024); chỉ IPN/webhook đã xác minh chữ ký bằng khoá của đúng spa mới đánh
+  dấu đã trả, return URL chỉ hiển thị, kiểm số tiền với DB, idempotent; chuyển khoản khớp bằng mã trong nội dung, nội dung
+  sai hoặc thiếu vào hàng chờ xử lý tay, trả thiếu/thừa vào review, webhook trùng bỏ qua; trước khi huỷ giao dịch quá hạn
+  phải hỏi lại cổng (VNPay querydr), đối soát hằng ngày; hoá đơn điện tử xuất khi hoàn thành dịch vụ (khoản cọc chưa
+  xuất) qua nhà cung cấp hoá đơn.

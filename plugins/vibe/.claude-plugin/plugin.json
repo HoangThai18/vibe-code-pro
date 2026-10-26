@@ -1,7 +1,7 @@
 {
   "name": "vibe",
   "displayName": "Vibe Code Pro",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Full software development workflow as Agent Skills for any coding agent (Claude Code, Codex, Cursor, Copilot, Gemini CLI, OpenCode...): plan, task cards, architecture, backend (multi-tenant, jobs, security, privacy), web, mobile, desktop, AI features, build with tests, review, ship and operate, fix. Shortcuts: /vibe-start, /vibe-next, /vibe-check.",
   "author": {
     "name": "thaiphan",

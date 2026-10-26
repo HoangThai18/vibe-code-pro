@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: seo-public-pages
+expected_outcome: |
+  Mỗi trang công khai có canonical tuyệt đối của chính nó (metadataBase + alternates.canonical theo trang, không đặt ở
+  root layout); app /t/..., trang đăng nhập và staging dùng noindex (metadata hoặc X-Robots-Tag), không chặn bằng
+  robots.txt; noindex cho staging quyết định lúc chạy (middleware/proxy hoặc host), không bằng next.config headers();
+  spa chưa xuất bản/đã xoá trả 404 thật (notFound), đổi slug thì 308/301, không có loading.tsx/Suspense bọc phần tra
+  cứu; JSON-LD DaySpa/LocalBusiness escape dấu <; sitemap từ dữ liệu, chỉ spa đã xuất bản, lastModified thật,
+  generateSitemaps khi quá 50.000 URL.
