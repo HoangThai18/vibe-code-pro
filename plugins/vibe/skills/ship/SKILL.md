@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Đưa phần mềm lên chạy thật và vận hành: CI/CD, môi trường, deploy kèm migration đúng thứ tự, feature flag, checklist release, rollback; sau khi chạy thật thì log, metric, cảnh báo, error tracking, backup và khôi phục (RPO/RTO, PITR, diễn tập restore), bảo trì dependency và vá bảo mật. Dùng khi user nói 'deploy', 'release', 'go-live', 'lên production', 'CI/CD', 'GitHub Actions', 'rollback', 'feature flag', 'monitoring', 'alert', 'Sentry', 'backup', 'restore', 'nâng cấp thư viện', 'vá lỗ hổng'."
+description: "Đưa phần mềm lên chạy thật và vận hành: CI/CD, môi trường, deploy kèm migration đúng thứ tự, feature flag, checklist release, rollback; sau khi chạy thật thì log, metric, cảnh báo, error tracking, backup và khôi phục (RPO/RTO, PITR, diễn tập restore), bảo trì dependency và vá bảo mật, hiệu năng (app chậm, query chậm, kiểm tải k6, Web Vitals, có nên thêm cache). Dùng khi user nói 'deploy', 'release', 'go-live', 'lên production', 'CI/CD', 'GitHub Actions', 'rollback', 'feature flag', 'monitoring', 'alert', 'Sentry', 'backup', 'restore', 'nâng cấp thư viện', 'vá lỗ hổng', 'chậm', 'load lâu', 'kiểm tải', 'thêm Redis'."
 argument-hint: "[việc cần làm, vd deploy staging, rollback, backup]"
 ---
 
