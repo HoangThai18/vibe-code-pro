@@ -88,3 +88,40 @@ jobs:
         run: |
           xvfb-run -a npm run verify 2>&1 | tee verify.log; s=${PIPESTATUS[0]}
           [ "$s" = 0 ] || python3 ../../tools/annotate.py verify.log electron; exit "$s"
+
+  laravel:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -proot" --health-interval 5s --health-timeout 5s --health-retries 20
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, pdo_pgsql, intl, pcntl
+          tools: composer:v2
+          coverage: none
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ hashFiles('verify/laravel/composer.lock') }}
+      - name: verify/tools/run.sh laravel
+        run: |
+          verify/tools/run.sh laravel 2>&1 | tee verify.log; s=${PIPESTATUS[0]}
+          [ "$s" = 0 ] || python3 verify/tools/annotate.py verify.log laravel; exit "$s"
+        env:
+          PG_URL: postgres://postgres:postgres@localhost:5432
+          MYSQL_URL: mysql://root:root@127.0.0.1:3306
