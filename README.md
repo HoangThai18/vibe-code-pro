@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img alt="Agent Skills standard" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
   <img alt="12 skills, 5 commands, 2 subagents" src="https://img.shields.io/badge/skills-12%20·%20commands%205%20·%20subagents%202-DB2777?style=flat-square">
   <img alt="Examples executed" src="https://img.shields.io/badge/examples-executed-059669?style=flat-square">
-  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.98 with the skills vs 0.80 without, 26 cases" src="https://img.shields.io/badge/eval-0.98%20with%20·%200.80%20without-F59E0B?style=flat-square"></a>
+  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.98 with the skills vs 0.75 without, 31 cases" src="https://img.shields.io/badge/eval-0.98%20with%20·%200.75%20without-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.vi.md">Tiếng Việt</a></p>
@@ -144,51 +144,57 @@ Not run here: the skills inside agents other than Claude Code (no Codex, Cursor,
 
 ## Evals: with and without the skills
 
-`plugins/vibe/evals/` holds 26 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.1.0, run in Claude Code:
+`plugins/vibe/evals/` holds 31 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.2.0, run in Claude Code:
 
 | Case | With | Without | Main difference |
 |---|---|---|---|
-| **New in 1.1.0:** live appointment board (realtime) | **1.00** | 0.53 | Stream authorized per spa, with a test that one spa's events never reach another: 3/3 vs 0/3; one LISTEN connection per instance, streams end when a member is removed: 3/3 vs 0/3 |
-| **New:** import 20,000 customers from Excel/CSV | **1.00** | 0.60 | Resumable job in committed chunks with tenant context: 3/3 vs 0/3; formula escaping in exported CSV and UTF-8 check: 3/3 vs 0/3 |
-| **New:** Zalo reminders with SMS fallback, promotions | **1.00** | 0.60 | Zalo refresh token rotates, refresh from one place: 3/3 vs 0/3; advertising rules (consent, 07:00–22:00, 3 per 24 h): 3/3 vs 0/3 |
-| **New:** SEO for public spa pages, app and staging hidden | **1.00** | 0.60 | Real 404/308 for spa pages, no `loading.tsx` around the lookup: 3/3 vs 0/3; staging noindex decided at runtime: 3/3 vs 1/3 |
-| **New:** online deposits by QR transfer or VNPay | **1.00** | 0.73 | Edited transfer notes, partial payments, duplicate webhooks: 3/3 vs 0/3 |
-| **New:** Vietnamese/English, prices and times for a Singapore branch | **0.80** | 0.60 | "Today" bounded by local midnight with a test at 16:59:59Z/17:00:00Z: 3/3 vs 0/3; catalog check in CI: 1/3 vs 0/3 |
-| **New:** search "nguyen thao" finds "Nguyễn Thị Thảo" under RLS | **1.00** | 0.80 | Saw that RLS keeps LIKE off the trigram index and handled it: 3/3 vs 1/3 |
-| Slow list page, team wants to add Redis | **1.00** | 0.56 | Load test with thresholds on staging: 3/3 vs 0/3 |
-| Fix `slugify('Đường')` | **1.00** | 0.67 | Saw the repro test fail before fixing: 3/3 vs 1/3 |
-| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.67 | New build, test first, staged rollout, camera permission declared: 3/3 vs 0/3 |
-| Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines (acknowledge in 2 working days, delete in 20 days): 3/3 vs 0/3 |
-| AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, API errors become friendly messages: 3/3 vs 0/3 |
-| Switching workspace still shows old data | **1.00** | 0.75 | Cancel requests and drop the old workspace's cache: 3/3 vs 0/3 |
-| Move mobile tokens out of AsyncStorage | **0.94** | 0.78 | Clear Keychain tokens left over after a reinstall: 2/3 vs 0/3 (the run that missed it did not load the skill) |
-| "Where are we, what's next?" on task cards | **1.00** | 0.80 | Reports progress from the cards: 3/3 vs 1/3 |
-| Playwright test for workspace switching | **1.00** | 0.80 | Role/label locators: 3/3 vs 0/3 |
-| Pick an architecture for a 3-person team | **1.00** | 0.93 | Boundaries enforced by a tool: 3/3 vs 2/3 |
-| Electron app security | 0.96 | **1.00** | One run with the skills failed the renderer check (the grader found no renderer file at the expected path) |
-| Link preview (SSRF) | 0.92 | **1.00** | The skill was not loaded in any run; one run's address checks were judged incomplete |
-| NOT NULL backfill under FORCE RLS, RLS for memberships, column rename without downtime, follow the codebase's patterns, parallel agents for small tasks?, reminder job design | 1.00 | 1.00 | Done right without the skills too |
+| **New in 1.2.0:** "build me a spa management app" in an empty folder | **1.00** | 0.33 | Asked a numbered list of questions with defaults before any code: 3/3 vs 0/3 (without the skills it wrote the app straight away) |
+| **New:** "do the permissions" when the PRD leaves them open | **1.00** | 0.67 | Offered 2–3 permission models with trade-offs and a recommendation, then asked: 3/3 vs 0/3 |
+| **New:** review a branch with five planted issues | **1.00** | 0.95 | Missing `FORCE ROW LEVEL SECURITY`: 3/3 vs 2/3; the double-redeem race, `UNIQUE` without `tenant_id` and the missing composite FK were found both ways |
+| **New:** "continue" with a handoff note and uncommitted work | **0.96** | 0.92 | Card handed over at `review`, not left at `doing` or set to `done`: 2/3 vs 1/3 |
+| **New:** "it's done, tests pass, mark it done and merge" | 1.00 | 1.00 | Both runs found the two gaps and neither marked it done; kept as a guard |
+| Live appointment board (realtime) | **1.00** | 0.40 | Events as hints, stream authorized per spa, one LISTEN connection per instance: 3/3 vs 0/3 each |
+| Slow list page, team wants to add Redis | **1.00** | 0.44 | Load test with thresholds on staging: 3/3 vs 0/3 |
+| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.50 | New build and staged rollout, old app versions kept working: 3/3 vs 0/3 |
+| Fix `slugify('Đường')` | **1.00** | 0.58 | Saw the repro test fail before fixing: 3/3 vs 0/3 |
+| Switching workspace still shows old data | **1.00** | 0.58 | Cancel requests and drop the old workspace's cache: 3/3 vs 0/3 |
+| Import 20,000 customers from Excel/CSV | **1.00** | 0.60 | Resumable job in committed chunks; formula escaping and UTF-8 check: 3/3 vs 0/3 |
+| Zalo reminders with SMS fallback, promotions | **1.00** | 0.60 | Refresh token rotation from one place; advertising rules: 3/3 vs 0/3 |
+| Online deposits by QR transfer or VNPay | **1.00** | 0.60 | Edited transfer notes, partial payments, duplicate webhooks; e-invoice timing: 3/3 vs 0/3 |
+| SEO for public spa pages, app and staging hidden | **1.00** | 0.60 | Real 404/308 for spa pages: 3/3 vs 0/3 |
+| SMS reminder job design | **1.00** | 0.67 | How the scan lists spas under RLS (a narrow `SECURITY DEFINER` function, then per-spa work): 3/3 vs 0/3 (grader added in 1.2.0) |
+| Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines: 3/3 vs 0/3 |
+| Playwright test for workspace switching | **1.00** | 0.73 | Role/label locators: 3/3 vs 0/3 |
+| "Where are we, what's next?" on task cards | **1.00** | 0.73 | The right next step: 3/3 vs 0/3 |
+| AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, friendly API errors: 3/3 vs 0/3 |
+| Move mobile tokens out of AsyncStorage | **1.00** | 0.78 | Clear Keychain tokens left after a reinstall: 3/3 vs 0/3 |
+| Pick an architecture for a 3-person team | **1.00** | 0.80 | When to revisit the choice: 3/3 vs 1/3 |
+| Search "nguyen thao" finds "Nguyễn Thị Thảo" under RLS | **1.00** | 0.80 | Saw that RLS keeps LIKE off the trigram index: 3/3 vs 1/3 |
+| Vietnamese/English, prices and times for a Singapore branch | **0.73** | 0.53 | "Today" bounded by local midnight: 2/3 vs 1/3; catalog check in CI: 0/3 both ways |
+| Link preview (SSRF) | 0.92 | 0.92 | The skill was not loaded in any run |
+| RLS for memberships | 0.93 | **1.00** | The one run that skipped the skill set the user id on every request (grader added in 1.2.0) |
+| NOT NULL backfill under FORCE RLS, column rename without downtime, follow the codebase's patterns, Electron app security, parallel agents for small tasks? | 1.00 | 1.00 | Done right without the skills too |
 | **Small change** ("rename the Save button"): no process docs, no agents | 1.00 | 1.00 | The skills don't add ceremony |
-| **Mean of 26 cases** | **0.98** | 0.80 | The 7 new cases: 0.97 vs 0.64 |
+| **Mean of 31 cases** | **0.98** | 0.75 | The 26 cases from 1.1.0: 0.98 vs 0.74; the 5 new ones: 0.99 vs 0.77 |
 
 Notes on this run:
-- **Cases rerun.** It stopped at the 30-minute limit, so the last 6 cases were rerun separately.
-- **i18n case.** Two graders were reworded after the first run: one failed correct answers that named the old buggy query as the cause, and one demanded two things at once. The frontend skill also got one rule line; the i18n case's numbers are from the rerun.
-- **Payments case.** An earlier version asked the agent to fix an obviously broken VNPay IPN handler. It scored 1.00 with and without the skills, so it was replaced by the design case above.
+- **Two graders rewritten.** In the two workflow cases the judge read a shortened trace and missed a passing test run, and misread an unchanged `status: review` card. Both checks became regex graders on the file or trace, and the two cases were rerun; their numbers are from the rerun.
+- **Harder graders.** The reminder-job and memberships cases each gained a grader on 1.2.0 content, which is part of why the score without the skills fell from 0.80 to 0.74 on the 26 older cases.
+- **Sandbox.** The eval sandbox blocks writes to `.git`, so runs that tried to commit reported it instead.
 
 Compared with earlier versions (same settings):
 
-| | 0.5.0 | 1.0.0 | 1.1.0 |
-|---|---|---|---|
-| Cases | 19 | 19 | 26 |
-| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 (the same 19 cases: 0.99 / 0.86) |
-| Skill descriptions always in context | 4,581 tokens | 3,620 | 3,791 (7 new references cost 171 tokens) |
-| Run cost with the skills, relative to without | 1.59× | 1.46× | 1.52× |
-| Runs where the skill loaded | 42/54 | 44/54 | 60/75 |
+| | 0.5.0 | 1.0.0 | 1.1.0 | 1.2.0 |
+|---|---|---|---|---|
+| Cases | 19 | 19 | 26 | 31 |
+| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 | 0.98 / 0.75 (the same 26 cases: 0.98 / 0.74) |
+| Always-on tokens (`plugin details`) | 4,581 | 3,620 | 3,791 | 3,579, including about 340 for the 5 commands |
+| Run cost with the skills, relative to without | 1.59× | 1.46× | 1.52× | 1.41× |
+| Runs where the skill loaded | 42/54 | 44/54 | 60/75 | 82/90 |
 
 The English skills trigger on Vietnamese requests, and the agent answers in Vietnamese. In Claude Code the five commands (`vibe-help`, `vibe-start`...) stay out of context until you type them.
 
-The cost: the agent reads skill docs before answering, so a run costs about 1.5× a run without the skills (about $0.16 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
+The cost: the agent reads skill docs before answering, so a run costs about 1.4× a run without the skills (about $0.16 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
 
 ```bash
 claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
