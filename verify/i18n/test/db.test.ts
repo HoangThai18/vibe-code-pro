@@ -114,7 +114,8 @@ test('names: NFD is refused by the CHECK, cleanText fixes it; vi-x-icu sorts lik
     (await withTenant(pool, A, (db) => db.query<{ full_name: string }>(
       `SELECT full_name FROM customers WHERE full_name = ANY($1) ORDER BY full_name ${collate}`, [names]))).rows.map((r) => r.full_name);
   assert.deepEqual(await sorted('COLLATE "vi-x-icu"'), [...names].sort(compareVi));
-  assert.deepEqual(await sorted(''), ['Anh', 'Bình', 'Dương', 'Zô', 'Ánh', 'Âu', 'Ăn', 'Đặng']); // C.UTF-8 database default
+  // byte order: what a plain ORDER BY gives in a C / C.UTF-8 database (an en_US.UTF-8 one is closer, but still not Vietnamese)
+  assert.deepEqual(await sorted('COLLATE "C"'), ['Anh', 'Bình', 'Dương', 'Zô', 'Ánh', 'Âu', 'Ăn', 'Đặng']);
 });
 
 test('pg parsers: date stays YYYY-MM-DD, bigint money becomes a number', async () => {
