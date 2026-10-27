@@ -1,0 +1,7 @@
+{
+  "name": "spa-saas",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" },
+  "dependencies": { "express": "5.1.0", "pg": "8.16.3" }
+}
