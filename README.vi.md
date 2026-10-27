@@ -56,13 +56,13 @@ Cài đủ bộ: các skill gọi nhau bằng tên (`vibe-backend`, `vibe-tasks`
 |---|---|
 | `/vibe-start <ý tưởng>` | Dự án mới: làm rõ yêu cầu, phân tích nghiệp vụ, lên plan, chia task. Dự án có sẵn: khảo sát code, tạo `AGENTS.md`, chia task |
 | `/vibe-status` | Tới đâu rồi: tiến độ, task đang làm, task bị chặn, việc nên làm tiếp |
-| `/vibe-next [P1-T03]` | Làm việc tiếp theo (hoặc đúng task đó): code kèm test, cập nhật task card |
-| `/vibe-check` | Trước khi merge: test, review độc lập, PASS hoặc BLOCK |
+| `/vibe-next [P1-T03]` | Làm việc tiếp theo (hoặc đúng task đó): code kèm test, rồi dừng ở bước review (giữ nhánh, chưa merge) |
+| `/vibe-check [P1-T03 \| phase P1]` | Review có bằng chứng: test, acceptance criteria, verifier độc lập. PASS thì merge và đánh dấu done; BLOCK thì liệt kê chỗ cần sửa |
 | `/vibe-fix <mô tả lỗi>` | Sửa bug, xử lý sự cố |
 | `/vibe-ship <việc>` | Deploy, rollback, backup, giám sát |
 | `/vibe-help` | Bảng lệnh và gợi ý lệnh nên dùng theo trạng thái dự án |
 
-Một vòng: `/vibe-start` → `/vibe-next` → `/vibe-check` → merge → `/vibe-next`. Hoặc cứ nói bình thường: *"phân tích nghiệp vụ app đặt lịch spa"*, *"tới đâu rồi?"*, *"làm tiếp"*, *"lỗi 500 khi tạo khách"*.
+Một vòng: `/vibe-start` → `/vibe-next` (dừng ở review) → `/vibe-check` (PASS thì merge) → `/vibe-next`. Hết task của một phase thì `/vibe-check phase P1` để chốt phase, lần `/vibe-next` sau sẽ chia task cho phase kế tiếp. Hoặc cứ nói bình thường: *"phân tích nghiệp vụ app đặt lịch spa"*, *"tới đâu rồi?"*, *"làm tiếp"*, *"lỗi 500 khi tạo khách"*.
 
 **Nâng cấp từ 0.x**: mọi skill giờ có tiền tố `vibe-` (`/vibe:start` → `/vibe-start`, `/vibe:check` → `/vibe-check`) và được viết bằng tiếng Anh. Dự án mới dùng `AGENTS.md`; `CLAUDE.md` đang có được giữ nguyên và thêm dòng `@AGENTS.md`. Task card và `docs/` không cần đổi. Cập nhật bằng `claude plugin update vibe`, hoặc chạy lại `npx skills add HoangThai18/vibe-code-pro`.
 
@@ -72,20 +72,20 @@ Một vòng: `/vibe-start` → `/vibe-next` → `/vibe-check` → merge → `/vi
   <img src="assets/flow.svg" width="100%" alt="Ý tưởng → plan → tasks → build → review → ship → chạy thật. Build dùng các skill architecture, backend, frontend, mobile, desktop, ai. Có lỗi thì qua fix rồi quay lại tasks.">
 </p>
 
-Theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills + tools**. Kiến thức nằm trong skill và chỉ nạp khi cần; subagent chỉ dùng khi đáng (review độc lập, chạy song song việc lớn và độc lập). Mỗi phiên chỉ mang theo mô tả ngắn của skill: khoảng **3.8k token** cho 12 skill và 2 subagent (ước tính của `claude plugin details`), giảm từ 4.6k ở bản tiếng Việt. 5 lệnh nhanh không tốn token nào cho tới khi bạn gõ, trên các agent hỗ trợ `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor).
+Theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills + tools**. Kiến thức nằm trong skill và chỉ nạp khi cần; subagent chỉ dùng khi đáng (review độc lập, chạy song song việc lớn và độc lập). Mỗi phiên chỉ mang theo mô tả ngắn của skill: khoảng **3.6k token** theo ước tính của `claude plugin details`, con số này tính cả khoảng 340 token của 5 lệnh nhanh. Trên các agent hỗ trợ `disable-model-invocation` (Claude Code, VS Code Copilot, Cursor), các lệnh không nằm trong context cho tới khi bạn gõ; Codex cũng vậy nhờ file `agents/openai.yaml` của mỗi lệnh.
 
 | Skill | Lo phần | Tài liệu nạp khi cần |
 |---|---|---|
-| `vibe-plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase, công cụ cho agent (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 7 template |
-| `vibe-tasks` | Task card có deps và file sẽ đụng, tiến độ, việc tiếp theo, handoff giữa các phiên | `tasks.py`, template, ví dụ mini CRM |
+| `vibe-plan` | Làm rõ yêu cầu, phân tích nghiệp vụ, research người dùng / đối thủ / tech stack, PRD, kiến trúc, chia phase, công cụ cho agent (Context7, Playwright, Chrome DevTools, Figma, Supabase, GitHub, LSP) | domain-analysis, tech-research, dev-tools, 6 template |
+| `vibe-tasks` | Task card có deps và file sẽ đụng, tiến độ, việc tiếp theo, làm tiếp từ handoff ("làm tiếp đi") | split, `tasks.py`, template, ví dụ mini CRM |
 | `vibe-architecture` | Code theo đúng quy ước của codebase; chọn kiến trúc hợp với yêu cầu (modular monolith, layered, hexagonal, DDD, CQRS, event, microservices); SOLID, pattern, refactor | codebase-conventions, architecture-styles, ddd, design-principles |
-| `vibe-backend` | Schema, index, transaction, migration an toàn, 8 ORM, multi-tenant + Postgres RLS, API contract, xác thực và phân quyền, job nền, bảo mật ứng dụng, dữ liệu cá nhân theo luật Việt Nam, **thanh toán** (VNPay, MoMo, VietQR, hoá đơn điện tử), **tìm kiếm tiếng Việt**, **gửi email/Zalo/SMS**, **realtime**, **nhập Excel/CSV** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, jobs, app-security, privacy, payments, search, notifications, realtime, data-import |
-| `vibe-frontend` | Web: UI theo mockup (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), đổi workspace an toàn, **đa ngôn ngữ** (VND, múi giờ, số nhiều), **SEO trang công khai** | design-to-code, motion-spec, state-management, i18n, seo |
+| `vibe-backend` | Schema, index, transaction, migration an toàn, 8 ORM, multi-tenant + Postgres RLS, API contract, xác thực, **mô hình phân quyền** (vai trò cố định, vai trò mỗi spa tự tạo, ma trận theo module, phạm vi chi nhánh), đăng nhập cho app native, job nền, bảo mật ứng dụng, dữ liệu cá nhân theo luật Việt Nam, **thanh toán** (VNPay, MoMo, VietQR, hoá đơn điện tử), **tìm kiếm tiếng Việt**, **gửi email/Zalo/SMS**, **realtime**, **nhập Excel/CSV** | data-layer, orm, multi-tenant, postgres-rls, isolation-tests, api-contract, api-conventions, auth, native-auth, permissions, jobs, app-security, privacy, payments, search, notifications, realtime, data-import |
+| `vibe-frontend` | Web: UI theo mockup (Claude Design, Figma), motion, state (TanStack Query, Zustand, Redux, Pinia...), đổi workspace an toàn, **Next.js Server Actions** và `'use cache'` theo tenant, **đa ngôn ngữ** (VND, múi giờ, số nhiều), **SEO trang công khai** | design-to-code, motion-spec, state-management, server-actions, i18n, seo |
 | `vibe-mobile` | iOS và Android: chọn stack (Expo/React Native, Flutter, native, PWA), token trong Keychain/Keystore, hàng đợi ghi offline, push, deep link, test (Jest, Maestro), EAS Build, OTA, duyệt store, buộc cập nhật | choose-stack, app-data, platform-features, testing, release |
 | `vibe-desktop` | Windows, macOS, Linux: Tauri / Electron / PWA, bảo mật Electron (isolation, sandbox, IPC kiểm nguồn gửi), token qua kho khoá hệ điều hành, test Playwright, ký số, notarize, tự cập nhật | choose-stack, security, app-data, testing, release |
-| `vibe-ai` | Tính năng AI trong app: gọi Claude API từ server, structured output, streaming, chống prompt injection, cô lập tenant, ngân sách và usage theo tenant, test không tốn tiền, eval chất lượng | design, integration, safety, cost, testing |
+| `vibe-ai` | Tính năng AI trong app: gọi Claude API từ server, structured output, streaming, chống prompt injection, cô lập tenant, ngân sách và usage theo tenant, lịch sử chat, đọc ảnh và PDF, test không tốn tiền, eval chất lượng | design, integration, safety, cost, chat-and-files, testing |
 | `vibe-build` | Một agent làm cả code lẫn test cho từng task, chọn mức test, **test giao diện và luồng người dùng bằng Playwright**, khi nào mới chạy song song | testing, e2e-playwright, parallel, agent-brief |
-| `vibe-review` | Nghiệm thu có bằng chứng, verifier độc lập, PASS / BLOCK, báo cáo | checklist |
+| `vibe-review` | Nghiệm thu có bằng chứng, verifier độc lập, PASS / PASS kèm việc sau / BLOCK; PASS thì merge task | checklist, verifier · template REVIEW |
 | `vibe-ship` | CI/CD, deploy kèm migration đúng thứ tự, feature flag, **rollback**, giám sát, **backup và restore**, bảo trì, **hiệu năng và kiểm tải** (k6, query chậm, Web Vitals) | ci-cd, release-rollback, observability, backup-restore, maintenance, performance |
 | `vibe-fix` | Sửa bug bằng test tái hiện trước, sự cố production, nghi lộ dữ liệu, postmortem | template POSTMORTEM |
 
@@ -100,7 +100,7 @@ Theo hướng Anthropic khuyến nghị cho agent: **một agent chính + skills
   <img src="assets/terminal.svg" width="90%" alt="Output thật của tasks.py status và next trên dự án mẫu mini-crm: tiến độ theo phase, task đang làm, task sẵn sàng, task chờ deps.">
 </p>
 
-Task card là file Markdown trong `docs/tasks/`, nên phiên nào, máy nào cũng làm tiếp được. `tasks.py` (Python 3.8+, không cần cài thêm) kiểm lỗi deps, xếp thứ tự, phát hiện hai task cùng sửa một file, và gợi ý đúng một việc tiếp theo:
+Task card là file Markdown trong `docs/tasks/`, nên phiên nào, máy nào cũng làm tiếp được. `tasks.py` (Python 3.8+, không cần cài thêm) kiểm lỗi deps, xếp thứ tự (review trước, rồi tới phase thấp nhất còn việc), không bao giờ cho hai task cùng sửa một file hay hai migration schema chạy cùng lúc, báo lỗi card thì thoát mã 1, và gợi ý đúng một việc tiếp theo. 49 unit test chạy trong CI trên Python 3.8 và 3.12:
 
 ```bash
 S=plugins/vibe/skills/vibe-tasks
@@ -110,30 +110,33 @@ python3 $S/scripts/tasks.py next   --dir $S/examples/mini-crm
 
 ## Đã chạy thật, không chỉ viết ra
 
-Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không có. Code, SQL, workflow được chạy thử trước khi đưa vào. Ở bản 1.0.0, phần chữ được dịch sang tiếng Anh; code giữ nguyên, chỉ đổi comment và tên test (đã so từng khối).
+Tài liệu cho phần mềm thật mà ví dụ sai thì còn hại hơn không có. Code, SQL, workflow được chạy thử trước khi đưa vào. Từ bản 1.2.0, code đó nằm trong [`verify/`](verify/) cùng test, và CI chạy lại ở mỗi pull request trên một PostgreSQL 16 trống: 13 project, cộng app Expo và app Electron. 29 tài liệu tham khảo được sinh ra từ chính các file đã test, nên tài liệu và code lệch nhau là CI báo lỗi.
 
 | Phần | Cách kiểm | Kết quả |
 |---|---|---|
+| **Backend lõi (1.2.0)**: worker liệt kê tenant, bảng chỉ ghi thêm, kiểm membership, đổi vai trò, API key, token cho app native, Idempotency-Key, chống đặt trùng lịch, các mô hình phân quyền | vitest + Express 5 trên PostgreSQL 16 (`FORCE` RLS), request chạy đồng thời | 77 test; phát hiện dưới `FORCE` RLS câu `SELECT id FROM tenants` của worker trả 0 dòng (job nhắc lịch lặng lẽ không làm gì), và hai owner cùng lúc hạ quyền nhau thì không còn owner nào cho tới khi khoá dòng owner; 21 lớp chặn, bỏ cái nào cũng có test fail |
 | Multi-tenant SQL: RLS, policy đọc/ghi tách riêng, composite FK, kiểm membership theo request, tra workspace trước đăng nhập, Supabase | Chạy nguyên văn trên PostgreSQL 16 bằng role app, kèm phép thử tấn công chéo tenant | Chặn đúng. Đã sửa hai lỗ của bản nháp: policy có `OR` cho ghi chéo tenant, và bảng slug ghi được bằng role app |
 | Backup và restore | `pg_dump` bằng role backup, restore sang cluster mới bằng admin không phải superuser, kiểm owner, RLS, số dòng, migration tiếp theo | 0 lỗi; bắt được 2 lỗi thật của tài liệu cũ |
 | Test giao diện Playwright | 21 test, lặp 5 lần × 4 worker, trên app thường, app huỷ request khi đổi trang, app có `role="alert"` kiểu Next.js | Không chập chờn; hai test đổi workspace fail mọi lần trên hai bản app cố ý cài lỗi |
 | Test cô lập tenant | Trên app đúng và 3 bản lỗi | Bắt được cả 3; phần đối chứng bắt được test "pass mà không kiểm gì" |
 | 8 ORM | "Trừ kho + tạo đơn" trên PostgreSQL 16: còn hàng, hết hàng, hai transaction tranh nhau | Đạt cả 8; bắt được lỗi bán vượt tồn ở bản nháp |
 | Ví dụ TypeScript (DDD, state, auth, webhook, `426 app_update_required`) | `tsc --strict` + unit test | Đạt |
-| App mobile Expo SDK 58 | `tsc --strict`, Jest khi chưa có cache, `eas.json` qua bộ đọc cấu hình của `eas-cli`, runtime version theo biến thể | Đạt; bắt được lỗi bản nháp (type TypeScript 6, Jest không thoát, quá giờ khi chưa có cache, quy trình OTA sai) |
-| App desktop: bảo mật Electron, `safeStorage`, Tauri | Electron 45 + Playwright 1.64 (100 lượt liên tiếp) trên app mẫu và 8 bản cố ý cấu hình sai; build Tauri 2.12 thật | Bắt được cả 8; bắt được lỗi bản nháp |
-| Tính năng AI | `@anthropic-ai/sdk` 1.3 với fetch giả, `tsc --strict`, bảng usage trên PostgreSQL 16, bỏ từng lớp bảo vệ | Đạt; bỏ lớp nào trong 5 lớp cũng có test fail. Eval gọi API thật chưa chạy (môi trường kiểm không có API key) |
-| Job nền pg-boss | pg-boss 12.38 trên PostgreSQL 16 có RLS `FORCE`, worker thật | 6 test đạt; 4 lớp bảo vệ bị bỏ đều có test fail |
+| App mobile Expo SDK 58 | `tsc --strict`, Jest khi chưa có cache, `eas.json` qua bộ đọc cấu hình của `eas-cli`, runtime version theo biến thể | Đạt; bắt được lỗi bản nháp (type TypeScript 6, Jest không thoát, quá giờ khi chưa có cache, quy trình OTA sai). 1.2.0: hàng đợi ghi offline giữ lại bản ghi khi gặp 401 và 426 (trước đây xoá mất), thiết bị nhận push gửi theo membership; 30 test Jest và một test SQL, chạy trong CI |
+| App desktop: bảo mật Electron, `safeStorage`, Tauri | Electron 45 + Playwright 1.64 (100 lượt liên tiếp) trên app mẫu và 8 bản cố ý cấu hình sai; build Tauri 2.12 thật | Bắt được cả 8; bắt được lỗi bản nháp. 1.2.0: không có permission handler thì Electron 45 cấp camera và mọi quyền khác; `new URL('app://…').origin` là `'null'` nên lớp chặn điều hướng chặn luôn trang của chính app. Test Electron chạy trong CI |
+| Tính năng AI | `@anthropic-ai/sdk` 1.3 với fetch giả, `tsc --strict`, bảng usage trên PostgreSQL 16, bỏ từng lớp bảo vệ | 24 test; 15 lớp chặn, bỏ cái nào cũng có test fail; phát hiện phần ghi usage đọc bảng `tenants` ngoài context tenant, nên dưới `FORCE` RLS mọi lượt gọi AI đều bị chặn. Eval gọi API thật chưa chạy (môi trường kiểm không có API key) |
+| Job nền pg-boss | pg-boss 12.38 trên PostgreSQL 16 có RLS `FORCE`, worker thật | 9 test; worker liệt kê tenant qua `app_tenant_ids()`; 6 lớp bảo vệ bị bỏ đều có test fail |
 | Hiệu năng | k6 1.8.2 vào API mẫu 500.000 khách; Playwright + `web-vitals` 6 | Index đúng: p95 từ 2,74 giây xuống 1,97 ms; test ngân sách bắt được trang CLS 0,23 |
-| Bảo mật ứng dụng | Node 22, PostgreSQL 16, gitleaks 8.30 | 12 test đạt; bỏ lớp chặn SSRF nào cũng có test fail; rate limit đúng 10/50; gitleaks bắt key giả kể cả khi file đã xoá |
-| Dữ liệu cá nhân | PostgreSQL 16 có RLS; test hàm tính hạn | Đạt; phát hiện view thiếu `security_invoker` làm lộ dữ liệu giữa tenant |
-| Thanh toán: VNPay, MoMo, webhook chuyển khoản, hoàn tiền | So cách ký với code mẫu chính thức của VNPay và MoMo; xử lý IPN và webhook SePay trên PostgreSQL 16 bằng role của app, có callback trùng chạy đồng thời | 18 test đạt; bỏ 1 trong 6 lớp chặn (khoá dòng, kiểm số tiền, kiểm `vnp_TransactionStatus`, chống nhận trùng...) là có test fail. Chưa chạy với sandbox thật của VNPay, MoMo (không có tài khoản merchant) |
+| Bảo mật ứng dụng | Node 22, PostgreSQL 16, gitleaks 8.30 | 15 test, có cả hộp mã hoá bí mật của tenant; bỏ lớp chặn SSRF nào cũng có test fail; rate limit đúng 10/50; gitleaks bắt key giả kể cả khi file đã xoá |
+| Dữ liệu cá nhân | PostgreSQL 16 có RLS; test hàm tính hạn | 6 test; phát hiện view thiếu `security_invoker` làm lộ dữ liệu giữa tenant; nhật ký đồng ý chỉ ghi thêm (`REVOKE`) |
+| Thanh toán: VNPay, MoMo, webhook chuyển khoản, hoàn tiền | So cách ký với code mẫu chính thức của VNPay và MoMo; xử lý IPN và webhook SePay trên PostgreSQL 16 bằng role của app, có callback trùng chạy đồng thời | 30 test; 17 lớp chặn, bỏ cái nào cũng có test fail (khoá dòng, kiểm số tiền, `07` chuyển sang chờ duyệt, ký tự kiểm tra trong mã chuyển khoản, hỏi `querydr` trước khi gửi lại lệnh hoàn tiền...); phát hiện cộng tiền hoàn ngay trong câu lệnh khoá dòng thì chấp nhận hoàn 300.000 VND cho khoản thanh toán 200.000 VND. Chưa chạy với sandbox thật của VNPay, MoMo (không có tài khoản merchant) |
 | Tìm kiếm tiếng Việt: tên không dấu, số điện thoại, ghi chú | PostgreSQL 16 với 500.000 khách, đo bằng role của app | Phát hiện dưới RLS `LIKE` không dùng được index trigram (380 ms với spa 200.000 khách); hàm tìm `SECURITY DEFINER` mất 2–25 ms. 13 test; 9 lớp chặn, bỏ cái nào cũng có test fail |
-| Gửi tin: huỷ đăng ký một chạm, làm mới token Zalo, giới hạn tin quảng cáo, số phần SMS | PostgreSQL 16, Zalo giả lập có xoay vòng refresh token | 6 test; ba lần làm mới đồng thời chỉ dùng refresh token một lần; 6 lớp chặn, bỏ cái nào cũng có test fail. Chưa gửi qua Zalo hay nhà mạng thật |
-| Realtime: SSE, LISTEN/NOTIFY, client TanStack Query | Hai instance app trên PostgreSQL 16 (`FORCE` RLS), stream HTTP thật, client jsdom | 21 test; ghi bị rollback không phát sự kiện; sự kiện tenant A không tới B; 11 lớp chặn, bỏ cái nào cũng có test fail |
-| Đa ngôn ngữ: VND, giờ theo múi giờ tenant, file dịch, sắp xếp tiếng Việt | ICU của Node 22, PostgreSQL 16, next-intl 4.14 + Next.js 16 trên Chromium ở 3 múi giờ | 32 test; phát hiện `1.250.000 ₫` dùng dấu cách không ngắt, Postgres đọc `'GMT+7'` thành UTC−7, định dạng thiếu múi giờ làm lỗi hydration; 11 lớp chặn, bỏ cái nào cũng có test fail |
-| Nhập Excel/CSV | exceljs 4.4 và csv-parse 7 trên file .xlsx và CSV thật, pg-boss 12.38, tắt ngang worker giữa chừng | 19 test; nhập lại không tạo bản trùng; phát hiện đọc `columnCount` của exceljs mỗi dòng làm 50.000 dòng mất 432 giây, và `delimiter_auto` của csv-parse hỏng với chữ tiếng Việt; 7 lớp chặn, bỏ cái nào cũng có test fail |
+| Gửi tin: huỷ đăng ký một chạm, làm mới token Zalo, giới hạn tin quảng cáo, số phần SMS | PostgreSQL 16, Zalo giả lập có xoay vòng refresh token | 9 test; ba lần làm mới đồng thời chỉ dùng refresh token một lần; ba chiến dịch cùng lúc sau khi đã gửi hai tin: chỉ thêm đúng một tin; 8 lớp chặn, bỏ cái nào cũng có test fail. Chưa gửi qua Zalo hay nhà mạng thật |
+| Realtime: SSE, LISTEN/NOTIFY, client TanStack Query | Hai instance app trên PostgreSQL 16 (`FORCE` RLS), stream HTTP thật, client jsdom | 22 test; ghi bị rollback không phát sự kiện; sự kiện tenant A không tới B; 12 lớp chặn, bỏ cái nào cũng có test fail |
+| Đa ngôn ngữ: VND, giờ theo múi giờ tenant, file dịch, sắp xếp tiếng Việt | ICU của Node 22, PostgreSQL 16, next-intl 4.14 + Next.js 16 trên Chromium ở 3 múi giờ | 30 test; phát hiện `1.250.000 ₫` dùng dấu cách không ngắt, Postgres đọc `'GMT+7'` thành UTC−7, định dạng thiếu múi giờ làm lỗi hydration; 11 lớp chặn, bỏ cái nào cũng có test fail |
+| Nhập Excel/CSV | exceljs 4.4 và csv-parse 7 trên file .xlsx và CSV thật, pg-boss 12.38, tắt ngang worker giữa chừng | 21 test; nhập lại không tạo bản trùng, email đã có người dùng không còn làm kẹt cả lô; phát hiện đọc `columnCount` của exceljs mỗi dòng làm 50.000 dòng mất 432 giây, và `delimiter_auto` của csv-parse hỏng với chữ tiếng Việt; 7 lớp chặn, bỏ cái nào cũng có test fail |
+| Next.js Server Actions và `'use cache'` theo tenant (1.2.0) | `next build` + `next start`, gọi action qua HTTP | 4 test; phát hiện hàm `'use cache'` cũng là một server function: gọi thẳng với id của tenant khác thì trả về khách của tenant đó; 5 lớp chặn, bỏ cái nào cũng có test fail |
 | SEO trang công khai | `next build` + `next start` (Next.js 16.4), tải trang không qua trình duyệt | 11 test; phát hiện `loading.tsx` ở trang spa biến 404 và 308 thành 200, và header trong `next.config` bị cố định lúc build; 7 lớp chặn, bỏ cái nào cũng có test fail |
+| `tasks.py` (1.2.0) | 49 test `unittest` trên Python 3.8 và 3.12 | Phát hiện thư mục trống vẫn in "All tasks done"; 12 lớp chặn, bỏ cái nào cũng có test fail |
 | GitHub Actions (CI, deploy, E2E, kiểm tải, bảo mật) | actionlint | Đạt |
 | Chuẩn Agent Skills | `agentskills validate` (bộ kiểm tham chiếu) cho cả 12 skill, chạy trong CI | Đạt |
 
