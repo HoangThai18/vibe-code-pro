@@ -3,6 +3,7 @@ name: desktop-electron-security
 expected_outcome: |
   Tắt nodeIntegration, bật contextIsolation và sandbox; thêm preload chỉ expose một hàm cụ thể qua
   contextBridge; main process tự mở hộp thoại chọn file và đọc file (renderer không gửi đường dẫn tuỳ ý),
-  IPC kiểm nguồn gửi; renderer không còn require('fs'); hiển thị kết quả không dùng innerHTML với dữ liệu.
+  IPC kiểm nguồn gửi; renderer không còn require('fs'); hiển thị kết quả không dùng innerHTML với dữ liệu; đặt
+  setPermissionRequestHandler và setPermissionCheckHandler từ chối mặc định (Electron mặc định cấp mọi quyền).
 context:
   scaffold_script: place-files.sh
