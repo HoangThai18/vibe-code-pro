@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.0
+
+Four more stacks, each a `vibe-backend` reference rendered from tested code in `verify/` with its own CI job: 19 CI jobs → 23.
+
+- **New references**:
+  - `laravel.md`: Laravel 13 on MySQL 8.4 and 8.0, plus PostgreSQL RLS. 67 tests. Every bypass of the tenant scope is shown by a test: route model binding running before the tenant middleware in the `api` group; `unique:` and `exists:` rules that ignore global scopes; jobs and commands; raw queries. No double booking on MySQL: READ COMMITTED, lock the staff row, then check for overlaps (10 parallel requests: one booked, nine got 409). Check-then-insert let 4 through.
+  - `spring.md`: Spring Boot 4.1 with PostgreSQL RLS. 57 tests. The tenant is set where the JPA dialect begins the transaction. Shown by tests: a session-level `SET` leaks through HikariCP; Spring Data query methods outside a transaction see 0 rows; open-in-view hides the leak.
+  - `dotnet.md`: ASP.NET Core 10 and EF Core 10 with Npgsql. 55 tests. Covers what skips EF query filters, a pooled DbContext that keeps the last request's tenant, `No Reset On Close=true` leaking the previous tenant, `xmin` concurrency, and migrations through a bundle and an idempotent script.
+  - `mysql.md`: MySQL 8.4 (8.0 is end of life), tested on 8.4.13 and 8.0.46. 63 tests.
+    - Tenant isolation without RLS.
+    - Vietnamese search: `utf8mb4_0900_ai_ci` matches "nguyen" to "Nguyễn"; the Vietnamese collation doesn't.
+    - Online DDL and the metadata lock queue (`lock_wait_timeout` defaults to a year).
+    - Double booking without exclusion constraints: READ COMMITTED, lock the staff member's row, then check for overlaps; the transaction reruns on deadlock (`1213`). At REPEATABLE READ, staff with no appointments yet share one index gap, and 19–29 of 200 bookings deadlocked. A fixed-slot table is the alternative.
+    - SKIP LOCKED job claims need a pinned index.
+- **No double booking, PostgreSQL**: concurrent inserts can deadlock inside the exclusion constraint's check (40P01, a 500) while still booking only once (Node: 54 of 2,000 requests; .NET: up to 19 of 100 rounds). The PostgreSQL stacks (Node, Spring, .NET) now take a per-staff advisory lock before the insert and keep the constraint as the guarantee: 500 rounds clean.
+- **Code rules** (from users' reports of AI habits), stated in the `vibe-build` description so they apply without loading a skill, and in vibe-build, vibe-architecture, design-principles, the review checklist and the AGENTS.md template:
+  - logic about to appear a third time becomes one function at the lowest level its callers share, moving up as usage spreads;
+  - comments say why, never what;
+  - the project's libraries, the platform or a maintained library before hand-written CSV, date, validation or retry code.
+- **`vibe-backend` triggers**: the description now says to load it when writing, reviewing or debugging server code or SQL, including one tenant seeing another's data. In the 1.3.0 eval it had not loaded once in the Laravel, Spring, link-preview and EF query filter cases (reviews and bug reports). Isolation tests are written even where no database runs, and the answer says they haven't run.
+- **Evals**: EVAL_LINE
+- **Tokens**: always-on 3,579 → 3,744 (`claude plugin details`): the stack names and the code rules in the descriptions.
+
 ## 1.2.0
 
 The code behind the references now lives in `verify/` and CI reruns it from an empty PostgreSQL 16 database on every pull request (13 projects, plus the Expo and Electron apps). 29 references are rendered from the tested files; CI fails when a doc and its code drift apart, or when a shared file's copies differ.
