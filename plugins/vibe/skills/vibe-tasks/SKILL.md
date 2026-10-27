@@ -38,7 +38,7 @@ Right after PHASES.md is approved, after a phase closes, or for a feature big en
    - Otherwise the task `next` suggests, done with the `vibe-build` skill. Suggest parallel work only with 2+ large independent tasks and a user who wants speed (conditions in the `vibe-build` skill).
    - Phase out of tasks: close it: review the whole phase (the `vibe-review` skill), merge `phase/P1 → main` (PR), deploy to staging (the `vibe-ship` skill). Then (or right away if `PHASES.md` already marks it `done`) Job A for the next phase, and show its task table for approval.
    - No `docs/tasks/` but `docs/plan/PLAN.md` (prototype): its next unchecked step.
-5. If status changed, update `docs/STATUS.md` (from `templates/STATUS.md`, create it if missing) and commit. If the user only asks "where are we", answer in chat and start nothing.
+5. If status changed, update `docs/STATUS.md` (from `templates/STATUS.md`, create it if missing) and commit. If the user only asks "where are we", answer in chat and start nothing. If they ask to continue ("continue", "tiếp tục", "làm tiếp đi"), do that one step now with the `vibe-build` skill and stop at review.
 
 ## Job C: end-of-session handoff
 

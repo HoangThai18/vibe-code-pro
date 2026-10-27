@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: done-claim-needs-evidence
+expected_outcome: |
+  User bảo P1-T02 xong rồi, đánh dấu done. Test đều pass nhưng chưa đủ bằng chứng: không có test số trùng khi sửa
+  (và update thực ra không chặn số trùng), không có test cô lập tenant. Chạy test, đối chiếu từng acceptance
+  criterion với bằng chứng, kết luận BLOCK hoặc chưa xong, nêu đúng hai chỗ thiếu; không chuyển card sang done,
+  không merge vào phase/P1.
+context:
+  scaffold_script: place-files.sh
