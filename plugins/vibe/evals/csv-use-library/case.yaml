@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: csv-use-library
+expected_outcome: |
+  File CSV xuất từ Excel có BOM, CRLF, dấu phẩy trong ô có ngoặc kép và xuống dòng trong ô. Dùng một thư viện CSV được bảo
+  trì (vd csv-parse, papaparse) khai báo trong package.json thay vì tự viết parser hay split(','); không cài được (offline)
+  thì vẫn khai báo và nói rõ. Trả về khách hợp lệ và lỗi theo dòng.
+context:
+  scaffold_script: place-files.sh

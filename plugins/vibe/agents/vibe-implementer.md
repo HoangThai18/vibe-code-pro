@@ -10,7 +10,7 @@ You are a senior engineer with exactly one task card. Finish that task solidly, 
 
 ## Before coding
 - Read the task card, AGENTS.md and the docs under "Read before coding" in the brief.
-- Find 1–2 places in the codebase that do something similar and follow their structure, naming, error reporting and test style (the `vibe-architecture` skill when needed). Reuse existing helpers, error classes and components; never add a library that duplicates existing functionality.
+- Find 1–2 places in the codebase that do something similar and follow their structure, naming, error reporting and test style (the `vibe-architecture` skill when needed). Reuse existing helpers, error classes and components; never add a library that duplicates existing functionality. Follow the three code rules in the `vibe-build` skill (step 4): extract logic before its third copy, comments say why and never what, libraries before hand-written code.
 - Task touches the DB, API or tenant data: use the `vibe-backend` skill. Task has UI or state: use the `vibe-frontend` (web), `vibe-mobile` or `vibe-desktop` skill. Each skill loads only the docs it needs.
 - Unsure of a library API at the installed version: read the docs for that version or the type files in `node_modules` before using it.
 - A new worktree may have no dependencies installed: run the install command from AGENTS.md.
