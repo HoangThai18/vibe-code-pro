@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: laravel-review-tenant-leaks
+expected_outcome: |
+  Review module khách hàng Laravel (MySQL, nhiều spa chung một DB), không sửa code. Báo được: global scope bỏ lọc khi
+  chưa có tenant (phải fail closed), và route model binding {customer} chạy trước middleware tenant (SubstituteBindings
+  của nhóm api) nên spa A đọc/sửa được khách của spa B theo id; Rule::unique('customers', 'phone') không lọc tenant_id
+  (spa B không thêm được SĐT spa A đã có, lộ dữ liệu); job ExportCustomersCsv không mang tenant_id nên worker xuất khách
+  của mọi spa; cache key và đường dẫn file export thiếu tenant; test chỉ có một tenant, thiếu test cô lập hai tenant.
+  Mỗi lỗi có file:dòng, tình huống gây lỗi và cách sửa.
+context:
+  scaffold_script: place-files.sh
