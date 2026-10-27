@@ -1,0 +1,9 @@
+{
+  "appointments": {
+    "todayCount": "{count, plural, =0 {No appointments today} one {# appointment today} other {# appointments today}}",
+    "reminderSms": "Hi {name}, reminder: your appointment at {spa} is on {when}."
+  },
+  "customers": {
+    "count": "{count, plural, one {# customer} other {# customers}}"
+  }
+}

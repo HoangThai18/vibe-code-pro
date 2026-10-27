@@ -1,0 +1,15 @@
+# .maestro/switch-workspace.yaml
+appId: vn.example.spacrm
+---
+- launchApp:
+    clearState: true
+- tapOn: "Email"
+- inputText: ${E2E_EMAIL}
+- tapOn: "Mật khẩu"
+- inputText: ${E2E_PASSWORD}
+- tapOn: "Đăng nhập"
+- assertVisible: "Nguyễn Thị A1"
+- tapOn: "Workspace"
+- tapOn: "Spa Bạch Dương"
+- assertVisible: "Trần Văn B1"
+- assertNotVisible: "Nguyễn Thị A1"

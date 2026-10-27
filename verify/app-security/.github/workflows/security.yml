@@ -1,0 +1,35 @@
+# .github/workflows/security.yml — chạy ở mọi PR và mỗi tuần
+name: Security
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 1 * * 1"   # 08:00 thứ Hai giờ Việt Nam: lỗ hổng mới công bố trong tuần
+permissions:
+  contents: read
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # quét cả lịch sử: secret đã xoá khỏi code vẫn nằm trong git
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Cài gitleaks
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+      - name: Quét secret (fail nếu tìm thấy)
+        run: '"$(go env GOPATH)/bin/gitleaks" git . --no-banner --redact'
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lỗ hổng mức high trở lên trong dependency chạy ở production
+        run: npm audit --omit=dev --audit-level=high

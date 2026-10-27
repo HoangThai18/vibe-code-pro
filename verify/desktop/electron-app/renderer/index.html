@@ -1,0 +1,20 @@
+<!-- renderer/index.html -->
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.example.vn"
+    />
+    <title>Spa CRM</title>
+  </head>
+  <body>
+    <main>
+      <h1>Khách hàng</h1>
+      <button id="import" type="button">Nhập CSV</button>
+      <p id="result" role="status"></p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
