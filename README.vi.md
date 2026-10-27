@@ -214,6 +214,55 @@ claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffol
 
 Linux cần `bubblewrap` và `socat` để sandbox của eval chạy được Bash.
 
+### Tự kiểm tra số liệu trên terminal
+
+`plugins/vibe/evals/report.py` (Python 3.8+, không cần cài thêm gì) in kết quả eval ra terminal: điểm khi có và không có skill, tỉ lệ skill được nạp, chi phí mỗi lượt, từng case xếp theo mức chênh lệch mà skill tạo ra, mỗi skill một dòng, và những chỗ cần xem lại.
+
+Xem số liệu 1.3.0 đã công bố, không cần chạy eval (miễn phí):
+
+```bash
+python3 plugins/vibe/evals/report.py plugins/vibe/evals/published/1.3.0.json
+```
+
+Tự chạy rồi so với số đã công bố (chạy đủ 5 lượt mỗi case tốn khoảng 60 USD; muốn thử nhanh một case thì thêm `--case spring-rls-session-set --runs 1` vào lệnh eval):
+
+```bash
+claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit" --json run.json
+python3 plugins/vibe/evals/report.py run.json --compare plugins/vibe/evals/published/1.3.0.json
+```
+
+| Tuỳ chọn | Hiện ra |
+|---|---|
+| không truyền file | kết quả mới nhất trong `plugins/vibe/evals/results/` |
+| `--brief` | chỉ phần tổng và những chỗ cần xem lại |
+| `--case <tên>` | số lượt đạt của từng tiêu chí trong một case, có và không có skill |
+| `--top 10`, `--sort with` | 10 case đầu; xếp theo điểm thay vì theo chênh lệch |
+| `run.json rerun.json` | nhiều file: file sau thay các case nó chạy lại |
+| `--compare <file>` | thay đổi so với một lượt chạy hoặc bản tóm tắt khác, và các case thay đổi nhiều nhất |
+| `--save summary.json` | bản tóm tắt nhỏ, không có trace, prompt hay đường dẫn trên máy, để chia sẻ hoặc so sánh sau |
+
+`--brief` trên số liệu đã công bố:
+
+<!-- report-sample: python3 plugins/vibe/evals/report.py plugins/vibe/evals/published/1.3.0.json --brief --width 100 --no-color -->
+```text
+vibe 1.3.0 · Claude Code 2.1.311 · 2026-10-27 · 41 cases × 5 runs · spent $83.49
+
+                 with skills                    without
+  Score          0.97 ███████████████████████▎  0.78 ██████████████████▋       +0.19
+  Cases          better 28 · same 11 · worse 2
+  Skill loaded   155/185 runs (84%)
+  Cost per run   $0.18 vs $0.13 (1.40×)
+
+  Needs a look
+  • laravel-booking-race: worse with the skills (0.87 vs 0.93)
+  • review-vouchers-branch: worse with the skills (0.97 vs 1.00)
+  • skill never loaded: follows-codebase-pattern, small-tasks-no-parallel, ssrf-link-preview
+  • dotnet-tenant-roles / 07-non-member-http-test: never passed, with or without the skills (check the grader or the case)
+```
+<!-- /report-sample -->
+
+"Needs a look" liệt kê case có skill mà điểm thấp hơn, skill chưa được nạp lần nào, và tiêu chí không bao giờ đạt ở cả hai bên. Tiêu chí không bao giờ đạt thường là tiêu chí hỏng (sáu tiêu chí `target: files` của 1.3.0 lộ ra theo cách này) hoặc đòi thứ mà skill không dạy. Trên Windows dùng `py -3` thay cho `python3`; màu tự tắt khi đầu ra không phải terminal hoặc khi đặt `NO_COLOR`.
+
 ## Dùng trong dự án
 
 - `AGENTS.md` (skill plan tạo): lệnh, quy ước, quy tắc bắt buộc. Agent nào cũng đọc.

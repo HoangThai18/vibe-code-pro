@@ -1,0 +1,1767 @@
+{
+ "format": "vibe-eval-summary/1",
+ "plugin": "vibe 1.3.0",
+ "claude": "2.1.311",
+ "date": "2026-10-27",
+ "costUsd": 83.49,
+ "cases": [
+  {
+   "name": "ai-notes-summary",
+   "runs": 5,
+   "with": 1,
+   "without": 0.75,
+   "cost": [
+    0.3343,
+    0.3093
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-data-not-instructions",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-tenant-scoped",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-limits-and-errors",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "04-budget-and-usage",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-ai",
+     "with": 5,
+     "skill": "vibe-ai"
+    }
+   ]
+  },
+  {
+   "name": "architecture-choice-small-team",
+   "runs": 5,
+   "with": 1,
+   "without": 0.88,
+   "cost": [
+    0.1232,
+    0.0689
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-modular-monolith",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-selective-ddd",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-revisit-criteria",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "04-overlap-in-db",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-enforced-boundaries",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-architecture",
+     "with": 5,
+     "skill": "vibe-architecture"
+    }
+   ]
+  },
+  {
+   "name": "backfill-not-null-force",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1565,
+    0.0832
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-expand-contract",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-batched-backfill",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-force-rls-trap",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-safe-not-null",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "comments-why-not-what",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1289,
+    0.0985
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-no-narrating-comments",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-comments-explain-why",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-tests-pass",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-uses-money-helpers",
+     "with": 5,
+     "without": 5
+    }
+   ]
+  },
+  {
+   "name": "continue-from-handoff",
+   "runs": 5,
+   "with": 0.975,
+   "without": 0.875,
+   "cost": [
+    0.1833,
+    0.1267
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-update-normalizes-phone",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "01b-tests-pass",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-duplicate-phone-create-and-update",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-isolation-test",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-hands-over-for-review",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "05-no-new-branch",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-other-tasks-untouched-write",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "07-other-tasks-untouched-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-tasks",
+     "with": 5,
+     "skill": "vibe-tasks/build/next"
+    }
+   ]
+  },
+  {
+   "name": "csv-use-library",
+   "runs": 5,
+   "with": 0.9,
+   "without": 0.5,
+   "cost": [
+    0.1401,
+    0.1452
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-csv-library-declared",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "02-library-imported",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "03-no-hand-split",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-row-errors",
+     "with": 5,
+     "without": 5
+    }
+   ]
+  },
+  {
+   "name": "desktop-electron-security",
+   "runs": 5,
+   "with": 0.98,
+   "without": 0.78,
+   "cost": [
+    0.1512,
+    0.0912
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-no-node-integration",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-context-isolation-on",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-preload-created",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-renderer-no-fs",
+     "with": 4,
+     "without": 5
+    },
+    {
+     "name": "05-main-owns-file-access",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-ipc-sender-check",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "07-navigation-locked",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "08-preload-narrow-api",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "09-permission-handlers",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "10-permission-check-handler",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "skill-desktop",
+     "with": 5,
+     "skill": "vibe-desktop"
+    }
+   ]
+  },
+  {
+   "name": "done-claim-needs-evidence",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1405,
+    0.0803
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-ran-tests",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-finds-missing-evidence",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-not-marked-done",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-not-merged",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-review",
+     "with": 5,
+     "skill": "vibe-review"
+    }
+   ]
+  },
+  {
+   "name": "dotnet-query-filter-isolation",
+   "runs": 5,
+   "with": 0.8,
+   "without": 0.6667,
+   "cost": [
+    0.1577,
+    0.1161
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-pooled-context",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-ignore-query-filters",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-raw-sql",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-database-enforcement",
+     "with": 3,
+     "without": 0
+    },
+    {
+     "name": "05-mentions-rls",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-superuser-connection",
+     "with": 1,
+     "without": 0
+    },
+    {
+     "name": "skill-backend",
+     "with": 3,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "dotnet-tenant-roles",
+   "runs": 5,
+   "with": 0.8,
+   "without": 0.6857,
+   "cost": [
+    0.381,
+    0.2147
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-role-from-membership",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-membership-404",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "03-permissions-403",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-staff-own-appointments",
+     "with": 4,
+     "without": 5
+    },
+    {
+     "name": "05-no-role-claims",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-matrix-test",
+     "with": 4,
+     "without": 4
+    },
+    {
+     "name": "07-non-member-http-test",
+     "with": 0,
+     "without": 0
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "e2e-workspace-switch",
+   "runs": 5,
+   "with": 0.92,
+   "without": 0.76,
+   "cost": [
+    0.2073,
+    0.1388
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-spec-created",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-late-response",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-user-facing-locators",
+     "with": 4,
+     "without": 1
+    },
+    {
+     "name": "04-no-fixed-sleeps-write",
+     "with": 4,
+     "without": 3
+    },
+    {
+     "name": "05-no-fixed-sleeps-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-build",
+     "with": 4,
+     "skill": "vibe-build"
+    }
+   ]
+  },
+  {
+   "name": "extract-third-copy",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1458,
+    0.1148
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-customer-copy-removed",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-staff-copy-removed",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-one-shared-function",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-tests-pass",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-customer-uses-shared",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-staff-uses-shared",
+     "with": 5,
+     "without": 5
+    }
+   ]
+  },
+  {
+   "name": "fix-repro-test-first",
+   "runs": 5,
+   "with": 1,
+   "without": 0.55,
+   "cost": [
+    0.1051,
+    0.0723
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-test-before-fix",
+     "with": 5,
+     "without": 1
+    },
+    {
+     "name": "02-saw-it-fail",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "03-root-cause-fix",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-test-kept",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-fix",
+     "with": 5,
+     "skill": "vibe-fix"
+    }
+   ]
+  },
+  {
+   "name": "follows-codebase-pattern",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1396,
+    0.1221
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-module-structure",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-uses-normalizePhone",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-uses-AppError",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-no-new-error-class",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-legacy-untouched-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-legacy-untouched-write",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "07-no-installs",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "08-tests-pass",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-architecture",
+     "with": 0,
+     "skill": "vibe-architecture"
+    }
+   ]
+  },
+  {
+   "name": "i18n-money-time-zones",
+   "runs": 5,
+   "with": 0.92,
+   "without": 0.6,
+   "cost": [
+    0.2048,
+    0.1238
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-money",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-explicit-time-zone",
+     "with": 3,
+     "without": 4
+    },
+    {
+     "name": "03-today-boundary",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "04-messages",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "05-catalog-check",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "skill-frontend",
+     "with": 5,
+     "skill": "vibe-frontend"
+    }
+   ]
+  },
+  {
+   "name": "import-customers-excel",
+   "runs": 5,
+   "with": 0.92,
+   "without": 0.56,
+   "cost": [
+    0.2479,
+    0.1814
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-natural-key",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-phone-and-dates",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-preview-row-errors",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "04-resumable-job",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "05-csv-safety",
+     "with": 3,
+     "without": 0
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "jobs-reminder-design",
+   "runs": 5,
+   "with": 1,
+   "without": 0.84,
+   "cost": [
+    0.1908,
+    0.0896
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-durable-queue",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-no-duplicates",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-retry-dlq",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-tenant-time-catchup",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-scan-across-tenants",
+     "with": 5,
+     "without": 1
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "laravel-booking-race",
+   "runs": 5,
+   "with": 0.8667,
+   "without": 0.9333,
+   "cost": [
+    0.1804,
+    0.1497
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-serialize-per-staff",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-fresh-read",
+     "with": 3,
+     "without": 4
+    },
+    {
+     "name": "03-concurrent-test",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 1,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "laravel-review-tenant-leaks",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1958,
+    0.1531
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-route-binding",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-unique-rule",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-job-tenant",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-cache-and-files",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-isolation-tests",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-no-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "07-no-write",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 3,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "mobile-ota-native-change",
+   "runs": 5,
+   "with": 1,
+   "without": 0.7,
+   "cost": [
+    0.1023,
+    0.0622
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-needs-native-build",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-runtime-version",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-release-flow",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "04-old-versions",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "skill-mobile",
+     "with": 4,
+     "skill": "vibe-mobile"
+    }
+   ]
+  },
+  {
+   "name": "mobile-token-storage",
+   "runs": 5,
+   "with": 0.9667,
+   "without": 0.7333,
+   "cost": [
+    0.1595,
+    0.0772
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-uses-secure-store",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-no-token-in-asyncstorage",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-migrates-existing-tokens",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-signout-clears-securestore",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-fresh-install-keychain",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "06-explains-why",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "skill-mobile",
+     "with": 5,
+     "skill": "vibe-mobile"
+    }
+   ]
+  },
+  {
+   "name": "mysql-online-alter-mdl",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.251,
+    0.1692
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-separate-statements",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-algorithm-instant",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-index-inplace-lock-none",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-metadata-lock",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-no-transaction-safety",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-tooling-fk",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 3,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "mysql-search-khong-dau",
+   "runs": 5,
+   "with": 0.9667,
+   "without": 0.9667,
+   "cost": [
+    0.3626,
+    0.2515
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-accent-insensitive-collation",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-no-vietnamese-collation-for-matching",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-vietnamese-order",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-words-phone-escape",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "05-tenant-filter",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-no-fulltext-for-names",
+     "with": 4,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "notifications-zalo-sms",
+   "runs": 5,
+   "with": 0.96,
+   "without": 0.56,
+   "cost": [
+    0.229,
+    0.132
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-zalo-prerequisites",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-token-rotation",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "03-fallback-rule",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "04-advertising-rules",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "05-cskh-vs-ads",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "payments-deposit-design",
+   "runs": 5,
+   "with": 0.92,
+   "without": 0.8,
+   "cost": [
+    0.2261,
+    0.1388
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-who-holds-money",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-callback-is-truth",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-transfer-mismatches",
+     "with": 3,
+     "without": 0
+    },
+    {
+     "name": "04-reconcile-before-expiring",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-einvoice-timing",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "perf-slow-list",
+   "runs": 5,
+   "with": 1,
+   "without": 0.5333,
+   "cost": [
+    0.1129,
+    0.0596
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-measure-first",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-query-fix",
+     "with": 5,
+     "without": 3
+    },
+    {
+     "name": "03-load-test",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "skill-perf",
+     "with": 5,
+     "skill": "vibe-ship/backend"
+    }
+   ]
+  },
+  {
+   "name": "permissions-ask-model",
+   "runs": 5,
+   "with": 0.95,
+   "without": 0.65,
+   "cost": [
+    0.1422,
+    0.0732
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-asks-before-building",
+     "with": 5,
+     "without": 3
+    },
+    {
+     "name": "02-options-with-tradeoffs",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "03-data-scope",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-no-code-yet",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 4,
+     "skill": "vibe-backend/plan"
+    }
+   ]
+  },
+  {
+   "name": "plan-new-app",
+   "runs": 5,
+   "with": 1,
+   "without": 0.3333,
+   "cost": [
+    0.0807,
+    0.3449
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-no-app-code",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "02-no-scaffold",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-questions-first",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "skill-plan",
+     "with": 5,
+     "skill": "vibe-plan/start"
+    }
+   ]
+  },
+  {
+   "name": "privacy-deletion-request",
+   "runs": 5,
+   "with": 1,
+   "without": 0.6667,
+   "cost": [
+    0.1346,
+    0.079
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-vn-law-deadlines",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "02-scope-of-deletion",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-roles-and-sensitive",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "realtime-appointment-board",
+   "runs": 5,
+   "with": 1,
+   "without": 0.44,
+   "cost": [
+    0.2267,
+    0.1395
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-hints-not-data",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "02-tied-to-commit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-tenant-isolation",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "04-reconnect",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "05-multi-instance-lifecycle",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "rename-column-deploy-rollback",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.1267,
+    0.0972
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-multi-release",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-rollback-by-redeploy",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-verify-before-drop",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-old-not-null",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-orm-before-drop",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-ship",
+     "with": 4,
+     "skill": "vibe-ship"
+    }
+   ]
+  },
+  {
+   "name": "review-vouchers-branch",
+   "runs": 5,
+   "with": 0.9714,
+   "without": 1,
+   "cost": [
+    0.1465,
+    0.1108
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-double-redeem",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-unique-per-tenant",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-composite-fk",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-force-rls",
+     "with": 4,
+     "without": 5
+    },
+    {
+     "name": "05-missing-tests",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "06-no-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "07-no-write",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-review",
+     "with": 5,
+     "skill": "vibe-review"
+    }
+   ]
+  },
+  {
+   "name": "rls-memberships-policy",
+   "runs": 5,
+   "with": 1,
+   "without": 0.92,
+   "cost": [
+    0.1801,
+    0.0763
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-user-read-select-only",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-writes-tenant-only",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-context-fails-closed",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-not-superuser",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-user-context-login-only",
+     "with": 5,
+     "without": 3
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "search-vietnamese-names",
+   "runs": 5,
+   "with": 1,
+   "without": 0.68,
+   "cost": [
+    0.3857,
+    0.2542
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-accent-insensitive",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-words-any-order",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "03-phone",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "04-trigram-index",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "05-rls-index-trap",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "skill-backend",
+     "with": 5,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "seo-public-pages",
+   "runs": 5,
+   "with": 1,
+   "without": 0.64,
+   "cost": [
+    0.1852,
+    0.1288
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-canonical-per-page",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "02-noindex-not-robots",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-staging-runtime",
+     "with": 5,
+     "without": 2
+    },
+    {
+     "name": "04-real-status-codes",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "05-json-ld-safe",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-frontend",
+     "with": 5,
+     "skill": "vibe-frontend"
+    }
+   ]
+  },
+  {
+   "name": "small-change-no-ceremony",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.0637,
+    0.0486
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-label-changed",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-pending-label-kept",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-no-process-docs",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-no-agent",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-no-process-skills",
+     "with": 5,
+     "without": 5
+    }
+   ]
+  },
+  {
+   "name": "small-tasks-no-parallel",
+   "runs": 5,
+   "with": 1,
+   "without": 1,
+   "cost": [
+    0.0634,
+    0.0467
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-sequential-main-agent",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-explains-overhead",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-when-parallel-pays",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-no-agent-spawned",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-build",
+     "with": 0,
+     "skill": "vibe-build"
+    }
+   ]
+  },
+  {
+   "name": "spring-rls-session-set",
+   "runs": 5,
+   "with": 0.84,
+   "without": 0.44,
+   "cost": [
+    0.2543,
+    0.15
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-pool-mechanism",
+     "with": 4,
+     "without": 5
+    },
+    {
+     "name": "02-transaction-local-fix",
+     "with": 5,
+     "without": 3
+    },
+    {
+     "name": "03-local-set-config-in-code",
+     "with": 5,
+     "without": 3
+    },
+    {
+     "name": "04-reads-outside-transaction",
+     "with": 4,
+     "without": 0
+    },
+    {
+     "name": "05-open-in-view-off",
+     "with": 3,
+     "without": 0
+    },
+    {
+     "name": "skill-backend",
+     "with": 4,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "ssrf-link-preview",
+   "runs": 5,
+   "with": 1,
+   "without": 0.95,
+   "cost": [
+    0.1666,
+    0.1337
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-blocks-internal-after-dns",
+     "with": 5,
+     "without": 4
+    },
+    {
+     "name": "02-redirects",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-limits",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-rebinding",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-backend",
+     "with": 0,
+     "skill": "vibe-backend"
+    }
+   ]
+  },
+  {
+   "name": "tasks-next-step",
+   "runs": 5,
+   "with": 1,
+   "without": 0.68,
+   "cost": [
+    0.0839,
+    0.0833
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-reports-progress",
+     "with": 5,
+     "without": 1
+    },
+    {
+     "name": "02-next-step",
+     "with": 5,
+     "without": 1
+    },
+    {
+     "name": "03-no-agent",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "04-no-edit",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "05-no-write",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-tasks",
+     "with": 5,
+     "skill": "vibe-tasks"
+    }
+   ]
+  },
+  {
+   "name": "tenant-switch-stale-cache",
+   "runs": 5,
+   "with": 1,
+   "without": 0.75,
+   "cost": [
+    0.1034,
+    0.0672
+   ],
+   "errors": 0,
+   "graders": [
+    {
+     "name": "01-tenant-in-key",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "02-tenant-in-request",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "03-old-tenant-cleanup",
+     "with": 5,
+     "without": 0
+    },
+    {
+     "name": "04-no-global-store-copy",
+     "with": 5,
+     "without": 5
+    },
+    {
+     "name": "skill-frontend",
+     "with": 5,
+     "skill": "vibe-frontend"
+    }
+   ]
+  }
+ ]
+}

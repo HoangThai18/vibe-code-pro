@@ -214,6 +214,55 @@ claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffol
 
 On Linux the eval sandbox needs `bubblewrap` and `socat` to run Bash.
 
+### Check the numbers in your terminal
+
+`plugins/vibe/evals/report.py` (Python 3.8+, no dependencies) prints an eval result in the terminal: the score with and without the skills, how often the skill loaded, the cost per run, every case sorted by the difference the skills make, one line per skill, and what needs a look.
+
+The published 1.3.0 numbers, without running an eval (free):
+
+```bash
+python3 plugins/vibe/evals/report.py plugins/vibe/evals/published/1.3.0.json
+```
+
+Your own run, compared with the published one (a full run at 5 runs per case costs about $60; to spot-check one case, add `--case spring-rls-session-set --runs 1` to the eval):
+
+```bash
+claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit" --json run.json
+python3 plugins/vibe/evals/report.py run.json --compare plugins/vibe/evals/published/1.3.0.json
+```
+
+| Option | Shows |
+|---|---|
+| no file | the latest result in `plugins/vibe/evals/results/` |
+| `--brief` | only the totals and what needs a look |
+| `--case <name>` | pass counts per grader for one case, with and without the skills |
+| `--top 10`, `--sort with` | the first 10 cases; order by score instead of difference |
+| `run.json rerun.json` | several files: a later one replaces the cases it reran |
+| `--compare <file>` | the change against another run or summary, and the cases that moved most |
+| `--save summary.json` | a small summary without traces, prompts or local paths, to share or compare later |
+
+`--brief` on the published numbers:
+
+<!-- report-sample: python3 plugins/vibe/evals/report.py plugins/vibe/evals/published/1.3.0.json --brief --width 100 --no-color -->
+```text
+vibe 1.3.0 · Claude Code 2.1.311 · 2026-10-27 · 41 cases × 5 runs · spent $83.49
+
+                 with skills                    without
+  Score          0.97 ███████████████████████▎  0.78 ██████████████████▋       +0.19
+  Cases          better 28 · same 11 · worse 2
+  Skill loaded   155/185 runs (84%)
+  Cost per run   $0.18 vs $0.13 (1.40×)
+
+  Needs a look
+  • laravel-booking-race: worse with the skills (0.87 vs 0.93)
+  • review-vouchers-branch: worse with the skills (0.97 vs 1.00)
+  • skill never loaded: follows-codebase-pattern, small-tasks-no-parallel, ssrf-link-preview
+  • dotnet-tenant-roles / 07-non-member-http-test: never passed, with or without the skills (check the grader or the case)
+```
+<!-- /report-sample -->
+
+"Needs a look" lists cases that are worse with the skills, skills that never loaded, and graders that never pass in either arm. A grader that never passes is usually broken (this is how the six `target: files` graders of 1.3.0 showed up) or asks for something the skills don't teach. On Windows, use `py -3` instead of `python3`; colors turn off when the output isn't a terminal or `NO_COLOR` is set.
+
 ## In your project
 
 - `AGENTS.md` (from the plan skill): commands, conventions, rules. Every agent reads it.
@@ -251,7 +300,7 @@ verify/              the code behind the references, with tests (CI from an empt
 plugins/vibe/
 ├── .claude-plugin/plugin.json
 ├── agents/          vibe-verifier · vibe-implementer
-├── evals/           eval cases (claude plugin eval)
+├── evals/           eval cases (claude plugin eval) · report.py · published/ results
 └── skills/
     ├── vibe-plan/          domain-analysis, tech-research, dev-tools · templates PRD, ARCHITECTURE, PHASES, DOMAIN, RESEARCH, AGENTS
     ├── vibe-tasks/         split · scripts/tasks.py · templates task, STATUS, HANDOFF · examples/mini-crm
