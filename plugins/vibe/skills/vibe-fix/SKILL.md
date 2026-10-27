@@ -1,6 +1,6 @@
 ---
 name: vibe-fix
-description: "Fix bugs and handle incidents methodically: pin down the symptom, reproduce with a test before fixing, isolate the root cause (logs by request id, git bisect, one hypothesis at a time), fix minimally, prevent recurrence; for production incidents, limit damage first (rollback, disable a flag), communicate, then investigate, then write a postmortem. Use whenever code gives wrong results, a test fails, the user reports a bug, pastes a stack trace or log, or mentions errors, 500s, slowness, wrong data, outages, hotfixes or incidents. Also use for Vietnamese requests like 'đang ra X, đúng ra phải là Y', 'sửa giúp', 'lỗi 500', 'không chạy', 'dữ liệu sai', 'sập', 'sự cố', 'production có vấn đề'."
+description: "Fix bugs and production incidents methodically: failing test first, root cause, minimal fix, prevention; incidents: limit damage first, then a postmortem. Use whenever code gives wrong results, a test fails, the user reports a bug, pastes a stack trace or log, or mentions errors, 500s, wrong data, outages, hotfixes or incidents. Also use for Vietnamese requests like 'đang ra X, đúng ra phải là Y', 'sửa giúp', 'lỗi 500', 'không chạy', 'dữ liệu sai', 'sập', 'sự cố', 'production có vấn đề'."
 ---
 
 # Fix: bugs and incidents
@@ -24,7 +24,9 @@ The most common bug-fixing mistake is guess-and-patch: change several things at 
 6. **Prevent recurrence**: the test is in place; add a DB constraint, validation, an alert, or a note in `AGENTS.md` if the bug came from a misunderstood convention.
 7. **Record** in the commit or task card: symptom, root cause, fix. Bugs touching auth, tenant data, money or migrations go through the `vibe-review` skill before merging.
 
-Never: disable a failing test, catch and ignore errors to silence them, change many places at once "to be safe", close a bug with "works on my machine".
+**Stop rule**: after 2 failed fix attempts on the same failure, stop. Go back to the last green commit (`git restore`, or `git revert` for committed attempts), list your hypotheses with the evidence for and against each, and ask the user before trying again.
+
+Never: disable a failing test, catch and ignore errors to silence them, change many places at once "to be safe", close a bug with "works on my machine". Flaky (intermittent) tests: the `vibe-build` skill (`references/testing.md`); slowness without an error: the `vibe-ship` skill (`references/performance.md`).
 
 ## Production incidents
 

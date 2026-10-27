@@ -15,13 +15,28 @@ Thanks for making the skills better. People follow these skills to build real so
 
 ```bash
 pip install skills-ref==0.1.1
-for d in plugins/vibe/skills/*/; do agentskills validate "$d"; done   # the 5 vibe-* commands also use disable-model-invocation and argument-hint
+# Domain skills: strict
+for d in plugins/vibe/skills/*/; do
+  case "$(basename "$d")" in vibe-help|vibe-start|vibe-status|vibe-next|vibe-check) continue ;; esac
+  agentskills validate "$d" || echo "FAILED: $d"
+done
+# Commands: a copy without the two Claude Code-only fields (disable-model-invocation, argument-hint) must pass
+tmp=$(mktemp -d)
+for n in vibe-help vibe-start vibe-status vibe-next vibe-check; do
+  cp -R "plugins/vibe/skills/$n" "$tmp/$n"
+  sed -i.bak '/^disable-model-invocation:/d; /^argument-hint:/d' "$tmp/$n/SKILL.md" && rm "$tmp/$n/SKILL.md.bak"
+  agentskills validate "$tmp/$n" || echo "FAILED: $n"
+done
 claude plugin validate ./plugins/vibe
+python3 -m unittest discover -s verify/tasks        # tasks.py unit tests (CI: Python 3.8 and 3.12)
 python3 plugins/vibe/skills/vibe-tasks/scripts/tasks.py check --dir plugins/vibe/skills/vibe-tasks/examples/mini-crm
 ```
 
+Any `FAILED:` line is a real error. CI (`.github/workflows/skills.yml`) also checks that every `references/`, `templates/` and `scripts/` path a skill mentions exists (in that skill or in a skill named on the same line), that `vibe-review/references/verifier.md` matches `agents/vibe-verifier.md`, and that each command has `agents/openai.yaml` with `allow_implicit_invocation: false` (Codex).
+
 - Changed how a skill behaves: add or update a case in `plugins/vibe/evals/`, run `claude plugin eval` with and without your change, and put the results in the PR.
-- Changed `tasks.py` or the mini-crm example: run `python3 assets/make_graphics.py` so the README terminal image matches real output.
+- Changed `tasks.py`: add a test in `verify/tasks/test_tasks.py`. Changed `tasks.py` output or the mini-crm example: run `python3 assets/make_graphics.py` so the README terminal image matches real output.
+- Changed the verifier's instructions: edit `agents/vibe-verifier.md` and `vibe-review/references/verifier.md` together.
 - Bump `version` in `plugins/vibe/.claude-plugin/plugin.json` when releasing.
 
 ## Reporting problems

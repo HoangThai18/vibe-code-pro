@@ -22,7 +22,7 @@
 - [ ] Log in, create/select a workspace; data isolated per tenant (tested)
 - [ ] Staging auto-deploys from main, with a healthcheck
 
-**Design needed:** layout shell, login screen (Claude Design)
+**Design needed:** layout shell, login screen (Claude Design, Figma or a screenshot mockup)
 
 **Risks:** ...
 

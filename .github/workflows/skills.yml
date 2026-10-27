@@ -1,4 +1,4 @@
-# .github/workflows/skills.yml: validate skills against the Agent Skills standard
+# .github/workflows/skills.yml: validate skills against the Agent Skills standard, test the task script
 name: Skills
 on:
   pull_request:
@@ -19,9 +19,18 @@ jobs:
         run: |
           for d in plugins/vibe/skills/*/; do
             case "$(basename "$d")" in
-              vibe-help|vibe-start|vibe-status|vibe-next|vibe-check) continue ;;   # commands keep two extra fields
+              vibe-help|vibe-start|vibe-status|vibe-next|vibe-check) continue ;;
             esac
             agentskills validate "$d"
+          done
+      - name: Commands follow it too, apart from two Claude Code fields
+        run: |
+          tmp=$(mktemp -d)
+          for n in vibe-help vibe-start vibe-status vibe-next vibe-check; do
+            cp -R "plugins/vibe/skills/$n" "$tmp/$n"
+            sed -i '/^disable-model-invocation:/d; /^argument-hint:/d' "$tmp/$n/SKILL.md"
+            agentskills validate "$tmp/$n"
+            grep -q 'allow_implicit_invocation: false' "plugins/vibe/skills/$n/agents/openai.yaml"
           done
       - name: No agent-specific variables, names match folders
         run: |
@@ -30,5 +39,53 @@ jobs:
             name=$(sed -n 's/^name: //p' "$f" | head -1)
             test "$name" = "$(basename "$(dirname "$f")")" || { echo "name mismatch in $f"; exit 1; }
           done
-      - name: Task script works on the example
-        run: python3 plugins/vibe/skills/vibe-tasks/scripts/tasks.py check --dir plugins/vibe/skills/vibe-tasks/examples/mini-crm
+      - name: Every references/, templates/, scripts/ path a skill mentions exists
+        shell: python
+        run: |
+          import re, sys
+          from pathlib import Path
+          skills = Path("plugins/vibe/skills")
+          names = {d.name for d in skills.iterdir() if d.is_dir()}
+          path_re = re.compile(r"(?<![\w./-])((?:references|templates|scripts|examples)/[\w.-]+(?:/[\w.-]+)*\.(?:md|py))")
+          bad = []
+          for skill in sorted(d for d in skills.iterdir() if d.is_dir()):
+              for doc in sorted(skill.rglob("*.md")):
+                  for n, line in enumerate(doc.read_text(encoding="utf-8").splitlines(), 1):
+                      # a path belongs to this skill or to a skill named on the same line
+                      homes = [skill.name] + [m for m in re.findall(r"\b(vibe-[a-z]+)\b", line) if m in names]
+                      for target in path_re.findall(line):
+                          if not any((skills / home / target).exists() for home in homes):
+                              bad.append(f"{doc}:{n}: {target} not found in {', '.join(homes)}")
+          print("\n".join(bad) or "All skill paths exist.")
+          sys.exit(1 if bad else 0)
+      - name: The verifier brief and the vibe-verifier agent say the same thing
+        shell: python
+        run: |
+          from pathlib import Path
+          agent = Path("plugins/vibe/agents/vibe-verifier.md").read_text(encoding="utf-8").split("\n---\n", 1)[1]
+          brief = Path("plugins/vibe/skills/vibe-review/references/verifier.md").read_text(encoding="utf-8").split("\n---\n", 1)[1]
+          if agent.strip() != brief.strip():
+              raise SystemExit("agents/vibe-verifier.md and vibe-review/references/verifier.md differ: keep them identical")
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Claude Code accepts the plugin (no login needed)
+        run: |
+          npm i -g @anthropic-ai/claude-code@2.1.296
+          claude plugin validate ./plugins/vibe
+
+  task-script:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: python -m unittest discover -s verify/tasks -v
+      - name: The example's cards are valid
+        run: python plugins/vibe/skills/vibe-tasks/scripts/tasks.py check --dir plugins/vibe/skills/vibe-tasks/examples/mini-crm

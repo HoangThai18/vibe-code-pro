@@ -21,6 +21,9 @@
 - APIs follow the contract in `packages/contracts`; to change an API, change the contract first.
 - No new dependency unless the task requires it.
 - Migrations: only one task creates a migration at a time; safe on tables that already hold data.
+- Git: commit a checkpoint before each task. Undo with `git restore <file>` (uncommitted) or `git revert <sha>` (committed). `git reset --hard`, `git clean`, force-push only with the user's explicit consent.
+- Secrets: never print `.env` files or secret values. Production keys, service-role keys and the production `DATABASE_URL` never go into chat or a local `.env`.
+- Tests: never make a check pass by deleting, skipping or loosening tests or by updating expected values or snapshots to match new output.
 
 ## Conventions
 - Reference module to imitate: `src/modules/<name>/` (routes, service, repository, schema)
@@ -38,4 +41,4 @@
 - (Only tools installed for this project, with usage limits. E.g. "Context7: ask with library name and version", "Supabase MCP: dev project only, read_only", "Chrome DevTools MCP: only local/staging app with test accounts". Nothing installed: delete this section.)
 
 ## Workflow
-This project uses the `vibe` skills: plan → tasks → build (one agent writes code and tests) → review → ship. Only the main session updates task cards and `docs/STATUS.md`; sub-agents (if any) report results instead of editing them.
+This project uses the `vibe` skills: plan → tasks → build (one agent writes code and tests) → review → ship. A task goes `todo → doing → review` (code done, branch `task/<ID>` kept) `→ done` (merged into `phase/Pn` after review PASS). Only the main session updates task cards and `docs/STATUS.md`; sub-agents (if any) report results instead of editing them.

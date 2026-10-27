@@ -35,6 +35,8 @@ Model knowledge has a cutoff date, while libraries keep changing (Next.js, Prism
 
 Default to the "boring" option the team knows. Record the comparison table and the reason in the research note.
 
+**Install the exact name.** Take a package's name from its official docs or registry page (npmjs.com, pypi.org, crates.io), never from memory: a near-miss name can be a typosquatted malicious package. Before `npm install` or `pip install`, open the registry page and check that it exists and links to the expected repository.
+
 ## 4. Spike when still unsure
 
 A spike is a quick, time-boxed experiment that answers **one** technical question (e.g. "Does Prisma work with RLS through PgBouncer?"):

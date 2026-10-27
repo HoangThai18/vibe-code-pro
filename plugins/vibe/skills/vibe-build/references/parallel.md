@@ -10,7 +10,7 @@ Only when **all** hold:
 
 - 2+ tasks are ready and touch different files (only `next --max-parallel N` or `waves --max-parallel N` checks and reports file conflicts; plain `next` suggests one task).
 - Each task is big enough for its own session (size M or larger). Small tasks are faster one at a time.
-- The tasks are independent at runtime: no shared DB with migrations, and each agent can get its own port and test DB.
+- The tasks are independent at runtime: no shared DB with migrations (the script never batches two DB-lane or `migrations/` tasks together), and each agent can get its own port and test DB.
 - The user wants to save time and accepts the extra token cost.
 - Your agent can run subagents in isolated worktrees (Claude Code, Cursor, Copilot), or the user can run several sessions.
 
@@ -41,7 +41,7 @@ If any fails, work sequentially as in SKILL.md.
 2. Agent reports BLOCKED on a missing permission: ask the user to grant it, then tell the agent to continue (Claude Code: SendMessage). Don't do the work yourself. Missing information: answer the agent, or fix the task card and rerun.
 3. Review the diff: `git diff phase/P1...<branch> --stat`, then the full diff. Did the agent change files outside `touches`? Do the tests really check the acceptance criteria?
 4. Verify **in the task's worktree** (e.g. `pnpm --dir <worktree> test`, `git -C <worktree> log`), not in the main checkout. Avoid `cd`; it changes the main session's working directory.
-5. Risky task (auth, tenant data, money, migrations): set status to `review` and run the `vibe-review` skill with the worktree path and branch.
-6. Merge: `git merge --no-ff <branch>`; the main session resolves conflicts itself; rerun all tests in the main checkout.
+5. Set status to `review` and run the `vibe-review` skill with the worktree path and branch (independent verifier for auth, tenant data, money, migrations; self-review against the checklist otherwise). BLOCK: send the findings back to the agent, or fix them on its branch.
+6. PASS: the review merges (`git merge --no-ff <branch>`); the main session resolves conflicts itself and reruns all tests in the main checkout.
 7. Update the task card (`done`, branch/commit, tick acceptance criteria), check screenshots (UI tasks), then clean up: `git worktree remove <path>`, `git branch -d <branch>`.
 8. End of wave: `tasks.py status`, update `docs/STATUS.md`, commit. Before the next wave, recheck section 0: the conditions may no longer hold.

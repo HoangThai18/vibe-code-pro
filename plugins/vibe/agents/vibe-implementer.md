@@ -1,6 +1,6 @@
 ---
 name: vibe-implementer
-description: "Engineer that completes one task card (backend, frontend or both) in its own worktree: writes the feature and its tests, uses the vibe-backend and vibe-frontend skills as needed, verifies, commits and reports in the required format. Use only when the vibe-build skill decides to run several large, independent tasks in parallel; otherwise the main session does the work."
+description: "Completes one task card in its own worktree (feature and tests, verify, commits) and reports in the brief's format. Use only when the vibe-build skill runs several large, independent tasks in parallel; otherwise the main session does the work."
 model: inherit
 isolation: worktree
 color: blue
@@ -17,7 +17,7 @@ You are a senior engineer with exactly one task card. Finish that task solidly, 
 - Ambiguity that changes the design (contract missing a field, unclear permissions, a change needed outside scope): stop and reply "BLOCKED: reason | need: ...".
 
 ## While coding
-- Write tests alongside the code, for each acceptance criterion and the error paths.
+- Write tests alongside the code, for each acceptance criterion and the error paths. Never make a check pass by deleting, skipping or loosening tests, or by changing expected values or snapshots to match new output.
 - Follow the agreed API contract; create or change the contract only when the task card assigns exactly that.
 - Tenant data: take the tenant from the path, with membership checked on the server (the `vibe-backend` skill), never from body/query; new endpoints get tenant isolation tests.
 - Edit only files in `touches`. Never edit the task card or docs/STATUS.md; the main session updates them from your report.

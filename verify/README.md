@@ -10,6 +10,7 @@ Every code block in the skills' references was run. This folder keeps that code 
 | `performance` | `vibe-ship/references/performance.md` (k6, Playwright, a 500,000-row dataset: run by hand) |
 | `mobile` | `vibe-mobile/references/*` (Expo SDK 58, Jest, `eas.json` checks: run by hand) |
 | `desktop` | `vibe-desktop/references/*` (Electron + Playwright, Tauri build: run by hand) |
+| `tasks` | `vibe-tasks/scripts/tasks.py` (standard-library `unittest`; CI: `skills.yml` on Python 3.8 and 3.12) |
 
 ## Run
 

@@ -2,13 +2,15 @@
 """tasks.py: helper for vibe task cards.
 
 Reads Markdown task cards (default: docs/tasks/) and runs:
-  check   find errors: duplicate ids, unknown deps, dependency cycles, missing touches...
+  check   find errors: files that aren't cards, duplicate ids, unknown deps, cycles, phase/id mismatch...
   waves   order unfinished tasks into waves; split each wave into parallel batches
-          so no two tasks in one batch edit the same file/folder
+          so no two tasks in one batch edit the same file/folder or both change the DB schema
   status  progress by phase
-  next    tasks you can start now (one agent by default; --max-parallel N suggests a parallel batch)
+  next    what to do now: review first, then the running task, then a ready task of the
+          lowest unfinished phase (--max-parallel N suggests a parallel batch)
 
-Standard library only, Python 3.8+.
+next, status and waves print card errors first and exit 1 when there are any, or when
+there is nothing to show (no cards, unknown phase). Standard library only, Python 3.8+.
 
   python3 tasks.py check  --dir docs/tasks
   python3 tasks.py waves  --phase P1
@@ -49,8 +51,12 @@ STATUS_ALIASES = {
 LANES = ("DB", "BE", "FE", "MOBILE", "DESKTOP", "INFRA", "QA", "DOC")
 SIZES = ("S", "M", "L")
 SKIP_FILES = {"readme.md", "index.md"}
-# Next.js-style dynamic folders ([id], [...slug], [[...slug]]) are literal names, not globs.
-DYNAMIC_SEGMENT = re.compile(r"^\[{1,2}(\.\.\.)?[\w.-]+\]{1,2}$")
+# Folders holding schema migrations (Rails uses db/migrate).
+MIGRATION_DIRS = {"migrations", "migrate"}
+# Next.js/SvelteKit dynamic names ([id], [...slug], [[...slug]], [id].tsx) are literal, not globs.
+DYNAMIC_PART = re.compile(r"\[\[?(?:\.\.\.)?[\w=-]+\]\]?")
+PHASE_ID = re.compile(r"^(P\d+)-", re.IGNORECASE)
+MAX_BANNER_ERRORS = 5
 
 
 def plural(n, word):
@@ -63,13 +69,19 @@ def natural_key(text):
 
 # ---------- frontmatter: the YAML subset task cards need ----------
 
+def opens_quote(text, i):
+    """A quote starts a quoted value only at the start of a value or list item (so it's/don't stay text)."""
+    before = text[:i].rstrip()
+    return not before or before[-1] in "[{,"
+
+
 def strip_comment(value):
     quote = None
     for i, ch in enumerate(value):
         if quote:
             if ch == quote:
                 quote = None
-        elif ch in "'\"":
+        elif ch in "'\"" and opens_quote(value, i):
             quote = ch
         elif ch == "#" and (i == 0 or value[i - 1].isspace()):
             return value[:i].rstrip()
@@ -83,14 +95,32 @@ def unquote(value):
     return value
 
 
-def split_items(inner):
-    """Split "a, b, {c,d}" on top-level commas (keeps glob {..} and [..] intact)."""
-    items, buf, depth, quote = [], [], 0, None
-    for ch in inner:
+def bracket_end(text):
+    """Index just past the ] that closes the [ at text[0], or None if it is not closed yet."""
+    depth, quote = 0, None
+    for i, ch in enumerate(text):
         if quote:
             if ch == quote:
                 quote = None
-        elif ch in "'\"":
+        elif ch in "'\"" and opens_quote(text, i):
+            quote = ch
+        elif ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    return None
+
+
+def split_items(inner):
+    """Split "a, b, {c,d}" on top-level commas (keeps glob {..} and [..] intact)."""
+    items, buf, depth, quote = [], [], 0, None
+    for i, ch in enumerate(inner):
+        if quote:
+            if ch == quote:
+                quote = None
+        elif ch in "'\"" and opens_quote(inner, i):
             quote = ch
         elif ch in "[{":
             depth += 1
@@ -105,21 +135,24 @@ def split_items(inner):
     return [unquote(item) for item in items if item.strip()]
 
 
-def parse_frontmatter(text):
-    lines = text.lstrip("﻿").splitlines()
+def read_frontmatter(text):
+    """Return (meta, issues). meta is None when the file is not a task card; issues[0] then says why."""
+    lines = text.lstrip("\ufeff").splitlines()
     if not lines or lines[0].strip() != "---":
-        return None
-    meta, key, flow = {}, None, None
+        return None, ["no frontmatter (the first line must be ---)"]
+    meta, issues, key, flow = {}, [], None, None
     for line in lines[1:]:
         if line.strip() == "---":
             if flow is not None:  # unclosed [..] list: keep what was read
-                meta[key] = split_items(" ".join(flow).lstrip("[").rstrip("]"))
-            return meta
+                meta[key] = split_items(" ".join(flow)[1:].rstrip("]"))
+                issues.append(f"list '{key}' is not closed with ]")
+            return meta, issues
         if flow is not None:  # [a, b] list spanning several lines
             flow.append(strip_comment(line).strip())
             joined = " ".join(flow)
-            if joined.endswith("]"):
-                meta[key] = split_items(joined[1:-1])
+            end = bracket_end(joined)
+            if end is not None:
+                meta[key] = split_items(joined[1:end - 1])
                 flow = None
             continue
         if not line.strip() or line.lstrip().startswith("#"):
@@ -134,13 +167,21 @@ def parse_frontmatter(text):
         key, raw = pair.group(1), strip_comment(pair.group(2)).strip()
         if not raw:
             meta[key] = []
-        elif raw.startswith("[") and raw.endswith("]"):
-            meta[key] = split_items(raw[1:-1])
         elif raw.startswith("["):
-            flow = [raw]
+            end = bracket_end(raw)
+            if end is None:
+                flow = [raw]
+            elif end == len(raw):
+                meta[key] = split_items(raw[1:-1])
+            else:  # e.g. "title: [WIP] Login" is text, not a list
+                meta[key] = unquote(raw)
         else:
             meta[key] = unquote(raw)
-    return None
+    return None, ["frontmatter is not closed with ---"]
+
+
+def parse_frontmatter(text):
+    return read_frontmatter(text)[0]
 
 
 def scalar(value):
@@ -157,11 +198,13 @@ def as_list(value):
 
 
 class Task:
-    def __init__(self, path, meta):
+    def __init__(self, path, meta, issues=()):
         self.path = path
+        self.issues = list(issues)
         self.id = scalar(meta.get("id"))
         self.title = scalar(meta.get("title"))
-        self.phase = scalar(meta.get("phase")) or self.id.split("-")[0]
+        self.declared_phase = scalar(meta.get("phase"))
+        self.phase = self.declared_phase or self.id.split("-")[0]
         self.lane = scalar(meta.get("lane")).upper()
         status = scalar(meta.get("status")).lower() or "todo"
         self.status = STATUS_ALIASES.get(status, status)
@@ -175,36 +218,42 @@ class Task:
 
 
 def load_tasks(directory):
+    """Return (tasks, skipped): skipped lists (path, reason) for .md files that are not task cards."""
     root = Path(directory)
     if not root.is_dir():
         sys.exit(f"Task card folder not found: {root}. Use --dir to point to it (default: docs/tasks).")
-    tasks, notes = [], []
+    tasks, skipped = [], []
     for path in sorted(root.rglob("*.md")):
         if path.name.lower() in SKIP_FILES or path.name.startswith("_"):
             continue
-        meta = parse_frontmatter(path.read_text(encoding="utf-8"))
+        meta, issues = read_frontmatter(path.read_text(encoding="utf-8"))
         if meta is None:
-            notes.append(f"{path}: no frontmatter, skipped")
+            skipped.append((path, issues[0]))
             continue
-        task = Task(path, meta)
+        task = Task(path, meta, issues)
         if not task.id:
-            notes.append(f"{path}: frontmatter has no id, skipped")
+            skipped.append((path, "frontmatter has no id"))
             continue
         tasks.append(task)
     tasks.sort(key=lambda t: natural_key(t.id))
-    return tasks, notes
+    return tasks, skipped
 
 
 # ---------- file conflicts between tasks ----------
 
+def segments(pattern):
+    return [seg for seg in pattern.strip().replace("\\", "/").split("/") if seg not in ("", ".")]
+
+
+def is_glob(seg):
+    return any(c in DYNAMIC_PART.sub("", seg) for c in "*?{[")
+
+
 def split_pattern(pattern):
     """Split a pattern into (fixed folder segments, literal prefix of the first glob segment or None)."""
     fixed = []
-    for seg in pattern.strip().replace("\\", "/").split("/"):
-        if seg in ("", "."):
-            continue
-        globby = any(c in seg for c in "*?{") or ("[" in seg and not DYNAMIC_SEGMENT.match(seg))
-        if globby:
+    for seg in segments(pattern):
+        if is_glob(seg):
             return fixed, re.split(r"[*?{\[]", seg, maxsplit=1)[0]
         fixed.append(seg)
     return fixed, None
@@ -223,8 +272,16 @@ def overlaps(a, b):
     return pa is None or fb[len(fa)].startswith(pa)
 
 
+def changes_schema(task):
+    """DB-lane tasks and tasks touching a migrations folder: their migrations must run one at a time."""
+    return task.lane == "DB" or any(
+        seg.lower() in MIGRATION_DIRS for pattern in task.touches for seg in segments(pattern))
+
+
 def conflict(a, b):
     """Why two tasks must not run at the same time, or None if safe."""
+    if changes_schema(a) and changes_schema(b):
+        return "both change the DB schema (migrations run one at a time)"
     if not a.touches or not b.touches:
         missing = a if not a.touches else b
         return f"{missing.id} has no touches declared"
@@ -278,7 +335,7 @@ def find_cycle(ids, by_id):
         state[node] = 1
         path.append(node)
         for dep in by_id[node].deps:
-            if dep not in ids:
+            if dep not in ids or dep == node:  # self-deps are reported on their own
                 continue
             if state.get(dep) == 1:
                 return path[path.index(dep):] + [dep]
@@ -296,6 +353,29 @@ def find_cycle(ids, by_id):
             if found:
                 return found
     return None
+
+
+def find_cycles(ids, by_id):
+    """Every dependency cycle among ids, each as a path that ends where it starts."""
+    cycles, left = [], set(ids)
+    while True:
+        cycle = find_cycle(left, by_id)
+        if not cycle:
+            return cycles
+        cycles.append(cycle)
+        left.difference_update(cycle)
+
+
+def ancestors(task, by_id):
+    """Every task this one depends on, directly or indirectly."""
+    seen, stack = set(), list(task.deps)
+    while stack:
+        dep = stack.pop()
+        if dep in seen or dep not in by_id:
+            continue
+        seen.add(dep)
+        stack.extend(by_id[dep].deps)
+    return seen
 
 
 def ready_tasks(tasks, by_id):
@@ -326,6 +406,10 @@ def in_phase(task, phase):
     return not phase or task.phase.upper() == phase.upper()
 
 
+def phases_of(tasks):
+    return sorted({t.phase.upper() for t in tasks}, key=natural_key)
+
+
 def percent(part, whole):
     return round(100 * part / whole) if whole else 0
 
@@ -335,29 +419,26 @@ def bar(part, whole, width=10):
     return "█" * filled + "░" * (width - filled)
 
 
-def warn_duplicates(tasks):
-    dups = sorted((i for i, n in Counter(t.id for t in tasks).items() if n > 1), key=natural_key)
-    if dups:
-        print(f"⚠  duplicate ids: {', '.join(dups)}. Run `check` for details.\n")
+# ---------- validation, shared by every command ----------
 
-
-def print_notes(notes):
-    if notes:
-        print(f"\n({plural(len(notes), 'file')} skipped: no frontmatter or id. Run `check` to see them.)")
-
-
-# ---------- commands ----------
-
-def cmd_check(tasks, notes, args):
-    errors, warnings = [], list(notes)
+def validate(tasks, skipped):
+    errors, warnings = [], []
+    for path, reason in skipped:
+        errors.append(f"{path}: {reason}. Not a task card? Name it README.md or start its name with _")
     counts = Counter(t.id for t in tasks)
-    for task_id, n in counts.items():
+    for task_id, n in sorted(counts.items(), key=lambda item: natural_key(item[0])):
         if n > 1:
             files = ", ".join(str(t.path) for t in tasks if t.id == task_id)
             errors.append(f"id {task_id} is duplicated in {n} files: {files}")
+    by_id = {t.id: t for t in tasks}
     for t in tasks:
+        for issue in t.issues:
+            errors.append(f"{t.id}: {issue}")
         if t.status not in STATUSES:
             errors.append(f"{t.id}: invalid status '{t.status}' (use {', '.join(STATUSES)})")
+        id_phase = PHASE_ID.match(t.id)
+        if t.declared_phase and id_phase and id_phase.group(1).upper() != t.declared_phase.upper():
+            errors.append(f"{t.id}: phase {t.declared_phase} does not match the id (phase {id_phase.group(1)})")
         for dep in t.deps:
             if dep == t.id:
                 errors.append(f"{t.id}: depends on itself")
@@ -377,32 +458,116 @@ def cmd_check(tasks, notes, args):
             warnings.append(f"{t.id}: file name {t.path.name} should start with the id")
     _, stuck = compute_waves(tasks)
     if stuck:
-        cycle = find_cycle(stuck, {t.id: t for t in tasks})
-        if cycle:
+        for cycle in find_cycles(stuck, by_id):
             errors.append("dependency cycle: " + " → ".join(cycle))
         errors.append("cannot place in any wave: " + ", ".join(stuck))
+    for phase in phases_of(tasks):
+        schema = [t for t in tasks if in_phase(t, phase) and t.status != "done" and changes_schema(t)]
+        for i, a in enumerate(schema):
+            for b in schema[i + 1:]:
+                if a.id not in ancestors(b, by_id) and b.id not in ancestors(a, by_id):
+                    warnings.append(f"{a.id} and {b.id} both change the DB schema but neither depends on "
+                                    f"the other: add a dep so their migrations run in a fixed order")
+    return errors, warnings
 
+
+def print_banner(tasks, skipped):
+    """Print card errors before any other output. Returns the exit code (1 if there are errors)."""
+    errors, _ = validate(tasks, skipped)
+    if not errors:
+        return 0
+    print(f"✖ {plural(len(errors), 'card error')}, run `check` and fix them first:")
+    for message in errors[:MAX_BANNER_ERRORS]:
+        print(f"  - {message}")
+    if len(errors) > MAX_BANNER_ERRORS:
+        print(f"  - ... and {len(errors) - MAX_BANNER_ERRORS} more")
+    print()
+    return 1
+
+
+def no_cards(args, skipped):
+    extra = f" ({plural(len(skipped), 'file')} skipped: not task cards; run `check`)" if skipped else ""
+    print(f"No task cards found in {args.dir}{extra}.")
+    print("Split a phase of docs/plan/PHASES.md into task cards first (vibe-tasks skill, Job A).")
+    return 1
+
+
+def no_phase(tasks, phase):
+    print(f"No tasks for phase {phase} (phases with task cards: {', '.join(phases_of(tasks))}).")
+    return 1
+
+
+def planned_phases(task_dir):
+    """Phases listed in docs/plan/PHASES.md next to the task folder: [(id, name)] in order."""
+    plan = Path(task_dir).resolve().parent / "plan" / "PHASES.md"
+    try:
+        text = plan.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    found = {}
+    for line in text.splitlines():
+        match = (re.match(r"^\s*#{1,6}\s*(P\d+)\b[\s:.\-–]*(.*)$", line)
+                 or re.match(r"^\s*\|\s*(P\d+)\s*\|\s*([^|]*)\|", line))
+        if match and not found.get(match.group(1).upper()):
+            found[match.group(1).upper()] = match.group(2).strip()
+    return sorted(found.items(), key=lambda item: natural_key(item[0]))
+
+
+def print_phase_done(tasks, phase, args):
+    group = [t for t in tasks if in_phase(t, phase)]
+    print(f"All {plural(len(group), 'task')} of {phase} done.")
+    print(f"Close the phase: review it as a whole (/vibe-check phase {phase}), "
+          f"merge phase/{phase} → main (PR), deploy to staging.")
+    plan = planned_phases(args.dir)
+    later = [(p, name) for p, name in (plan or []) if natural_key(p) > natural_key(phase)]
+    if plan is None:
+        print("Then split the next phase in docs/plan/PHASES.md into task cards (vibe-tasks skill, Job A) "
+              "and show the task table for approval.")
+    elif not later:
+        print(f"PHASES.md lists no phase after {phase}: the plan is complete. "
+              "Ship to production (vibe-ship skill) or plan the next release (vibe-plan skill).")
+    else:
+        nxt, name = later[0]
+        if any(in_phase(t, nxt) for t in tasks):
+            print(f"Then continue with {nxt}: it already has task cards (`next --phase {nxt}`).")
+        else:
+            label = f"{nxt} {name}".strip()
+            print(f"Then split the next phase, {label}, into task cards (vibe-tasks skill, Job A) "
+                  "and show the task table for approval.")
+
+
+# ---------- commands ----------
+
+def cmd_check(tasks, skipped, args):
+    errors, warnings = validate(tasks, skipped)
+    if not tasks:
+        errors.append(f"no task cards found in {args.dir}")
     for message in warnings:
         print(f"⚠  {message}")
     for message in errors:
         print(f"✖  {message}")
     if errors:
-        print(f"\n{plural(len(errors), 'error')}, {plural(len(warnings), 'warning')} in {plural(len(tasks), 'task card')}.")
+        print(f"\n{plural(len(errors), 'error')}, {plural(len(warnings), 'warning')} in "
+              f"{plural(len(tasks), 'task card')}.")
         return 1
     suffix = f" ({plural(len(warnings), 'warning')})" if warnings else ""
     print(f"{chr(10) if warnings else ''}✔ {plural(len(tasks), 'task card')} valid{suffix}.")
     return 0
 
 
-def cmd_waves(tasks, notes, args):
-    warn_duplicates(tasks)
+def cmd_waves(tasks, skipped, args):
+    if not tasks:
+        return no_cards(args, skipped)
+    if args.phase and not any(in_phase(t, args.phase) for t in tasks):
+        return no_phase(tasks, args.phase)
+    code = print_banner(tasks, skipped)
     waves, stuck = compute_waves(tasks)
     shown = [w for w in ([t for t in wave if in_phase(t, args.phase)] for wave in waves) if w]
     scope = f"phase {args.phase}" if args.phase else "whole project"
     pending = sum(len(w) for w in shown)
     if not pending and not stuck:
         print(f"No unfinished tasks ({scope}).")
-        return 0
+        return code
     solo = args.max_parallel == 1
     if solo:
         print(f"{plural(pending, 'unfinished task')} ({scope}), sequential order (one agent).\n")
@@ -430,11 +595,10 @@ def cmd_waves(tasks, notes, args):
             for t in runnable:
                 if not t.touches:
                     print(f"  ⚠ {t.id} has no touches declared → runs alone")
-            known = [t for t in runnable if t.touches]
-            for x, a in enumerate(known):
-                for b in known[x + 1:]:
+            for x, a in enumerate(runnable):
+                for b in runnable[x + 1:]:
                     reason = conflict(a, b)
-                    if reason:
+                    if reason and (a.touches and b.touches or changes_schema(a) and changes_schema(b)):
                         print(f"  ⚠ {a.id} and {b.id} {reason} → not in the same batch")
         for a in runnable:
             if a not in ready_now:
@@ -445,31 +609,30 @@ def cmd_waves(tasks, notes, args):
         print()
     if stuck:
         print("✖ Cannot place in any wave: " + ", ".join(stuck))
-        cycle = find_cycle(stuck, {t.id: t for t in tasks})
-        if cycle:
+        for cycle in find_cycles(stuck, {t.id: t for t in tasks}):
             print("  Dependency cycle: " + " → ".join(cycle))
         print("  Run `check` for details.")
         return 1
-    print_notes(notes)
-    return 0
+    return code
 
 
-def cmd_status(tasks, notes, args):
-    warn_duplicates(tasks)
+def cmd_status(tasks, skipped, args):
+    if not tasks:
+        return no_cards(args, skipped)
     shown = [t for t in tasks if in_phase(t, args.phase)]
     if not shown:
-        print("No task cards yet" + (f" for phase {args.phase}" if args.phase else "") + ".")
-        return 0
+        return no_phase(tasks, args.phase)
+    code = print_banner(tasks, skipped)
     by_id = {t.id: t for t in tasks}
     counts = Counter(t.status for t in shown)
     done = counts["done"]
     print(f"Progress: {done}/{len(shown)} tasks done ({percent(done, len(shown))}%) · "
           f"doing {counts['doing']} · review {counts['review']} · "
           f"blocked {counts['blocked']} · todo {counts['todo']}\n")
-    phases = sorted({t.phase for t in shown}, key=natural_key)
+    phases = phases_of(shown)
     width = max(len(p) for p in phases)
     for phase in phases:
-        group = [t for t in shown if t.phase == phase]
+        group = [t for t in shown if in_phase(t, phase)]
         finished = sum(t.status == "done" for t in group)
         print(f"  {phase.ljust(width)}  {bar(finished, len(group))} "
               f"{percent(finished, len(group)):>3}%  {finished}/{len(group)}")
@@ -492,20 +655,32 @@ def cmd_status(tasks, notes, args):
         for t in waiting:
             unmet = [d for d in t.deps if d not in by_id or by_id[d].status != "done"]
             print(f"  - {t.id} waits for {', '.join(unmet)}")
-    print_notes(notes)
-    return 0
+    return code
 
 
-def cmd_next(tasks, notes, args):
-    warn_duplicates(tasks)
+def cmd_next(tasks, skipped, args):
+    if not tasks:
+        return no_cards(args, skipped)
+    unfinished = None
+    if args.phase:
+        phase = args.phase.upper()
+        if not any(in_phase(t, phase) for t in tasks):
+            return no_phase(tasks, phase)
+    else:
+        unfinished = phases_of([t for t in tasks if t.status != "done"])
+        phase = unfinished[0] if unfinished else phases_of(tasks)[-1]
+    code = print_banner(tasks, skipped)
     by_id = {t.id: t for t in tasks}
-    scope = [t for t in tasks if in_phase(t, args.phase)]
+    scope = [t for t in tasks if in_phase(t, phase)]
     running = [t for t in tasks if t.status == "doing"]
-    reviewing = [t for t in scope if t.status == "review"]
-    holding = [t for t in tasks if t.status in BUSY]  # not merged yet, so still holding files
+    reviewing = [t for t in tasks if t.status == "review"]
+    holding = running + reviewing  # not merged yet, so still holding files
     unlocks = unblock_counts(tasks)
     ready = sorted(ready_tasks(scope, by_id), key=lambda t: (-unlocks[t.id], natural_key(t.id)))
+    solo = args.max_parallel == 1
 
+    if not args.phase and len(phases_of(tasks)) > 1 and unfinished:
+        print(f"Phase {phase} (lowest phase with unfinished tasks; --phase to choose another)\n")
     if running:
         print("Running:")
         for t in running:
@@ -514,27 +689,41 @@ def cmd_next(tasks, notes, args):
         print("Code done, awaiting review and merge:")
         for t in reviewing:
             print(f"  - {t.label()}")
-    if running or reviewing:
+    blocked = [t for t in scope if t.status == "blocked"]
+    if blocked:
+        print("Blocked (the user must decide; see the card's Notes):")
+        for t in blocked:
+            print(f"  ⏸ {t.label()}")
+    if running or reviewing or blocked:
         print()
 
+    if solo and reviewing:
+        first = reviewing[0]
+        print(f"Review first: {first.id} (/vibe-check {first.id}). Start new work only after it is merged.")
+        return code
+    if solo and running:
+        print(f"Continue first: {running[0].id} (/vibe-next {running[0].id}).")
+
     if not ready:
-        left = [t for t in scope if t.status != "done"]
-        if not left:
-            print("All tasks done. Review the whole phase (review skill), then ship or move to the next phase.")
+        if not [t for t in scope if t.status != "done"]:
+            print_phase_done(tasks, phase, args)
         else:
-            print("No task is ready: the rest are running, awaiting review, waiting on deps, or blocked. "
-                  "See `status`.")
-        print_notes(notes)
-        return 0
+            print(f"No task is ready in {phase}: the rest are running, awaiting review, waiting on deps, "
+                  "or blocked. See `status`.")
+            later = [t for t in ready_tasks(tasks, by_id) if natural_key(t.phase) > natural_key(phase)]
+            if later and not args.phase:
+                print(f"(Later phases have ready tasks: {', '.join(t.id for t in later)}. "
+                      f"Finish {phase} first unless the user decides otherwise.)")
+        return code
 
     slots = max(args.max_parallel - len(running), 0)
-    pick, later = [], []
+    pick, wait = [], []
     for t in ready:
         clash = next((other for other in holding + pick if conflict(t, other)), None)
         if clash is None and len(pick) < slots:
             pick.append(t)
         else:
-            later.append((t, clash))
+            wait.append((t, clash))
 
     def unlock_note(task):
         return f"  (unblocks {plural(unlocks[task.id], 'task')})" if unlocks[task.id] else ""
@@ -543,21 +732,20 @@ def cmd_next(tasks, notes, args):
         print("Start now" + (", in parallel (no shared files):" if len(pick) > 1 else ":"))
         for t in pick:
             print(f"  - {t.label()}{unlock_note(t)}")
-    if later:
+    if wait:
         print("Ready, but not yet:")
-        for t, clash in later:
+        for t, clash in wait:
             if clash is None:
-                if args.max_parallel > 1:
+                if not solo:
                     why = "parallel agent limit reached"
                 else:
                     why = "finish the running task first" if running else "one task at a time"
             elif clash.status in BUSY:
-                why = f"shares files with {clash.id}, which is {clash.status} and not merged"
+                why = f"conflicts with {clash.id} ({clash.status}, not merged): {conflict(t, clash)}"
             else:
-                why = f"shares files with {clash.id}"
+                why = f"conflicts with {clash.id}: {conflict(t, clash)}"
             print(f"  - {t.label()}  ({why})")
-    print_notes(notes)
-    return 0
+    return code
 
 
 def main(argv=None):
@@ -567,12 +755,13 @@ def main(argv=None):
         except (AttributeError, ValueError):
             pass
     parser = argparse.ArgumentParser(description="Validate task cards, order them into waves, show progress.")
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command")
+    sub.required = True
     commands = {
         "check": (cmd_check, "find errors in task cards"),
         "waves": (cmd_waves, "order waves and parallel batches"),
         "status": (cmd_status, "progress by phase"),
-        "next": (cmd_next, "tasks you can start now"),
+        "next": (cmd_next, "what to do now"),
     }
     for name, (_, help_text) in commands.items():
         cmd = sub.add_parser(name, help=help_text)
@@ -585,8 +774,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if getattr(args, "max_parallel", 1) < 1:
         parser.error("--max-parallel must be ≥ 1")
-    tasks, notes = load_tasks(args.dir)
-    return commands[args.command][0](tasks, notes, args)
+    tasks, skipped = load_tasks(args.dir)
+    return commands[args.command][0](tasks, skipped, args)
 
 
 if __name__ == "__main__":

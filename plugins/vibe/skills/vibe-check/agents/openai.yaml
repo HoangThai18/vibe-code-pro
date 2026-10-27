@@ -1,0 +1,3 @@
+# Codex: run this skill only when the user types $vibe-check, never on its own.
+policy:
+  allow_implicit_invocation: false
