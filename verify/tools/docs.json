@@ -29,5 +29,7 @@
   "backend-core/native-auth.tpl.md": "plugins/vibe/skills/vibe-backend/references/native-auth.md",
   "backend-core/permissions.tpl.md": "plugins/vibe/skills/vibe-backend/references/permissions.md",
   "laravel/laravel.tpl.md": "plugins/vibe/skills/vibe-backend/references/laravel.md",
-  "dotnet/dotnet.tpl.md": "plugins/vibe/skills/vibe-backend/references/dotnet.md"
+  "dotnet/dotnet.tpl.md": "plugins/vibe/skills/vibe-backend/references/dotnet.md",
+  "spring/spring.tpl.md": "plugins/vibe/skills/vibe-backend/references/spring.md",
+  "mysql/mysql.tpl.md": "plugins/vibe/skills/vibe-backend/references/mysql.md"
 }
