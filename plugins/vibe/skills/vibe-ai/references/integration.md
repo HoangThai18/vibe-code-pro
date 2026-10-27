@@ -127,7 +127,7 @@ import type { Pool } from 'pg';
 import { summarizeNotes, type CustomerNote } from '../ai/summarize-notes';
 import { pgUsageStore } from '../ai/usage-pg';
 import { withMember } from '../db/tenant';        // the vibe-backend skill, references/postgres-rls.md section 4
-import { authorize } from '../shared/authz';       // same skill, references/auth.md section 4
+import { authorize } from '../shared/authz';       // the vibe-backend skill, references/auth.md section 4
 import { NotFoundError } from '../shared/errors';
 
 export async function customerSummary(

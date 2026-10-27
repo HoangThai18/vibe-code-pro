@@ -1,6 +1,6 @@
 // src/lib/access.ts — the first call in every tenant page and Server Action
 import { withMember } from '@/db/tenant';            // the vibe-backend skill, references/postgres-rls.md section 4
-import { can, type Action, type UserActor } from '@/shared/authz';   // same skill, references/auth.md section 4
+import { can, type Action, type UserActor } from '@/shared/authz';   // the vibe-backend skill, references/auth.md section 4
 import { NotFoundError } from '@/shared/errors';
 import { pool } from './db';
 import { getSessionUserId } from './session';

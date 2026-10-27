@@ -12,10 +12,11 @@ CREATE TABLE tenants (
 ALTER TABLE users ADD COLUMN locale text CHECK (locale IN ('vi', 'en'));  -- NULL: follow the tenant
 
 CREATE TABLE customers (
-  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  id        uuid NOT NULL DEFAULT gen_random_uuid(),
   full_name text NOT NULL CHECK (full_name IS NFC NORMALIZED),  -- one field, as typed
   birthday  date,                                               -- a calendar date, not a timestamp
-  locale    text CHECK (locale IN ('vi', 'en'))                 -- language of SMS/email to this customer
+  locale    text CHECK (locale IN ('vi', 'en')),                -- language of SMS/email to this customer
+  PRIMARY KEY (tenant_id, id)
 );
 CREATE INDEX customers_name_vi ON customers (tenant_id, full_name COLLATE "vi-x-icu");
