@@ -10,6 +10,9 @@ export async function bookAppointment(db: PoolClient, actor: Actor, a: NewAppoin
   authorize(actor, 'appointment.write');
   // Per-record rule (auth.md section 5): staff book only for themselves
   if (actor.type === 'user' && actor.role === 'staff' && a.staffUserId !== actor.id) throw new ForbiddenError('appointment.write');
+  // One booking at a time per staff member: concurrent inserts checking the same exclusion constraint can
+  // deadlock (40P01) instead of failing with 23P01. Rescheduling takes the same lock.
+  await db.query("SELECT pg_advisory_xact_lock(hashtextextended('booking:' || app_current_tenant() || ':' || $1, 0))", [a.staffUserId]);
   try {
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO appointments (customer_id, staff_user_id, starts_at, ends_at)
