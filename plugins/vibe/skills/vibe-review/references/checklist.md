@@ -37,6 +37,7 @@ A reminder, not a form to fill. Report only real issues in the diff, each with `
 - `FOR ALL` policies have no `OR` branch (an `OR` branch also opens update/delete); broader reads get a separate `FOR SELECT` policy.
 - New jobs, cache keys, storage paths and search indexes all carry `tenant_id`.
 - New endpoints have tenant isolation tests, run as the app role.
+- The app connects as a role that is not superuser, not the table owner and without `BYPASSRLS` (the user in the connection string); otherwise RLS checks nothing.
 
 ## Data and migrations
 - Migration runs on a DB that already has data; has `lock_timeout`; doesn't lock large tables for long (`CREATE INDEX CONCURRENTLY`, `NOT VALID` then `VALIDATE`); has a way back.
