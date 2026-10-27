@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+- **Eval report in the terminal**: `plugins/vibe/evals/report.py` (Python 3.8+, standard library) reads `claude plugin eval` results and shows:
+  - the score with and without the skills, how often the skill loaded, the cost per run;
+  - every case sorted by the difference the skills make, and one line per skill;
+  - what needs a look: cases worse with the skills, skills that never loaded, and graders that never pass in either arm (how the six broken `target: files` graders of 1.3.0 showed up).
+  - Options: `--brief`, `--case` (pass counts per grader), `--compare`, several files merged as reruns, `--save` (a summary without traces, prompts or local paths).
+- **Published numbers**: `plugins/vibe/evals/published/1.3.0.json` holds the 1.3.0 results, so anyone can view them without running an eval, or compare their own run against them.
+- A usage guide in both READMEs. The sample output there is checked against the real output in CI, along with 16 other tests.
+
 ## 1.3.0
 
 Four more stacks, each a `vibe-backend` reference rendered from tested code in `verify/` with its own CI job: 19 CI jobs → 23.

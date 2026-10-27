@@ -17,6 +17,7 @@ Every code block in the skills' references was run. This folder keeps that code 
 | `mobile` | `vibe-mobile/references/app-data.md`, `testing.md`, `platform-features.md` (Expo SDK 58 + Jest + the push `devices` SQL: `cd verify/mobile/app && npm ci`, then `verify/tools/run.sh mobile`; by hand) |
 | `desktop` | `vibe-desktop/references/security.md`, `testing.md`, `app-data.md` (`cd verify/desktop/electron-app && npm ci && xvfb-run -a npm run verify`; Tauri 2.12 built by hand) |
 | `tasks` | `vibe-tasks/scripts/tasks.py` (standard-library `unittest`; CI: `skills.yml` on Python 3.8 and 3.12) |
+| `eval-report` | `plugins/vibe/evals/report.py` and the report sample in both READMEs (standard-library `unittest`, same CI job) |
 
 ## Run
 
