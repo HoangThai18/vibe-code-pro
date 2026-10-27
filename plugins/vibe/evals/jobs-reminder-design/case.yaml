@@ -4,4 +4,5 @@ expected_outcome: |
   Không dùng setInterval trong process API: dùng hàng đợi job bền (vd pg-boss trên Postgres có sẵn) với worker
   riêng; quét theo lịch tạo bản ghi notification có ràng buộc UNIQUE và xếp job trong cùng transaction; job
   idempotent (kiểm trạng thái, idempotency key với nhà cung cấp SMS); retry có backoff và dead letter có cảnh báo;
-  giữ tenant/RLS trong job; giờ theo Asia/Ho_Chi_Minh; cửa sổ thời gian chịu được lần quét bị lỡ.
+  giữ tenant/RLS trong job; giờ theo Asia/Ho_Chi_Minh; cửa sổ thời gian chịu được lần quét bị lỡ. Lần quét lấy
+  danh sách tenant qua hàm SECURITY DEFINER hẹp (vd app_tenant_ids()), rồi quét và xếp job trong context từng tenant.

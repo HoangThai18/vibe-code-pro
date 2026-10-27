@@ -2,4 +2,5 @@ schema_version: "1.1"
 name: rls-memberships-policy
 expected_outcome: |
   Policy cho phép đọc theo user chỉ nằm trong policy FOR SELECT; INSERT, UPDATE, DELETE chỉ theo
-  tenant hiện tại; context đọc an toàn (fail closed khi thiếu, không lỗi ép kiểu chuỗi rỗng).
+  tenant hiện tại; context đọc an toàn (fail closed khi thiếu, không lỗi ép kiểu chuỗi rỗng). Context user chỉ
+  set trong luồng đăng nhập/chọn workspace, request thường chỉ set tenant (không lẫn membership ở tenant khác).

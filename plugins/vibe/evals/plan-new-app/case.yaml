@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: plan-new-app
+expected_outcome: |
+  Thư mục trống, yêu cầu mơ hồ. Chưa viết code, chưa dựng project: hỏi một danh sách ngắn có đánh số, mỗi câu
+  có gợi ý mặc định (ai dùng, nền tảng, các luồng chính, một hay nhiều spa dùng chung hệ thống, dữ liệu cá nhân,
+  ràng buộc), hoặc với bản nhỏ thì đề xuất một PLAN một trang và hỏi lại trước khi làm.
