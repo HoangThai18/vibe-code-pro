@@ -3,9 +3,9 @@ name: laravel-booking-race
 expected_outcome: |
   MySQL không có exclusion constraint: "kiểm tra rồi insert" trong DB::transaction vẫn đặt trùng khi hai request chạy
   song song. Sửa BookingService: khoá theo từng kỹ thuật viên (lockForUpdate dòng membership của nhân viên) trong
-  transaction rồi mới kiểm tra trùng; câu kiểm tra trùng phải đọc dữ liệu mới (locking read, hoặc khoá trước mọi câu
-  SELECT thường) vì REPEATABLE READ giữ snapshot từ câu đọc đầu tiên (Customer::findOrFail); không chỉ FOR UPDATE trên
-  khoảng thời gian (gap lock gây deadlock). Trả 409 appointment_slot_taken. Test hiện tại gửi tuần tự nên không chứng minh
+  transaction rồi mới kiểm tra trùng; câu kiểm tra trùng phải đọc dữ liệu mới (READ COMMITTED cho transaction đặt lịch,
+  hoặc locking read, hoặc khoá trước mọi câu SELECT thường) vì REPEATABLE READ giữ snapshot từ câu đọc đầu tiên
+  (Customer::findOrFail); không chỉ FOR UPDATE trên khoảng thời gian (gap lock gây deadlock). Trả 409 appointment_slot_taken. Test hiện tại gửi tuần tự nên không chứng minh
   gì: cần test gửi đồng thời từ nhiều process/worker (vd php -S với PHP_CLI_SERVER_WORKERS, Http::pool), vì
   php artisan serve mặc định và $this->postJson chạy từng request một.
 context:

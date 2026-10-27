@@ -22,7 +22,8 @@ final class EloquentTest extends TestCase
     private function queriesOf(callable $fn): int
     {
         $n = 0;
-        DB::listen(function () use (&$n) { $n++; });
+        // Only the list's own tables: Sanctum skips its last_used_at UPDATE within the same second
+        DB::listen(function ($q) use (&$n) { $n += (int) preg_match('/`(appointments|customers)`/', $q->sql); });
         $fn();
 
         return $n;

@@ -12,9 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('notifications', function (Blueprint $table) {
-            $table->uuid('tenant_id');
-            $table->uuid('id');
-            $table->uuid('appointment_id');
+            $table->asciiUuid('tenant_id');
+            $table->asciiUuid('id');
+            $table->asciiUuid('appointment_id');
             $table->string('kind', 40);
             $table->string('status', 20)->default('pending');
             $table->dateTime('sent_at')->nullable();

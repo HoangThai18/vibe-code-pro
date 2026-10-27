@@ -6,6 +6,6 @@ $pdo = new PDO(sprintf('mysql:host=%s;port=%d', $u['host'], $u['port'] ?? 3306),
 $db = str_replace('`', '', getenv('VERIFY_DB') ?: 'verify_laravel');
 $pdo->exec("DROP DATABASE IF EXISTS `$db`");
 if (($argv[1] ?? '') === 'create') {
-    $pdo->exec("CREATE DATABASE `$db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    $pdo->exec("CREATE DATABASE `$db` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci");
 }
 echo "$argv[1] $db on MySQL ", $pdo->query('SELECT VERSION()')->fetchColumn(), "\n";

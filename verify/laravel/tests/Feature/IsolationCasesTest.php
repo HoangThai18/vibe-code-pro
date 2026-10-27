@@ -39,7 +39,7 @@ final class IsolationCasesTest extends TestCase
     public function test_malformed_unknown_or_suspended_tenant_is_404(): void
     {
         $a = $this->member();
-        foreach (['not-a-uuid', '019a0000-0000-7000-8000-000000000000'] as $tenantId) {
+        foreach (['not-a-uuid', '019a0000-0000-7000-8000-000000000000', strtoupper($a['tenantId'])] as $tenantId) {   // ascii_bin: case-exact
             $this->as($a)->getJson("/v1/t/{$tenantId}/customers")->assertNotFound()->assertJsonPath('error.code', 'not_found');
         }
         Tenant::whereKey($a['tenantId'])->update(['status' => 'suspended']);
