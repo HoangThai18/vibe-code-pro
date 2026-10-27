@@ -54,10 +54,10 @@ return [
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
-            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_0900_ai_ci'),   // the skeleton's utf8mb4_unicode_ci: Đặng ≠ dang
             'prefix' => '',
             'prefix_indexes' => true,
-            'strict' => true,
+            'strict' => true,   // false leaves sql_mode NO_ENGINE_SUBSTITUTION: silent truncation
             'engine' => null,
             'timezone' => '+00:00',   // session time_zone: NOW() and TIMESTAMP columns in UTC, the app's time zone
             'options' => extension_loaded('pdo_mysql') ? array_filter([

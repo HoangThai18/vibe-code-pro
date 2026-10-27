@@ -11,8 +11,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-// /v1/t/{tenant}/...: the tenant comes from the path, the role from the membership. Runs after auth:sanctum
-// and before SubstituteBindings (bootstrap/app.php), so {customer} is resolved inside the tenant scope.
+// After auth:sanctum, before SubstituteBindings (bootstrap/app.php): {customer} resolves inside the tenant
 final class ResolveTenant
 {
     public function __construct(private TenantContext $tenant) {}

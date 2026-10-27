@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 final class CustomersIsolationTest extends TestCase
 {
-    // One row per route with a {customer} (test_every_customer_route_is_listed keeps this list complete)
+    // One row per route with a {customer}; the next test fails when a route is missing
     public static function crossTenantRoutes(): array
     {
         return [
@@ -30,7 +30,7 @@ final class CustomersIsolationTest extends TestCase
         $call($a, $b['tenantId'])->assertNotFound();
         // 404 is not enough: B's data is unchanged
         $this->as($b)->getJson("/v1/t/{$b['tenantId']}/customers/{$bCustomer}")->assertJsonPath('data.fullName', 'Khách của B');
-        // Control: B making the same request succeeds; a wrong route would also answer 404
+        // Control: B's own request succeeds (a wrong route would also answer 404)
         $this->assertLessThan(300, $call($b, $b['tenantId'])->status());
     }
 
