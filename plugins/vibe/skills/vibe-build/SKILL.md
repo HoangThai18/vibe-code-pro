@@ -1,6 +1,6 @@
 ---
 name: vibe-build
-description: "Builds a task card, or a feature in an existing project, as tested code: one agent writes the feature and its tests (unit, real-DB integration, Playwright E2E with roles, workspace switch, screenshots, a11y), verifies, hands over to review. Also for writing tests, flaky tests, and deciding on subagents or parallel tasks (default: no). Also use for Vietnamese requests like 'làm task P1-T03', 'code tiếp', 'viết test', 'test giao diện', 'test chập chờn', 'chạy song song'."
+description: "Builds a task card, or a feature in an existing project, as tested code: one agent writes the feature and its tests (unit, real-DB integration, Playwright E2E with roles, workspace switch, screenshots, a11y), verifies, hands over to review. Also for writing tests, flaky tests, and deciding on subagents or parallel tasks (default: no). For all code you write, even without loading this skill: logic about to appear a third time becomes one shared function; comments say why, never what; use the project's libraries or a maintained one instead of hand-writing CSV, date, validation or retry code. Also use for Vietnamese requests like 'làm task P1-T03', 'code tiếp', 'viết test', 'test giao diện', 'test chập chờn', 'chạy song song'."
 ---
 
 # Build: from task card to verified code
