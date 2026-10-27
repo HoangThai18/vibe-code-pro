@@ -25,19 +25,23 @@ public static class AppointmentEndpoints
             TenantId = m.TenantId, Id = Guid.CreateVersion7(), CustomerId = body.CustomerId, StaffUserId = body.StaffUserId,
             StartsAt = body.StartsAt.UtcDateTime, EndsAt = body.EndsAt.UtcDateTime,
         };
+        // One booking at a time per staff member: concurrent overlapping inserts can deadlock (40P01) in the
+        // exclusion check. The constraint stays the guarantee; the lock ends with the transaction.
+        await db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({m.TenantId.ToString()} || {body.StaffUserId.ToString()}, 0))", ct);
         db.Appointments.Add(a);
         try
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException e) when (e.SqlState() == PostgresErrorCodes.ExclusionViolation)   // 23P01
+        catch (Exception e) when (e.SqlState() is PostgresErrorCodes.ExclusionViolation or PostgresErrorCodes.DeadlockDetected)
         {
-            // appointments_no_overlap (data-layer.md section 6): also under concurrency
+            // 23P01: appointments_no_overlap (data-layer.md section 6). 40P01, from a path without the lock: lost the same race
             throw new ApiException(409, "appointment_slot_taken", "Khung giờ này đã có lịch.");
         }
-        catch (DbUpdateException e) when (e.SqlState() == PostgresErrorCodes.ForeignKeyViolation)  // 23503
+        catch (DbUpdateException e) when (e.SqlState() == PostgresErrorCodes.ForeignKeyViolation)
         {
-            // Customer or staff not in this tenant (composite FKs); don't echo the DB message
+            // 23503: customer or staff not in this tenant (composite FKs); don't echo the DB message
             throw new ApiException(422, "invalid_reference", "Khách hàng hoặc nhân viên không hợp lệ.");
         }
         return Results.Created($"/v1/t/{m.TenantId}/appointments/{a.Id}",

@@ -8,7 +8,7 @@ using Spa.Api.Http;
 
 namespace Spa.Api.Tenancy;
 
-// Scoped: the membership of the current request, set by TenantFilter before the handler body runs
+// The current request's membership, set by TenantFilter before the handler body runs
 public sealed class RequestTenant
 {
     public Member Member { get; set; } = null!;
@@ -16,7 +16,7 @@ public sealed class RequestTenant
 
 public static class TenantDb
 {
-    // One transaction per request or job unit; its first statement sets the RLS tenant for this transaction only
+    // One transaction per request or job; its first statement sets the RLS tenant for that transaction only
     public static async Task<IDbContextTransaction> BeginTenantAsync(this SpaDb db, Guid tenantId, CancellationToken ct)
     {
         var tx = await db.Database.BeginTransactionAsync(ct);
@@ -46,7 +46,7 @@ public sealed class TenantFilter(SpaDb db, RequestTenant current, IAuthorization
             current.Member = new Member(tenantId, userId, role);
             if (!(await authz.AuthorizeAsync(http.User, current.Member, required)).Succeeded)
                 throw ApiException.Forbidden(required.Action);
-            var result = await next(ctx);   // the handler's IResult, not written yet: commit first
+            var result = await next(ctx);   // the IResult, not written yet: commit first
             await tx.CommitAsync(ct);
             return result;
         }

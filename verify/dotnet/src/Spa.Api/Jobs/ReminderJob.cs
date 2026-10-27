@@ -16,7 +16,6 @@ public sealed partial class ReminderJob(IServiceScopeFactory scopes, ISmsSender 
         await using (var scope = scopes.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<SpaDb>();
-            // db.Tenants here returns 0 rows under RLS; the SECURITY DEFINER function returns the active ids
             tenants = await db.Database.SqlQuery<Guid>($"SELECT id AS \"Value\" FROM app_tenant_ids() AS id").ToListAsync(ct);
         }
         foreach (var tenantId in tenants)
@@ -39,8 +38,7 @@ public sealed partial class ReminderJob(IServiceScopeFactory scopes, ISmsSender 
         {
             var db = scope.ServiceProvider.GetRequiredService<SpaDb>();
             await using var tx = await db.BeginTenantAsync(tenantId, ct);
-            // One row per appointment (UNIQUE + ON CONFLICT): reruns and other instances add nothing.
-            // Wide window: a missed scan is caught up by the next one.
+            // One row per appointment (UNIQUE + ON CONFLICT); the wide window catches up a missed scan
             await db.Database.ExecuteSqlAsync($"""
                 INSERT INTO notifications (tenant_id, appointment_id, kind)
                 SELECT tenant_id, id, 'reminder_24h' FROM appointments
@@ -48,8 +46,7 @@ public sealed partial class ReminderJob(IServiceScopeFactory scopes, ISmsSender 
                    AND starts_at > now() + interval '2 hours' AND starts_at <= now() + interval '24 hours'
                 ON CONFLICT (tenant_id, appointment_id, kind) DO NOTHING
                 """, ct);
-            // Claim with a 5-minute lease: other instances and later scans skip the rows until they are marked or the
-            // lease runs out (this instance died). SKIP LOCKED only keeps concurrent claimers from waiting on each other.
+            // Claim with a 5-minute lease: other instances skip the rows until they are marked or the lease runs out
             due = await db.Database.SqlQuery<DueReminder>($"""
                 UPDATE notifications n SET locked_until = now() + interval '5 minutes'
                   FROM appointments a, customers c, tenants t
@@ -72,7 +69,6 @@ public sealed partial class ReminderJob(IServiceScopeFactory scopes, ISmsSender 
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
-                    // Still pending: retried with the same key once the lease expires (backoff)
                     log.LogWarning(e, "Reminder {NotificationId} not sent", r.Id);
                     continue;
                 }

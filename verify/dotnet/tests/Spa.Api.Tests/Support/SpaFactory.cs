@@ -15,6 +15,7 @@ public class SpaFactory : WebApplicationFactory<Program>
 {
     public FakeSms Sms { get; } = new();
     public CommandCounter Commands { get; } = new();
+    public BookingBarrier Barrier { get; } = new();
     protected virtual bool RemindersEnabled => false;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -27,7 +28,7 @@ public class SpaFactory : WebApplicationFactory<Program>
         {
             s.AddAuthentication(TestAuth.SchemeName).AddScheme<AuthenticationSchemeOptions, TestAuth>(TestAuth.SchemeName, null);
             s.AddSingleton<ISmsSender>(Sms);
-            s.ConfigureDbContext<SpaDb>(o => o.AddInterceptors(Commands));
+            s.ConfigureDbContext<SpaDb>(o => o.AddInterceptors(Commands, Barrier));
         });
     }
 

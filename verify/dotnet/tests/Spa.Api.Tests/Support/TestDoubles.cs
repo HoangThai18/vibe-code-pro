@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Data.Common;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
@@ -58,5 +59,58 @@ public sealed class CommandCounter : DbCommandInterceptor
     {
         Interlocked.Increment(ref _count);
         return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+    }
+}
+
+// Stress tests: holds every booking request just before its first locking statement until all of them got there,
+// and counts deadlocks (40P01) the app's commands hit, whatever the HTTP layer mapped them to
+public sealed class BookingBarrier : DbCommandInterceptor
+{
+    int _deadlocks;
+    public int Deadlocks => _deadlocks;
+
+    public override Task CommandFailedAsync(DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        if (eventData.Exception is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.DeadlockDetected })
+            Interlocked.Increment(ref _deadlocks);
+        return base.CommandFailedAsync(command, eventData, cancellationToken);
+    }
+
+    readonly ConditionalWeakTable<object, object> _passed = new();
+    TaskCompletionSource? _gate;
+    int _parties, _arrived;
+
+    public void Arm(int parties)
+    {
+        (_parties, _arrived) = (parties, 0);
+        _gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    public void Disarm() => _gate = null;
+
+    async Task WaitAsync(DbCommand command, CommandEventData data, CancellationToken ct)
+    {
+        var gate = _gate;
+        if (gate is null || data.Context is null) return;
+        var sql = command.CommandText;
+        if (!sql.Contains("pg_advisory_xact_lock") && !sql.StartsWith("INSERT INTO appointments")) return;
+        if (!_passed.TryAdd(data.Context, new object())) return;   // once per request
+        if (Interlocked.Increment(ref _arrived) == _parties) gate.TrySetResult();
+        try { await gate.Task.WaitAsync(TimeSpan.FromSeconds(5), ct); }
+        catch (TimeoutException) { }
+    }
+
+    public override async ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData,
+        InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+    {
+        await WaitAsync(command, eventData, cancellationToken);
+        return result;
+    }
+
+    public override async ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command, CommandEventData eventData,
+        InterceptionResult<int> result, CancellationToken cancellationToken = default)
+    {
+        await WaitAsync(command, eventData, cancellationToken);
+        return result;
     }
 }

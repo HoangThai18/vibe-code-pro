@@ -17,6 +17,12 @@ public sealed class ApiException(int status, string code, string message) : Exce
 
 public static class PgErrors
 {
-    // SaveChanges wraps the driver's error in DbUpdateException; ExecuteUpdate/ExecuteDelete and raw SQL throw it as is
-    public static string? SqlState(this Exception e) => (e as PostgresException ?? e.InnerException as PostgresException)?.SqlState;
+    // The PostgresException anywhere in the chain: SaveChanges wraps it in DbUpdateException (and a transient one, such as
+    // 40P01, again in InvalidOperationException); ExecuteUpdate/ExecuteDelete and raw SQL throw it as is
+    public static string? SqlState(this Exception? e)
+    {
+        for (; e is not null; e = e.InnerException)
+            if (e is PostgresException pg) return pg.SqlState;
+        return null;
+    }
 }
