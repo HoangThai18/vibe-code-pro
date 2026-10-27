@@ -1,0 +1,30 @@
+{
+  "name": "realtime-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "db:setup": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -q -f sql/setup.sql -c \"SET ROLE rt_owner\" -f sql/realtime.sql",
+    "test": "node --import tsx --test --test-concurrency=1 --test-timeout=30000 test/*.test.ts",
+    "verify": "npm run typecheck && npm run db:setup && npm test"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.104.5",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "30.0.0",
+    "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/ws": "8.18.2",
+    "eventsource": "5.1.3",
+    "jsdom": "30.1.3",
+    "react-dom": "19.3.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

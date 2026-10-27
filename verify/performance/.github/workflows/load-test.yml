@@ -1,0 +1,35 @@
+# .github/workflows/load-test.yml — chạy tay hoặc mỗi đêm trên staging, không chạy ở mọi PR
+name: Load test
+on:
+  workflow_dispatch:
+    inputs:
+      rps:
+        description: Số request mỗi giây ở mức giữ
+        default: "100"
+  schedule:
+    - cron: "30 19 * * *"   # 02:30 giờ Việt Nam, lúc staging vắng
+permissions:
+  contents: read
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    environment: staging                       # token test lấy từ secret của environment này
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tạo file token test từ secret
+        run: printf '%s' "$LOAD_TEST_TENANTS" > load/tenants.json
+        env:
+          LOAD_TEST_TENANTS: ${{ secrets.LOAD_TEST_TENANTS }}
+      - name: Chạy k6 (fail nếu vượt ngưỡng trong options.thresholds)
+        run: >
+          docker run --rm -v "$PWD/load:/load" -w /load grafana/k6:1.8.2 run
+          -e BASE_URL="$BASE_URL" -e RPS="$RPS" --summary-export /load/summary.json customers-list.js
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
+          RPS: ${{ inputs.rps || '100' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-summary
+          path: load/summary.json

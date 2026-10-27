@@ -1,0 +1,9 @@
+{
+  "search/search.tpl.md": "plugins/vibe/skills/vibe-backend/references/search.md",
+  "payments/payments.tpl.md": "plugins/vibe/skills/vibe-backend/references/payments.md",
+  "notifications/notifications.tpl.md": "plugins/vibe/skills/vibe-backend/references/notifications.md",
+  "realtime/realtime.tpl.md": "plugins/vibe/skills/vibe-backend/references/realtime.md",
+  "data-import/data-import.tpl.md": "plugins/vibe/skills/vibe-backend/references/data-import.md",
+  "i18n/i18n.tpl.md": "plugins/vibe/skills/vibe-frontend/references/i18n.md",
+  "seo/seo.tpl.md": "plugins/vibe/skills/vibe-frontend/references/seo.md"
+}

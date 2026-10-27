@@ -1,0 +1,9 @@
+{
+  "appointments": {
+    "todayCount": "{count, plural, =0 {Hôm nay chưa có lịch hẹn} other {Hôm nay có # lịch hẹn}}",
+    "reminderSms": "Chào {name}, nhắc lịch hẹn của bạn lúc {when} tại {spa}."
+  },
+  "customers": {
+    "count": "{count, plural, other {# khách}}"
+  }
+}

@@ -1,0 +1,41 @@
+# .github/workflows/verify.yml: the code shown in the references runs, and the docs still match it
+name: Verify examples
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  docs-match-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 verify/tools/check_docs.py
+
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [search, payments, notifications, realtime, data-import, i18n, seo, jobs, app-security, privacy, ai]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verify/${{ matrix.project }}/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: verify/${{ matrix.project }}
+      - run: verify/tools/run.sh ${{ matrix.project }}
+        env:
+          PG_URL: postgres://postgres:postgres@localhost:5432

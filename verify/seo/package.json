@@ -1,0 +1,23 @@
+{
+  "name": "seo-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "start": "next start -p 3100",
+    "verify": "next build && node --import tsx --test --test-concurrency=1 test/*.test.ts"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "schema-dts": "2.1.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}
