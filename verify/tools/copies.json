@@ -1,14 +1,62 @@
 {
-  "backend-core/src/db/tenant.ts": ["jobs/src/db/tenant.ts", "app-security/src/db/tenant.ts", "ai/src/db/tenant.ts", "next-actions/src/db/tenant.ts"],
-  "backend-core/src/shared/authz.ts": ["jobs/src/shared/authz.ts", "app-security/src/shared/authz.ts", "ai/src/shared/authz.ts", "next-actions/src/shared/authz.ts"],
-  "backend-core/src/shared/errors.ts": ["jobs/src/shared/errors.ts", "app-security/src/shared/errors.ts", "ai/src/shared/errors.ts", "next-actions/src/shared/errors.ts"],
-  "backend-core/sql/schema.sql": ["jobs/sql/schema.sql", "app-security/sql/schema.sql", "privacy/sql/schema.sql"],
-  "backend-core/sql/roles.sql": ["jobs/sql/roles.sql", "privacy/sql/roles.sql"],
-  "backend-core/sql/current-tenant.sql": ["jobs/sql/current-tenant.sql", "app-security/sql/current-tenant.sql", "privacy/sql/current-tenant.sql"],
-  "backend-core/sql/tenant-ids.sql": ["jobs/sql/tenant-ids.sql"],
-  "backend-core/sql/tenant-isolation.sql": ["jobs/sql/tenant-isolation.sql"],
-  "backend-core/sql/login.sql": ["jobs/sql/login.sql"],
-  "app-security/src/security/secret-box.ts": ["payments/src/security/secret-box.ts", "notifications/src/security/secret-box.ts"],
-  "i18n/src/i18n/format.ts": ["jobs/src/i18n/format.ts", "seo/src/i18n/format.ts"],
-  "i18n/src/i18n/text.ts": ["jobs/src/i18n/text.ts"]
+  "backend-core/src/db/tenant.ts": [
+    "jobs/src/db/tenant.ts",
+    "app-security/src/db/tenant.ts",
+    "ai/src/db/tenant.ts",
+    "next-actions/src/db/tenant.ts"
+  ],
+  "backend-core/src/shared/authz.ts": [
+    "jobs/src/shared/authz.ts",
+    "app-security/src/shared/authz.ts",
+    "ai/src/shared/authz.ts",
+    "next-actions/src/shared/authz.ts"
+  ],
+  "backend-core/src/shared/errors.ts": [
+    "jobs/src/shared/errors.ts",
+    "app-security/src/shared/errors.ts",
+    "ai/src/shared/errors.ts",
+    "next-actions/src/shared/errors.ts"
+  ],
+  "backend-core/sql/schema.sql": [
+    "jobs/sql/schema.sql",
+    "app-security/sql/schema.sql",
+    "privacy/sql/schema.sql"
+  ],
+  "backend-core/sql/roles.sql": [
+    "jobs/sql/roles.sql",
+    "privacy/sql/roles.sql",
+    "dotnet/sql/roles.sql"
+  ],
+  "backend-core/sql/current-tenant.sql": [
+    "jobs/sql/current-tenant.sql",
+    "app-security/sql/current-tenant.sql",
+    "privacy/sql/current-tenant.sql",
+    "dotnet/sql/current-tenant.sql"
+  ],
+  "backend-core/sql/tenant-ids.sql": [
+    "jobs/sql/tenant-ids.sql",
+    "dotnet/sql/tenant-ids.sql"
+  ],
+  "backend-core/sql/tenant-isolation.sql": [
+    "jobs/sql/tenant-isolation.sql",
+    "dotnet/sql/tenant-isolation.sql"
+  ],
+  "backend-core/sql/login.sql": [
+    "jobs/sql/login.sql",
+    "dotnet/sql/login.sql"
+  ],
+  "app-security/src/security/secret-box.ts": [
+    "payments/src/security/secret-box.ts",
+    "notifications/src/security/secret-box.ts"
+  ],
+  "i18n/src/i18n/format.ts": [
+    "jobs/src/i18n/format.ts",
+    "seo/src/i18n/format.ts"
+  ],
+  "i18n/src/i18n/text.ts": [
+    "jobs/src/i18n/text.ts"
+  ],
+  "backend-core/sql/no-overlap.sql": [
+    "dotnet/sql/no-overlap.sql"
+  ]
 }

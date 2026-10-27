@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: dotnet-tenant-roles
+expected_outcome: |
+  Không đưa role vào JWT rồi dùng RequireRole: role gắn với membership của từng spa (một người có thể là owner ở
+  spa A, staff ở spa B) và claim trong token cũ đi khi role đổi. Mỗi request đọc role từ memberships của tenant
+  trên path (lọc theo tenant đó) trong transaction của request; không phải thành viên → 404, kiểm trước quyền
+  (TenantTransactionFilter hiện chưa kiểm membership nên ai đăng nhập cũng vào được spa bất kỳ). Quyền dạng
+  resource.action nằm trong một bảng theo role, mặc định từ chối, mỗi endpoint khai báo quyền, thiếu quyền → 403;
+  policy của RequireAuthorization chạy trước endpoint filter nên kiểm quyền sau khi có membership (trong filter,
+  hoặc IAuthorizationService với membership làm resource). Staff đặt lịch cho nhân viên khác → 403. Thêm test
+  ma trận vai trò × quyền và test 404 cho người ngoài spa.
+context:
+  scaffold_script: place-files.sh
