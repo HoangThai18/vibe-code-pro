@@ -84,7 +84,7 @@ test('a missed event is recovered: after a reconnect the board refetches', async
     await c.query('BEGIN');
     await c.query('SET LOCAL session_replication_role = replica');
     const { rows } = await c.query<{ id: string }>(
-      'INSERT INTO appointments (tenant_id, customer_id, staff_user_id, starts_at) VALUES ($1, $2, $3, now()) RETURNING id',
+      "INSERT INTO appointments (tenant_id, customer_id, staff_user_id, starts_at, ends_at) VALUES ($1, $2, $3, now(), now() + interval '1 hour') RETURNING id",
       [A, CUSTOMER.A, ctx.users.lan]);
     missed = rows[0]!.id;
     await c.query('COMMIT');

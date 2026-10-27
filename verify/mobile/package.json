@@ -1,0 +1,7 @@
+{
+  "name": "mobile-check",
+  "private": true,
+  "scripts": {
+    "verify": "psql \"$DATABASE_URL\" -q -v ON_ERROR_STOP=1 -f sql/devices.test.sql && cd app && npx tsc --noEmit && npx jest --ci"
+  }
+}

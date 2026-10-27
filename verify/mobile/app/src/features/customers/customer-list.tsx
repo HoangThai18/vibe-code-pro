@@ -20,7 +20,7 @@ export function CustomerList({ tenantId }: { tenantId: string }) {
     <FlatList
       data={q.data.data}
       keyExtractor={(c) => c.id}
-      renderItem={({ item }) => <Text>{item.name}</Text>}
+      renderItem={({ item }) => <Text>{item.fullName}</Text>}
       ListEmptyComponent={<Text>Chưa có khách nào.</Text>}
     />
   );

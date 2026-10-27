@@ -2,7 +2,7 @@
 
 Desktop security bugs cost more than web ones: code runs with the user's privileges on their machine. One XSS in a misconfigured Electron renderer is enough to run arbitrary commands on a customer's computer.
 
-The Electron code below ran on Electron 45; the Playwright tests in `testing.md` section 3 run against this exact code and catch deliberately misconfigured versions.
+The Electron code below ran on Electron 45; the Playwright tests in `testing.md` section 3 run against this exact code and catch deliberately misconfigured versions. The Tauri files were built with Tauri 2.12.
 
 ## Contents
 1. Electron: trust model
@@ -21,11 +21,13 @@ The Electron code below ran on Electron 45; the Playwright tests in `testing.md`
 
 Keep three defaults: `contextIsolation: true` (default since Electron 12), `sandbox: true` (default since 20), `nodeIntegration: false` (default since 5). Write them explicitly in code so nobody turns them off by mistake.
 
+One default is unsafe: Electron **grants every web permission request** (camera, microphone, notifications, geolocation...) unless the app sets a handler, so one XSS can switch on the camera. Deny by default with `setPermissionRequestHandler` and `setPermissionCheckHandler` (checked on Electron 45: without them `getUserMedia` succeeds silently).
+
 ## 2. Electron: main process
 
 ```js
 // main.js
-const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -33,6 +35,8 @@ const { pathToFileURL } = require('node:url');
 const APP_ORIGIN = 'app://bundle';
 const RENDERER_DIR = path.join(__dirname, 'renderer');
 const EXTERNAL_HOSTS = new Set(['example.vn', 'help.example.vn']);   // only these sites may open in the browser
+// Web permissions the UI may get, for its own pages only. Electron grants every request by default (camera, microphone, screen...)
+const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write']);
 
 // Serve the UI over a custom scheme instead of file:// (a file:// page can read every file on the machine)
 protocol.registerSchemesAsPrivileged([
@@ -49,6 +53,25 @@ function serveRenderer() {
     }
     return net.fetch(pathToFileURL(file).toString());
   });
+}
+
+// Node's URL gives custom schemes the origin 'null': compare scheme and host instead
+function isAppUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'app:' && u.host === 'bundle';
+  } catch {
+    return false;
+  }
+}
+
+function lockDownPermissions(ses) {
+  ses.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+    callback(ALLOWED_PERMISSIONS.has(permission) && isAppUrl(details.requestingUrl));
+  });
+  // Checks come before requests (navigator.permissions.query, Notification.permission...)
+  ses.setPermissionCheckHandler((_webContents, permission, requestingOrigin) =>
+    ALLOWED_PERMISSIONS.has(permission) && isAppUrl(requestingOrigin));
 }
 
 function openExternalSafe(url) {
@@ -78,7 +101,7 @@ function createWindow() {
   });
   // The page may not navigate elsewhere
   win.webContents.on('will-navigate', (event, url) => {
-    if (new URL(url).origin !== APP_ORIGIN) event.preventDefault();
+    if (!isAppUrl(url)) event.preventDefault();
   });
   // No new windows; allowed external links open in the default browser
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -114,6 +137,7 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 app.whenReady().then(() => {
+  lockDownPermissions(session.defaultSession);   // and every session you create (session.fromPartition)
   serveRenderer();
   createWindow();
   app.on('activate', () => {
@@ -187,9 +211,10 @@ Fuses turn off Electron features the app does not need, written into the executa
 |---|---|---|
 | `RunAsNode` | off | Blocks running the app binary as `node` via `ELECTRON_RUN_AS_NODE` |
 | `EnableNodeOptionsEnvironmentVariable` | off | Blocks injecting Node options via `NODE_OPTIONS` |
-| `EnableNodeCliInspectArguments` | off | Blocks attaching a debugger with `--inspect`. Playwright needs it to drive the app: run E2E on a build with it on, turn it off only in the release build (`testing.md` section 5) |
+| `EnableNodeCliInspectArguments` | off | Blocks attaching a debugger with `--inspect`. E2E needs it on: turn it off only in the release build (`testing.md` section 5) |
 | `EnableEmbeddedAsarIntegrityValidation` + `OnlyLoadAppFromAsar` | on | Run only code in an integrity-checked `app.asar` (macOS, Windows) |
 | `EnableCookieEncryption` | on | Encrypt cookies on disk |
+| `GrantFileProtocolExtraPrivileges` | off | `file://` pages get no extra privileges; the UI uses `app://` and needs none (the `testing.md` section 3 tests pass with it off) |
 
 Check the fuse config on the packaged build: `npx @electron/fuses read --app <app path>`.
 
@@ -203,13 +228,13 @@ Tauri v2 by default lets only code packaged with the app call APIs, and each plu
   "identifier": "main-window",
   "description": "Quyền của cửa sổ chính",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default"]
 }
 ```
 
-(`src-tauri/capabilities/main-window.json`). Grant only the permissions needed; do not add `remote.urls` unless a remote page truly must call APIs, and then read Tauri's warning about iframes on Linux and Android.
+(`src-tauri/capabilities/main-window.json`). Grant only the permissions the webview's own JS calls. Here `core:default` is enough: the command below opens the dialog from Rust, which needs no permission, while `dialog:allow-open` would let any script in the webview open dialogs itself (checked on Tauri 2.12: with `core:default` the command opens the dialog and a JS `plugin:dialog|open` call is rejected as not allowed). Do not add `remote.urls` unless a remote page truly must call APIs, and then read Tauri's warning about iframes on Linux and Android.
 
-CSP lives in `src-tauri/tauri.conf.json` (`app.security.csp`), same principles as Electron; Tauri adds nonces/hashes for the app's scripts at build time.
+Set a CSP in `src-tauri/tauri.conf.json` (`app.security.csp`), same principles as Electron. The `create-tauri-app` templates ship `"csp": null`, which means no CSP at all; once one is set, Tauri adds nonces/hashes for the app's own scripts and styles at build time.
 
 Rust commands are a trust boundary, like Electron IPC:
 
@@ -219,7 +244,7 @@ use tauri_plugin_dialog::DialogExt;
 
 const MAX_CSV_BYTES: u64 = 5 * 1024 * 1024;
 
-// The renderer sends no path: the command opens the file dialog itself
+// The renderer sends no path: the command opens the file dialog itself (from Rust: no dialog permission needed)
 #[tauri::command]
 async fn import_customers_csv(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let Some(picked) = app.dialog().file().add_filter("CSV", &["csv"]).blocking_pick_file() else {
@@ -237,6 +262,7 @@ async fn import_customers_csv(app: tauri::AppHandle) -> Result<Option<String>, S
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![import_customers_csv])
         .run(tauri::generate_context!())
         .expect("không khởi động được app");
@@ -252,7 +278,8 @@ pub fn run() {
 - [ ] Preload exposes only specific functions; no `ipcRenderer`, `require` or free-form channel names
 - [ ] Every `ipcMain.handle`/`on` checks `senderFrame.origin` and validates parameters; no IPC that reads/writes files at renderer-given paths or runs commands
 - [ ] `will-navigate` and `setWindowOpenHandler` block navigation and new windows; `shell.openExternal` only with allowlisted URLs
+- [ ] `setPermissionRequestHandler` and `setPermissionCheckHandler` on every session: deny by default, allow listed permissions for the app's own origin only
 - [ ] UI loaded via a custom scheme with path traversal blocked; no `file://`, no remote pages in a window with preload
 - [ ] CSP has no `unsafe-inline`/`unsafe-eval` in `script-src`
-- [ ] Fuses set; Electron on a supported version
-- [ ] Tauri: capabilities hold only needed permissions; no unneeded `remote.urls`; commands validate input
+- [ ] Fuses set (section 5, including `GrantFileProtocolExtraPrivileges` off); Electron on a supported version
+- [ ] Tauri: capabilities hold only permissions the webview's JS calls; no unneeded `remote.urls`; `app.security.csp` set; commands validate input

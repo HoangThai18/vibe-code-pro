@@ -5,6 +5,8 @@ import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import type Anthropic from '@anthropic-ai/sdk';
 import { streamDraftReply } from '../src/ai/stream-draft-reply';
+import { readDraftStream } from '../web/read-draft-stream';
+import { settleDraft } from '../web/settle-draft';
 import { fakeAnthropic, sseResponse } from './helpers/fake-anthropic';
 import { memoryUsage } from './helpers/memory-usage';
 
@@ -16,33 +18,49 @@ async function serve(client: Anthropic, usage: ReturnType<typeof memoryUsage>) {
   return { server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/` };
 }
 
-test('stream từng đoạn chữ về trình duyệt, kết thúc bằng done và ghi usage', async () => {
+test('streams text chunks to the browser, ends with done and records usage', async () => {
   const { client } = fakeAnthropic([(init) => sseResponse(['Dạ chị ', 'cứ đến ạ.'], init)]);
   const usage = memoryUsage();
   const { server, url } = await serve(client, usage);
   try {
-    const text = await (await fetch(url)).text();
-    assert.match(text, /event: text\ndata: {"delta":"Dạ chị "}/);
-    assert.match(text, /event: done\ndata: {"stopReason":"end_turn"}/);
-    assert.equal(usage.rows[0]!.usage.output_tokens, 42);
+    let text = '';
+    assert.equal(await readDraftStream(url, { m: 'x' }, (d) => (text += d)), 'done');
+    assert.equal(text, 'Dạ chị cứ đến ạ.');
+    assert.equal(usage.rows[0]!.outputTokens, 42);
   } finally {
     server.close();
   }
 });
 
-test('người dùng đóng kết nối thì huỷ request tới API', async () => {
-  const { client, requests } = fakeAnthropic([(init) => sseResponse(['Dạ '], init, true)]);
+test('a refused or truncated stream is not reported as a finished draft', async () => {
+  for (const [stopReason, result, kept] of [['refusal', 'refused', ''], ['max_tokens', 'truncated', 'Dạ chị ']] as const) {
+    const { client } = fakeAnthropic([(init) => sseResponse(['Dạ chị '], init, { stopReason })]);
+    const { server, url } = await serve(client, memoryUsage());
+    try {
+      let text = '';
+      assert.equal(await readDraftStream(url, {}, (d) => (text += d)), result);
+      const settled = settleDraft(text, result);
+      assert.equal(settled.text, kept);                  // refused: the partial text is dropped
+      assert.ok(settled.notice);
+    } finally {
+      server.close();
+    }
+  }
+});
+
+test('user disconnect aborts the API request', async () => {
+  const { client, requests } = fakeAnthropic([(init) => sseResponse(['Dạ '], init, { keepOpen: true })]);
   const usage = memoryUsage();
   const { server, url } = await serve(client, usage);
   try {
     const controller = new AbortController();
     const res = await fetch(url, { signal: controller.signal });
     const reader = res.body!.getReader();
-    await reader.read();                    // đã nhận đoạn đầu
-    controller.abort();                     // người dùng đóng trang
+    await reader.read();                    // first chunk received
+    controller.abort();                     // user closes the page
     await waitFor(() => requests[0]?.signal?.aborted === true);
     await waitFor(() => usage.rows.length === 1);
-    assert.equal(usage.rows[0]!.usage.input_tokens, 800);   // phần đã biết vẫn được ghi
+    assert.equal(usage.rows[0]!.inputTokens, 800);   // known usage is still recorded
   } finally {
     server.close();
   }

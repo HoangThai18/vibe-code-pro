@@ -16,7 +16,7 @@ test('public pages: text in the HTML, unique title and description, own canonica
     ['/', 'Phần mềm quản lý và đặt lịch cho spa'],
     ['/en', 'Spa management and online booking'],
     ['/pricing', 'Gói Cơ bản 299.000₫/tháng'],
-    ['/spa-hoa-mai', 'Massage body 90 phút'],
+    ['/spa-hoa-mai', 'Massage body 90 phút: 450.000\u00a0₫'],
   ] as const;
   const titles = new Set<string>();
   const descriptions = new Set<string>();

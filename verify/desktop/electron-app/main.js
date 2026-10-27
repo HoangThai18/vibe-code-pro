@@ -1,14 +1,16 @@
 // main.js
-const { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 const APP_ORIGIN = 'app://bundle';
 const RENDERER_DIR = path.join(__dirname, 'renderer');
-const EXTERNAL_HOSTS = new Set(['example.vn', 'help.example.vn']);   // chỉ những trang này được mở ra trình duyệt
+const EXTERNAL_HOSTS = new Set(['example.vn', 'help.example.vn']);   // only these sites may open in the browser
+// Web permissions the UI may get, for its own pages only. Electron grants every request by default (camera, microphone, screen...)
+const ALLOWED_PERMISSIONS = new Set(['clipboard-sanitized-write']);
 
-// Phục vụ giao diện qua scheme riêng thay vì file:// (trang file:// đọc được mọi file trên máy)
+// Serve the UI over a custom scheme instead of file:// (a file:// page can read every file on the machine)
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -17,7 +19,7 @@ function serveRenderer() {
   protocol.handle('app', (request) => {
     const { host, pathname } = new URL(request.url);
     const file = path.resolve(RENDERER_DIR, '.' + decodeURIComponent(pathname));
-    // Chỉ trả file nằm trong thư mục giao diện (chặn app://bundle/%2e%2e/main.js)
+    // Serve only files inside the UI folder (blocks app://bundle/..%2fmain.js)
     if (host !== 'bundle' || !file.startsWith(RENDERER_DIR + path.sep)) {
       return new Response('Not found', { status: 404 });
     }
@@ -25,17 +27,36 @@ function serveRenderer() {
   });
 }
 
+// Node's URL gives custom schemes the origin 'null': compare scheme and host instead
+function isAppUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'app:' && u.host === 'bundle';
+  } catch {
+    return false;
+  }
+}
+
+function lockDownPermissions(ses) {
+  ses.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+    callback(ALLOWED_PERMISSIONS.has(permission) && isAppUrl(details.requestingUrl));
+  });
+  // Checks come before requests (navigator.permissions.query, Notification.permission...)
+  ses.setPermissionCheckHandler((_webContents, permission, requestingOrigin) =>
+    ALLOWED_PERMISSIONS.has(permission) && isAppUrl(requestingOrigin));
+}
+
 function openExternalSafe(url) {
   try {
     const u = new URL(url);
     if (u.protocol === 'https:' && EXTERNAL_HOSTS.has(u.hostname)) void shell.openExternal(u.toString());
   } catch {
-    // URL không hợp lệ: bỏ qua
+    // invalid URL: ignore
   }
 }
 
 function assertTrustedSender(event) {
-  // So origin của frame gửi, không so URL (about:blank, blob: không cho biết ai điều khiển frame)
+  // Compare the sending frame's origin, not its URL (about:blank, blob: do not tell who controls the frame)
   if (event.senderFrame?.origin !== APP_ORIGIN) throw new Error('IPC từ nguồn không tin cậy');
 }
 
@@ -50,11 +71,11 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
-  // Không cho trang tự điều hướng sang nơi khác
+  // The page may not navigate elsewhere
   win.webContents.on('will-navigate', (event, url) => {
-    if (new URL(url).origin !== APP_ORIGIN) event.preventDefault();
+    if (!isAppUrl(url)) event.preventDefault();
   });
-  // Không mở cửa sổ mới; link ngoài hợp lệ thì mở bằng trình duyệt mặc định
+  // No new windows; allowed external links open in the default browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     openExternalSafe(url);
     return { action: 'deny' };
@@ -63,7 +84,7 @@ function createWindow() {
   return win;
 }
 
-// Mỗi IPC làm đúng một việc hẹp. Renderer không gửi đường dẫn file: main tự mở hộp thoại chọn file.
+// Each IPC does one narrow thing. The renderer sends no file path: main opens the file dialog itself.
 ipcMain.handle('customers:import-csv', async (event) => {
   assertTrustedSender(event);
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -84,10 +105,11 @@ ipcMain.handle('app:open-help', (event, topic) => {
 });
 
 app.on('web-contents-created', (_event, contents) => {
-  contents.on('will-attach-webview', (event) => event.preventDefault());   // không dùng <webview>
+  contents.on('will-attach-webview', (event) => event.preventDefault());   // no <webview>
 });
 
 app.whenReady().then(() => {
+  lockDownPermissions(session.defaultSession);   // and every session you create (session.fromPartition)
   serveRenderer();
   createWindow();
   app.on('activate', () => {

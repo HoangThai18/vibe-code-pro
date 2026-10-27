@@ -1,6 +1,6 @@
 ---
 name: vibe-ai
-description: "Add LLM features to a production app (summarize, classify, extract, draft, chatbot, tool-using assistant, document search/RAG): server-side calls to the Claude API or any provider, streaming to the UI, structured output, prompt-injection defense, tenant isolation, per-tenant cost limits, prompt caching, errors and timeouts, tests and quality evals. Use when adding AI, an LLM, chatbot, RAG, embeddings, prompts or an in-app agent, or for AI cost, accuracy or safety concerns. Also use for Vietnamese requests like 'thêm AI', 'tích hợp Claude', 'tóm tắt bằng AI', 'gợi ý', 'trích xuất', 'agent trong app'."
+description: "Add LLM features to a production app (summarize, classify, extract from text, photos or PDFs, draft, chatbot, tool-using assistant, RAG): server-side calls to the Claude API or any provider, streaming to the UI, structured output, prompt-injection defense, tenant isolation, per-tenant cost limits, prompt caching, errors and timeouts, tests and quality evals. Use when adding AI, an LLM, embeddings, prompts or an in-app agent, or for AI cost, accuracy or safety concerns. Also use for Vietnamese requests like 'thêm AI', 'tích hợp Claude', 'tóm tắt bằng AI', 'gợi ý', 'trích xuất', 'đọc ảnh, PDF', 'agent trong app'."
 ---
 
 # AI: LLM features in an app
@@ -11,6 +11,7 @@ Read only what the current task needs:
 |---|---|
 | Choose the feature shape (single call, workflow, agent, document search), model, UX, data sent to the provider | `references/design.md` |
 | Server-side API calls, structured output, streaming to the browser, errors, timeouts, refusals | `references/integration.md` |
+| Chat with stored history, long conversations, photo and PDF input | `references/chat-and-files.md` |
 | Prompt injection, cross-tenant data, tool permissions, output handling, redacting personal data | `references/safety.md` |
 | Cost, per-tenant budgets, usage logging, prompt caching, rate limits | `references/cost.md` |
 | Free automated tests, quality evals, production monitoring | `references/testing.md` |
@@ -32,7 +33,7 @@ Examples are TypeScript with `@anthropic-ai/sdk`. Model IDs, parameters and pric
 
 ## Before calling it done
 
-- Automated tests pass without calling the real API (fake fetch in `references/testing.md`) and cover: the request holds no other tenant's data, no call when the budget is exhausted, transient errors give a friendly message.
+- Automated tests pass without calling the real API (fake fetch in `references/testing.md`) and cover: the request holds no other tenant's data (endpoint test, `references/testing.md` section 2), no call when the budget is exhausted, transient errors give a friendly message.
 - The eval against the real API meets the agreed threshold, including a few cases with injected instructions; put score and cost in the PR description.
 - Usage is recorded per tenant; alerts fire on abnormal cost or error-rate increases (the `vibe-ship` skill, `references/observability.md`).
 - Users can tell content is AI-generated (label, edit before sending), and a tenant can turn the feature off.

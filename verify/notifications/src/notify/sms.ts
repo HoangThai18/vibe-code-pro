@@ -16,15 +16,21 @@ export function smsParts(text: string): { encoding: 'GSM-7' | 'UCS-2'; parts: nu
   return { encoding: 'UCS-2', parts: units <= 70 ? 1 : Math.ceil(units / 67) };
 }
 
-export type AdCheck = { ok: true } | { ok: false; reason: 'no_consent' | 'quiet_hours' | 'daily_limit'; retryAt?: Date };
+export type AdReservation =
+  | { ok: true; messageId: string }
+  | { ok: false; reason: 'no_consent' | 'quiet_hours' | 'daily_limit' | 'already_sent'; retryAt?: Date };
 
-// Decree 91/2020/NĐ-CP: advertising messages only with prior consent, 07:00–22:00, and at most
-// 3 per recipient per 24 hours. Checked at send time inside withTenant, not when the campaign is queued.
-export async function checkAdvertisingSend(
+// Decree 91/2020/NĐ-CP: advertising messages only with prior consent, 07:00–22:00, and at most 3 per
+// recipient per 24 hours. Checked at send time, not when the campaign is queued. Run it in its own short
+// withTenant transaction, commit, then send: the reserved row counts from the start, and the lock makes two
+// campaigns or workers checking the same customer and channel take turns, so both cannot see 2 and send.
+export async function reserveAdvertisingSend(
   db: PoolClient,
-  m: { customerId: string; channel: 'sms' | 'zalo' | 'email'; purposeId: string; now?: Date },
-): Promise<AdCheck> {
+  m: { customerId: string; channel: 'sms' | 'zalo' | 'email'; purposeId: string; campaignId: string; now?: Date },
+): Promise<AdReservation> {
   const now = m.now ?? new Date();
+  await db.query(`SELECT pg_advisory_xact_lock(hashtextextended(app_current_tenant()::text || ':' || $1 || ':' || $2, 0))`,
+    [m.customerId, m.channel]); // released at commit
   const consent = await db.query(
     'SELECT 1 FROM current_consents WHERE subject_id = $1 AND purpose_id = $2 AND granted',
     [m.customerId, m.purposeId],
@@ -40,5 +46,16 @@ export async function checkAdvertisingSend(
     [m.customerId, m.channel, now],
   );
   if (rows[0]!.n >= 3) return { ok: false, reason: 'daily_limit' };
-  return { ok: true };
+  const { rows: [row] } = await db.query<{ id: string }>(
+    `INSERT INTO marketing_messages (customer_id, channel, campaign_id, sent_at) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (tenant_id, campaign_id, customer_id, channel) DO NOTHING RETURNING id`,
+    [m.customerId, m.channel, m.campaignId, now],
+  );
+  return row ? { ok: true, messageId: row.id } : { ok: false, reason: 'already_sent' };
 }
+
+// After the provider answered: sent, or failed for good (the slot is free again). Outcome unknown
+// (timeout): keep the reservation; it counts as sent, and the campaign is not resent to this customer.
+export const finishAdvertisingSend = (db: PoolClient, messageId: string, sent: boolean) =>
+  db.query(sent ? "UPDATE marketing_messages SET status = 'sent' WHERE id = $1" : 'DELETE FROM marketing_messages WHERE id = $1',
+    [messageId]);

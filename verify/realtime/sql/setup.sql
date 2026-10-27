@@ -1,17 +1,14 @@
 -- Test scaffolding: spa schema with FORCE RLS, as in vibe-backend postgres-rls.md (not part of the reference)
--- Run as superuser on database realtime_check.
+-- Run as superuser on the test database (npm run db:setup, from verify/tools/run.sh).
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rt_owner') THEN
-    CREATE ROLE rt_owner NOLOGIN NOSUPERUSER NOBYPASSRLS;
-  END IF;
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'rt_app') THEN
-    CREATE ROLE rt_app LOGIN PASSWORD 'rt' NOSUPERUSER NOBYPASSRLS;
-  END IF;
-END $$;
+DO $$ BEGIN
+  CREATE ROLE rt_owner NOLOGIN NOSUPERUSER NOBYPASSRLS;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE ROLE rt_app LOGIN PASSWORD 'rt' NOSUPERUSER NOBYPASSRLS;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 GRANT ALL ON SCHEMA public TO rt_owner;
 GRANT USAGE ON SCHEMA public TO rt_app;
@@ -51,20 +48,28 @@ CREATE TABLE sessions (
 CREATE INDEX sessions_user ON sessions (user_id);
 
 CREATE TABLE customers (
-  id        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
-  full_name text NOT NULL,
-  phone     text NOT NULL,
-  UNIQUE (tenant_id, id)
+  tenant_id  uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  id         uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name  text NOT NULL,
+  phone      text NOT NULL,
+  email      text,
+  birthday   date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, id),
+  UNIQUE (tenant_id, phone)
 );
 CREATE TABLE appointments (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  id            uuid NOT NULL DEFAULT gen_random_uuid(),
   customer_id   uuid NOT NULL,
-  staff_user_id uuid NOT NULL REFERENCES users (id),
+  staff_user_id uuid NOT NULL REFERENCES users (id),   -- the app: memberships (tenant_id, user_id); tests delete members
   starts_at     timestamptz NOT NULL,
-  status        text NOT NULL DEFAULT 'booked' CHECK (status IN ('booked', 'cancelled', 'done')),
-  version       integer NOT NULL DEFAULT 1,
+  ends_at       timestamptz NOT NULL CHECK (ends_at > starts_at),
+  status        text NOT NULL DEFAULT 'booked'
+                CHECK (status IN ('booked', 'confirmed', 'done', 'cancelled', 'no_show')),
+  version       integer NOT NULL DEFAULT 1,   -- for realtime events
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, id),
   FOREIGN KEY (tenant_id, customer_id) REFERENCES customers (tenant_id, id)
 );
 CREATE INDEX appointments_tenant_starts ON appointments (tenant_id, starts_at);
@@ -72,16 +77,18 @@ CREATE INDEX appointments_customer ON appointments (tenant_id, customer_id);
 CREATE INDEX appointments_staff ON appointments (staff_user_id);
 -- In-app notifications for one staff member
 CREATE TABLE user_notifications (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id      uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  id             uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id        uuid NOT NULL REFERENCES users (id),
   kind           text NOT NULL,
-  appointment_id uuid NOT NULL REFERENCES appointments (id) ON DELETE CASCADE,
+  appointment_id uuid NOT NULL,
   created_at     timestamptz NOT NULL DEFAULT now(),
-  read_at        timestamptz
+  read_at        timestamptz,
+  PRIMARY KEY (tenant_id, id),
+  FOREIGN KEY (tenant_id, appointment_id) REFERENCES appointments (tenant_id, id) ON DELETE CASCADE
 );
 CREATE INDEX user_notifications_inbox ON user_notifications (tenant_id, user_id, created_at DESC);
-CREATE INDEX user_notifications_appointment ON user_notifications (appointment_id);
+CREATE INDEX user_notifications_appointment ON user_notifications (tenant_id, appointment_id);
 
 DO $$
 DECLARE t text;

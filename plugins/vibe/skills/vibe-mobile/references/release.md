@@ -81,6 +81,7 @@ Put the API URL and other per-variant config in each environment's `EXPO_PUBLIC_
 - Android: enable Play App Signing (Google holds the app signing key, you hold the upload key). A lost upload key can be reset; a lost self-managed app signing key means the app can never be updated.
 - Push: configure the APNs key (iOS) and FCM (Android) in EAS credentials.
 - Record in `AGENTS.md`/runbook who has access to the Apple Developer, Google Play Console and EAS accounts; accounts belong to the company, not an individual.
+- **Enroll as an organization**: both stores ask organizations for a D-U-N-S number; request it early. Google Play personal accounts created after 13 November 2023 must run a closed test with at least 12 testers opted in for the last 14 days in a row, then apply for production access; organization accounts skip this (check the current numbers in Play Console).
 
 ## 3. Store rules to design for from the start
 
@@ -90,10 +91,16 @@ These commonly get a first release rejected, and fixing them means changing flow
 |---|---|---|
 | Account deletion (Apple 5.1.1(v); Google Play also requires it, plus a web link for deletion) | If the app creates accounts, it must let users delete the account inside the app | Needs an account deletion API, data handling per retention policy, tenants with other members |
 | Login (Apple 4.8) | Using Google, Facebook... login for the primary account requires an extra login option meeting privacy criteria (Sign in with Apple is the usual choice) | Add the login provider from the start |
-| In-app purchase (Apple 3.1.1, Google Play Billing) | Feature unlocks and digital service plans sold in the app must use the store's payment system | Decide early: sell in the app, or the app is for use only and sales happen on web. Rules have exceptions and vary by region: read the current version, ask whoever handles legal |
+| In-app purchase (Apple 3.1.1, 3.1.3; Google Play Payments policy) | Feature unlocks and digital plans sold in the app must use the store's billing; outside the exceptions below, the app may not point to another way to pay | Decide early: sell with in-app purchase, or sell on the web only and keep the app free of sales (below) |
 | Downloaded code (Apple 2.5.2; Google Play bans downloading native code outside the store) | Never download code that adds or changes main features | OTA only for bug fixes and small tweaks (section 5) |
 | Privacy | Declare collected data (App Privacy on the App Store, Data safety on Google Play); iOS privacy manifest for APIs that need a reason | List third-party SDKs and the data they collect |
 | Review account | Reviewers must be able to log in | Prepare a demo account with sample data that needs no real OTP |
+
+**Sales on the web only** (usual for B2B SaaS such as the spa CRM):
+
+- The app shows no prices, upgrade or buy buttons, and no links or text pointing to the web checkout: Apple forbids buttons, external links and other calls to action toward purchase methods other than in-app purchase (3.1.1, 3.1.3). For a feature outside the plan, show a neutral message only (e.g. "not included in this workspace's plan"). Emails and the web app may promote plans (communication outside the app is allowed).
+- Apps sold directly to organizations for their employees count as enterprise services (Apple 3.1.3(c)): staff use plans the business bought elsewhere. Consumer, single-user or family sales must use in-app purchase; a consumer app may unlock web purchases only if they are also sold as in-app purchases (3.1.3(b)).
+- Exceptions depend on the storefront and change often: Apple's guidelines currently allow purchase buttons and links on the United States storefront, and StoreKit External Purchase Link entitlements allow a link in some other storefronts. Google Play has its own regional programs. Check the current text and ask whoever handles legal before adding any purchase link.
 
 Google Play also requires a recent Android target API level for new apps and updates; check the current deadline in Play Console before each major release.
 
@@ -148,5 +155,6 @@ Add to the `vibe-ship` skill's `RELEASE.md` when a release includes the mobile a
 - [ ] Native changes? If yes, new build; if no, consider OTA
 - [ ] Preview build run on a real iPhone and Android phone: main flows, push, deep links
 - [ ] Release notes, store screenshots (if UI changed), reviewer demo account still works
+- [ ] Sales on the web only: no prices, upgrade buttons or purchase links in the app (section 3)
 - [ ] Phased release / staged rollout on; crash threshold for halting written down
 - [ ] Source maps, dSYM, mapping uploaded to crash reporting

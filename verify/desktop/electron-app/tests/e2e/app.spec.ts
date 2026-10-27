@@ -7,18 +7,18 @@ import path from 'node:path';
 let app: ElectronApplication;
 
 test.beforeEach(async () => {
-  app = await electron.launch({ args: ['.'] });   // chạy app từ thư mục gốc (package.json "main")
+  app = await electron.launch({ args: ['.'] });   // run the app from the repo root (package.json "main")
 });
 
 test.afterEach(async () => {
   await app.close();
 });
 
-test('nhập CSV qua hộp thoại chọn file của main process', async () => {
+test('imports CSV through the main process file dialog', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'e2e-'));
   const csv = path.join(dir, 'khach.csv');
   await fs.writeFile(csv, 'name\nNguyễn Thị Lan\nTrần Văn Minh\n');
-  // Hộp thoại của hệ điều hành không bấm được bằng Playwright: thay kết quả của nó trong main process
+  // Playwright cannot click OS dialogs: replace the dialog's result in the main process
   await app.evaluate(({ dialog }, file) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] });
   }, csv);

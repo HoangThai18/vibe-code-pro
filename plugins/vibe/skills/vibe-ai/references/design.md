@@ -28,7 +28,7 @@ Start with the simplest shape that does the job. Agents cost more, run slower, a
 
 ## 3. Choose model and effort
 
-- Default to the provider's strongest current model (at time of writing: `claude-opus-5-5`), set in config (`AI_MODEL`), not scattered through the code.
+- Default to the provider's recommended default model (at time of writing: `claude-opus-5-5`), set in config (`AI_MODEL`), not scattered through the code.
 - `output_config.effort` (`low` to `max`) tunes thoroughness and token use: summaries, classification and short drafts usually do fine at `low`; multi-step analysis needs more. Defaults differ by model, so set it explicitly.
 - Switching to a cheaper model (e.g. `claude-haiku-5-5`) for high-volume work is a product decision based on measurement: run the same eval set on both models and compare score and cost per completed task.
 - Providers retire old models on a schedule: record the model in use and a re-check date in an ADR.
@@ -36,7 +36,7 @@ Start with the simplest shape that does the job. Agents cost more, run slower, a
 ## 4. Feeding data: full context or retrieve first (RAG)
 
 - **Small data** (one customer's notes, one email, one contract): put it straight into the prompt. Current models accept a great many tokens; this is simpler and more accurate than RAG.
-- **Large data** (full help docs, thousands of tickets): retrieve the relevant parts first. Start with Postgres full-text search (`tsvector`); add vector search (pgvector + an embedding provider) only when you measure full-text search missing results.
+- **Large data** (full help docs, thousands of tickets): retrieve the relevant parts first. Start with Postgres full-text search set up for Vietnamese: the `vibe-backend` skill (`references/search.md` section 5: `'simple'` configuration on `f_unaccent` text, since Postgres has no Vietnamese dictionary). Add vector search (pgvector + an embedding provider) only when you measure full-text search missing results.
 - Whatever the method, **the search query must filter by tenant** like any other query, and run under RLS if the system uses RLS (the `vibe-backend` skill, `references/multi-tenant.md`). A shared vector index without a tenant filter is the fastest way for the AI to tell customer A about customer B's data.
 - Include sources (document ids) so the UI can show "according to document X" and users can check.
 

@@ -2,7 +2,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ServerResponse } from 'node:http';
 import { AI_MODEL } from './client';
-import { assertWithinBudget, toAiError, type AiCallContext, type AiUsageStore } from './usage';
+import { toAiError } from './errors';
+import { assertWithinBudget, type AiCallContext, type AiUsageStore } from './usage';
 
 const SYSTEM = [
   'Bạn soạn nháp tin nhắn trả lời khách của một spa, giọng lịch sự, ngắn gọn, tiếng Việt.',
@@ -12,7 +13,7 @@ const SYSTEM = [
 
 const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 
-// Gọi sau khi đã xác thực, kiểm quyền và lấy tenant như mọi endpoint khác
+// Call after authentication, authorization and tenant resolution, like any other endpoint
 export async function streamDraftReply(
   deps: { client: Anthropic; usage: AiUsageStore },
   ctx: Omit<AiCallContext, 'feature'>,
@@ -20,7 +21,7 @@ export async function streamDraftReply(
   res: ServerResponse,
 ): Promise<void> {
   const call = { ...ctx, feature: 'draft_reply' };
-  await assertWithinBudget(deps.usage, ctx.tenantId);   // ném lỗi trước khi mở stream: endpoint trả 402/429 bình thường
+  await assertWithinBudget(deps.usage, ctx.tenantId);   // throws before the stream opens: the endpoint returns a normal 402/429
 
   const stream = deps.client.messages.stream({
     model: AI_MODEL,
@@ -29,7 +30,7 @@ export async function streamDraftReply(
     output_config: { effort: 'low' },
     messages: [{ role: 'user', content: JSON.stringify({ customer_message: customerMessage }) }],
   });
-  // Người dùng đóng trang hoặc bấm dừng: huỷ request tới API, không trả tiền cho phần còn lại
+  // User closes the page or clicks stop: abort the API request, don't pay for the rest
   res.on('close', () => {
     if (!res.writableFinished) stream.abort();
   });
@@ -40,14 +41,15 @@ export async function streamDraftReply(
   try {
     const message = await stream.finalMessage();
     await deps.usage.record(call, message.model, message.usage);
+    // The browser treats anything but end_turn (refusal, max_tokens) as an unfinished draft
     res.end(sse('done', { stopReason: message.stop_reason }));
   } catch (err) {
-    // Huỷ giữa chừng: vẫn ghi phần token đã biết (input, và output tới lúc huỷ)
+    // Aborted midway: still record the known tokens (input, and output up to the abort)
     const partial = stream.currentMessage;
     if (partial) await deps.usage.record(call, partial.model, partial.usage);
     if (err instanceof Anthropic.APIUserAbortError) return;
     const mapped = toAiError(err);
     res.end(sse('error', { message: mapped instanceof Error ? mapped.message : 'Lỗi' }));
-    if (mapped === err) throw err;   // lỗi của code/cấu hình: để error tracking bắt
+    if (mapped === err) throw err;   // code/config bug: let error tracking catch it
   }
 }

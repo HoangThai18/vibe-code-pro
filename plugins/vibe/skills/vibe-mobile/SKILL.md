@@ -9,7 +9,7 @@ Read only what the current task needs (paths relative to this skill folder):
 
 | Task | Read |
 |---|---|
-| Choose approach and stack for a new app, monorepo with web | `references/choose-stack.md` |
+| Choose approach and stack for a new app (incl. Zalo Mini App), monorepo with web | `references/choose-stack.md` |
 | App structure, login, token storage, API calls, offline data and sync, workspace switch, logout | `references/app-data.md` |
 | Push notifications, deep links, permissions, background, a11y, UI from design | `references/platform-features.md` |
 | Tests: unit, component, E2E on emulator and device | `references/testing.md` |
@@ -25,12 +25,12 @@ Expo, React Native and Flutter change APIs between versions. Check the installed
 ## Rules that always apply
 
 1. **Installed apps cannot be rolled back.** Old versions keep running on users' phones for months. The API must stay compatible with every supported app version; have a minimum-version mechanism to force updates when truly needed (`references/release.md` section 6).
-2. **Tokens live only in Keychain/Keystore** (`expo-secure-store`, `flutter_secure_storage`), never in AsyncStorage or plain SharedPreferences. iOS Keychain survives uninstall: clear leftover tokens on the first launch after install (`references/app-data.md`). Never embed server secrets in the app: anyone can unpack the app file.
-3. **Flaky networks are normal.** Every screen has loading, error and offline states. Writes send an idempotency key so a retry does not create duplicates.
+2. **Tokens live only in Keychain/Keystore** (`expo-secure-store`, `flutter_secure_storage`), never in AsyncStorage or plain SharedPreferences. iOS Keychain survives uninstall: clear leftover tokens on the first launch after install, but not on an update (`references/app-data.md`). Never embed server secrets in the app: anyone can unpack the app file.
+3. **Flaky networks are normal.** Every screen has loading, error and offline states. Writes send an idempotency key so a retry does not create duplicates; queued writes are dropped only when the server rejects them for good, never on 401 or 426.
 4. **Tenant and session work as on web**: tenant in the request (path), cache keyed by tenant; switching workspace drops the old workspace's cache; logout deletes token, cache and offline data and unregisters the device from push.
 5. **Ask for permissions at the right moment** (right before the feature is used) and explain why. If the user declines, the app still works with only that feature disabled.
 6. **OTA replaces only JS and assets**, never native code, and must not change the app's main purpose. Native changes need a new store build.
-7. **Store rules shape the flows**: in-app account deletion, a privacy-friendly login option when Google/Facebook login exists, digital content sold via in-app purchase, privacy declarations. Check them during planning (`references/release.md` section 3); fixing after a rejection costs days.
+7. **Store rules shape the flows**: in-app account deletion, a privacy-friendly login option when Google/Facebook login exists, digital content sold via in-app purchase (sales on the web only: no prices or purchase links in the app), privacy declarations. Check them during planning (`references/release.md` section 3); fixing after a rejection costs days.
 8. **Test on real devices before release**: at least one iPhone and one mid-range Android phone, not just simulators.
 
 ## Before calling it done

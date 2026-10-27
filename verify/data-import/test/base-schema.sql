@@ -9,26 +9,27 @@ DO $$ BEGIN
   END IF;
 END $$;
 GRANT USAGE ON SCHEMA public TO app_user;
-GRANT CREATE ON DATABASE import_check TO app_user;   -- pg-boss creates its schema on first start
+DO $$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO app_user', current_database()); END $$;   -- pg-boss creates its schema
 
 CREATE OR REPLACE FUNCTION app_current_tenant() RETURNS uuid
 LANGUAGE sql STABLE AS $$
   SELECT NULLIF(current_setting('app.tenant_id', true), '')::uuid
 $$;
 
-CREATE TABLE tenants (id uuid PRIMARY KEY, name text NOT NULL);
+CREATE TABLE tenants (id uuid PRIMARY KEY, name text NOT NULL, status text NOT NULL DEFAULT 'active');
 INSERT INTO tenants VALUES ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Spa A'), ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Spa B');
 GRANT SELECT ON tenants TO app_user;
 
 CREATE TABLE customers (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id  uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  id         uuid NOT NULL DEFAULT gen_random_uuid(),
   full_name  text NOT NULL,
   phone      text NOT NULL,
-  birthday   date,
   email      text,
+  birthday   date,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, id)
+  PRIMARY KEY (tenant_id, id),
+  UNIQUE (tenant_id, email)                        -- not in the pack's example schema: an app that has it (rules 1)
 );
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers FORCE ROW LEVEL SECURITY;

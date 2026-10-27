@@ -1,11 +1,10 @@
-// test/vnpay.test.ts: DATABASE_URL=postgres://<superuser>@localhost/payments_check node --import tsx --test
-import { execFileSync } from 'node:child_process';
+// test/vnpay.test.ts: DATABASE_URL=postgres://<superuser>@localhost/verify_payments node --import tsx --test
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
-import pg from 'pg';
 import qs from 'qs';
-import { buildVnpayUrl, vnpDate, vnpHash, vnpOrderInfo, vnpRefundRequest, vnpSignData, vnpVerify, type VnpMerchant } from '../src/payments/vnpay';
-import { handleVnpayIpn, type Paid } from '../src/payments/vnpay-ipn';
+import { buildVnpayUrl, vnpDate, vnpHash, vnpOrderInfo, vnpQueryRequest, vnpRefundRequest, vnpSignData, vnpVerify, type VnpMerchant } from '../src/payments/vnpay';
+import { handleVnpayIpn } from '../src/payments/vnpay-ipn';
+import { admin, app, count, getMerchant, hooks, insertPayment, KEY, merchant, resetDb, status, tenantA, tenantB, truncate } from './helpers';
 
 // sortObject copied from VNPay's official Node.js demo (routes/order.js)
 function demoSortObject(obj: Record<string, string>) {
@@ -34,69 +33,58 @@ test('order info has no diacritics or special characters', () => {
   assert.equal(vnpOrderInfo('Đặt cọc lịch hẹn #12 (Thảo), 200.000đ'), 'Dat coc lich hen 12 Thao 200 000d');
 });
 
-test('refund hash covers the fields joined with | in the demo order', () => {
+test('refund and querydr hashes cover the fields joined with | in the demo order', () => {
   const m: VnpMerchant = { tmnCode: 'DEMO1234', hashSecret: 'secret', payUrl: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html' };
+  const now = new Date('2026-10-27T03:00:00Z');
   const body = vnpRefundRequest(m, {
-    requestId: 'r-1', type: '02', ref: '1042', amount: 200_000, transactionNo: '14567890',
-    transactionDate: '20261026101500', createdBy: 'staff-7', ipAddr: '10.0.0.1', now: new Date('2026-10-27T03:00:00Z'),
+    requestId: 'r1', type: '02', ref: 'K7M2Q9XA4', amount: 200_000, transactionNo: '14567890',
+    transactionDate: '20261026101500', createdBy: 'staff-7', ipAddr: '10.0.0.1', now,
   });
-  const demo = [body.vnp_RequestId, '2.1.0', 'refund', 'DEMO1234', '02', '1042', '20000000', '14567890',
-    '20261026101500', 'staff-7', '20261027100000', '10.0.0.1', 'Hoan tien 1042'].join('|');
+  const demo = ['r1', '2.1.0', 'refund', 'DEMO1234', '02', 'K7M2Q9XA4', '20000000', '14567890',
+    '20261026101500', 'staff-7', '20261027100000', '10.0.0.1', 'Hoan tien K7M2Q9XA4'].join('|');
   assert.equal(body.vnp_SecureHash, vnpHash(demo, 'secret'));
+  const query = vnpQueryRequest(m, { requestId: 'q1', ref: 'K7M2Q9XA4', transactionDate: '20261026101500', ipAddr: '10.0.0.1', now });
+  const demoQuery = ['q1', '2.1.0', 'querydr', 'DEMO1234', 'K7M2Q9XA4', '20261026101500', '20261027100000', '10.0.0.1',
+    'Truy van K7M2Q9XA4'].join('|');
+  assert.equal(query.vnp_SecureHash, vnpHash(demoQuery, 'secret'));
 });
 
 // ---- IPN against a real database, as the app role ----
-const url = process.env.DATABASE_URL!;
-const admin = new pg.Pool({ connectionString: url });
-const app = new pg.Pool({ connectionString: url, options: '-c role=app_user' });
-const tenantA = '00000000-0000-4000-8000-00000000000a';
-const tenantB = '00000000-0000-4000-8000-00000000000b';
-const merchants: Record<string, VnpMerchant> = {
-  [tenantA]: { tmnCode: 'SPAA0001', hashSecret: 'secret-a', payUrl: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html' },
-  [tenantB]: { tmnCode: 'SPAB0001', hashSecret: 'secret-b', payUrl: 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html' },
-};
-const getMerchant = async (t: string) => merchants[t] ?? null;
-const confirm = async (db: pg.PoolClient, p: Paid) => {
-  await db.query('INSERT INTO confirmations (tenant_id, payment_id) VALUES ($1, $2)', [p.tenantId, p.paymentId]);
-};
-let refA = '';
-let refB = '';
+let payA = { id: '', ref: '' };
+let payB = { id: '', ref: '' };
 
-before(async () => {
-  await admin.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
-  execFileSync('psql', [url, '-q', '-v', 'ON_ERROR_STOP=1', '-f', 'test/schema.sql', '-f', 'payments.sql']);
-  await admin.query('GRANT USAGE ON SCHEMA public TO app_user; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user');
-  await admin.query("INSERT INTO tenants (id, name) VALUES ($1, 'Spa A'), ($2, 'Spa B')", [tenantA, tenantB]);
-});
+before(resetDb);
 beforeEach(async () => {
-  await admin.query('TRUNCATE confirmations, payment_events, payments, appointments');
-  const ins = async (t: string) => (await admin.query(
-    `WITH a AS (INSERT INTO appointments (tenant_id) VALUES ($1) RETURNING id)
-     INSERT INTO payments (tenant_id, appointment_id, provider, amount, expires_at)
-     SELECT $1, id, 'vnpay', 200000, now() + interval '15 minutes' FROM a RETURNING ref`, [t])).rows[0].ref as string;
-  refA = await ins(tenantA);
-  refB = await ins(tenantB);
+  await truncate();
+  payA = await insertPayment(tenantA, 'vnpay', 200000);
+  payB = await insertPayment(tenantB, 'vnpay', 200000);
 });
 after(async () => {
   await Promise.all([admin.end(), app.end()]);
 });
 
 // What VNPay sends to the IPN URL, signed with the merchant's secret
-function ipn(m: VnpMerchant, over: Record<string, string>) {
+function ipn(t: string, over: Record<string, string>) {
+  const m = merchant(t);
   const q: Record<string, string> = {
     vnp_TmnCode: m.tmnCode, vnp_Amount: '20000000', vnp_BankCode: 'NCB', vnp_OrderInfo: 'Dat coc',
     vnp_PayDate: '20261026101500', vnp_ResponseCode: '00', vnp_TransactionStatus: '00',
-    vnp_TransactionNo: '14567890', vnp_TxnRef: refA, ...over,
+    vnp_TransactionNo: '14567890', vnp_TxnRef: t === tenantA ? payA.ref : payB.ref, ...over,
   };
   return { ...q, vnp_SecureHashType: 'HmacSHA512', vnp_SecureHash: vnpHash(vnpSignData(q), m.hashSecret).toUpperCase() };
 }
-const status = async (ref: string) =>
-  (await admin.query('SELECT status FROM payments WHERE ref = $1', [ref])).rows[0].status as string;
-const confirmations = async () => Number((await admin.query('SELECT count(*) FROM confirmations')).rows[0].count);
+const send = (t: string, q: Record<string, string>, h = hooks) => handleVnpayIpn(app, t, q, getMerchant, h);
+
+test('merchant credentials are sealed at rest and open only with the key', async () => {
+  const { rows: [row] } = await admin.query("SELECT credentials_sealed FROM payment_accounts WHERE tenant_id = $1 AND provider = 'vnpay'", [tenantA]);
+  assert.ok(!row.credentials_sealed.includes('secret-a'));
+  assert.equal((await getMerchant(tenantA))?.hashSecret, 'secret-a');
+  assert.ok(KEY.length === 32);
+});
 
 test('a payment URL verifies, and any change breaks it', () => {
-  const link = new URL(buildVnpayUrl(merchants[tenantA]!, {
-    ref: '1042', amount: 200_000, orderInfo: 'Đặt cọc', returnUrl: 'https://spa.example.vn/r', ipAddr: '10.0.0.1',
+  const link = new URL(buildVnpayUrl(merchant(tenantA), {
+    ref: 'K7M2Q9XA4', amount: 200_000, orderInfo: 'Đặt cọc', returnUrl: 'https://spa.example.vn/r', ipAddr: '10.0.0.1',
   }));
   const params = Object.fromEntries(link.searchParams);
   assert.equal(params.vnp_Amount, '20000000');
@@ -106,47 +94,66 @@ test('a payment URL verifies, and any change breaks it', () => {
 
 test('two notifications for one payment at once: paid once, confirmed once', async () => {
   // Same IPN twice, plus one that is not a byte-for-byte copy (as a reconciliation job would race)
-  const q = ipn(merchants[tenantA]!, {});
-  const other = ipn(merchants[tenantA]!, { vnp_TransactionNo: '14567891' });
-  const replies = await Promise.all([q, q, other].map((x) => handleVnpayIpn(app, tenantA, x, getMerchant, confirm)));
+  const q = ipn(tenantA, {});
+  const other = ipn(tenantA, { vnp_TransactionNo: '14567891' });
+  // A slow status update keeps the first delivery's transaction open, so the others read while it is in flight
+  await admin.query(`CREATE FUNCTION slow() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(0.3); RETURN NEW; END $$;
+    CREATE TRIGGER slow BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION slow()`);
+  let replies;
+  try {
+    replies = await Promise.all([q, q, other].map((x) => send(tenantA, x)));
+  } finally {
+    await admin.query('DROP TRIGGER slow ON payments; DROP FUNCTION slow()');
+  }
   assert.deepEqual(replies.map((r) => r.RspCode).sort(), ['00', '02', '02']);
-  assert.equal(await status(refA), 'paid');
-  assert.equal(await confirmations(), 1);
+  assert.equal(await status(payA.id), 'paid');
+  assert.equal(await count('confirmations'), 1);
 });
 
 test('bad signature, wrong merchant or another spa secret: 97, nothing changes', async () => {
-  const good = ipn(merchants[tenantA]!, {});
-  for (const q of [{ ...good, vnp_Amount: '1000' }, ipn(merchants[tenantB]!, {}), { ...good, vnp_SecureHash: '' }]) {
-    assert.equal((await handleVnpayIpn(app, tenantA, q, getMerchant, confirm)).RspCode, '97');
+  const good = ipn(tenantA, {});
+  for (const q of [{ ...good, vnp_Amount: '1000' }, ipn(tenantB, {}), { ...good, vnp_SecureHash: '' }]) {
+    assert.equal((await send(tenantA, q)).RspCode, '97');
   }
-  assert.equal(await status(refA), 'pending');
+  assert.equal(await status(payA.id), 'pending');
 });
 
 test('amount different from the payment row: 04', async () => {
-  const reply = await handleVnpayIpn(app, tenantA, ipn(merchants[tenantA]!, { vnp_Amount: '100' }), getMerchant, confirm);
-  assert.equal(reply.RspCode, '04');
-  assert.equal(await status(refA), 'pending');
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_Amount: '100' }))).RspCode, '04');
+  assert.equal(await status(payA.id), 'pending');
 });
 
-test("another spa's payment is not found, even with a valid signature", async () => {
-  const reply = await handleVnpayIpn(app, tenantA, ipn(merchants[tenantA]!, { vnp_TxnRef: refB }), getMerchant, confirm);
-  assert.equal(reply.RspCode, '01');
-  assert.equal(await status(refB), 'pending');
+test("another spa's payment is not found, even with a valid signature; a malformed ref too", async () => {
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_TxnRef: payB.ref }))).RspCode, '01');
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_TxnRef: '1042' }))).RspCode, '01');
+  assert.equal(await status(payB.id), 'pending');
 });
 
 test('cancelled, or ResponseCode 00 without TransactionStatus 00: recorded as failed, acknowledged', async () => {
-  assert.equal((await handleVnpayIpn(app, tenantA, ipn(merchants[tenantA]!, { vnp_ResponseCode: '24', vnp_TransactionStatus: '02' }), getMerchant, confirm)).RspCode, '00');
-  assert.equal(await status(refA), 'failed');
-  const q = ipn(merchants[tenantB]!, { vnp_TxnRef: refB, vnp_TransactionStatus: '02' });  // ResponseCode stays '00'
-  assert.equal((await handleVnpayIpn(app, tenantB, q, getMerchant, confirm)).RspCode, '00');
-  assert.equal(await status(refB), 'failed');
-  assert.equal(await confirmations(), 0);
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_ResponseCode: '24', vnp_TransactionStatus: '02' }))).RspCode, '00');
+  assert.equal(await status(payA.id), 'failed');
+  const q = ipn(tenantB, { vnp_TransactionStatus: '02' });  // ResponseCode stays '00'
+  assert.equal((await send(tenantB, q)).RspCode, '00');
+  assert.equal(await status(payB.id), 'failed');
+  assert.equal(await count('confirmations'), 0);
+});
+
+test('07 (money taken, flagged as suspicious): needs_review and an alert; the later approval is recorded', async () => {
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_ResponseCode: '07', vnp_TransactionStatus: '07' }))).RspCode, '00');
+  assert.deepEqual([await status(payA.id), await count('reviews'), await count('confirmations')], ['needs_review', 1, 0]);
+  assert.equal((await send(tenantA, ipn(tenantA, { vnp_ResponseCode: '07', vnp_TransactionStatus: '07' }))).RspCode, '02');
+  assert.equal(await count('reviews'), 1);                       // a repeated 07 alerts once
+  assert.equal((await send(tenantA, ipn(tenantA, {}))).RspCode, '00'); // approved in the merchant portal
+  assert.deepEqual([await status(payA.id), await count('confirmations')], ['paid', 1]);
+  // 07 in TransactionStatus alone counts too
+  assert.equal((await send(tenantB, ipn(tenantB, { vnp_TransactionStatus: '07' }))).RspCode, '00');
+  assert.equal(await status(payB.id), 'needs_review');
 });
 
 test('if enqueueing the confirmation fails, the payment stays pending and VNPay retries', async () => {
-  const failing = async () => { throw new Error('queue down'); };
-  assert.equal((await handleVnpayIpn(app, tenantA, ipn(merchants[tenantA]!, {}), getMerchant, failing)).RspCode, '99');
-  assert.equal(await status(refA), 'pending');
-  assert.equal((await handleVnpayIpn(app, tenantA, ipn(merchants[tenantA]!, {}), getMerchant, confirm)).RspCode, '00');
-  assert.equal(await confirmations(), 1);
+  const failing = { ...hooks, onPaid: async () => { throw new Error('queue down'); } };
+  assert.equal((await send(tenantA, ipn(tenantA, {}), failing)).RspCode, '99');
+  assert.equal(await status(payA.id), 'pending');
+  assert.equal((await send(tenantA, ipn(tenantA, {}))).RspCode, '00');
+  assert.equal(await count('confirmations'), 1);
 });

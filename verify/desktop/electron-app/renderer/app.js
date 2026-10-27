@@ -1,7 +1,7 @@
-// renderer/app.js: chỉ dùng window.api, không có Node
+// renderer/app.js: uses only window.api, no Node
 document.getElementById('import').addEventListener('click', async () => {
   const text = await window.api.importCustomersCsv();
   if (text === null) return;
-  const rows = text.trim().split(/\r?\n/).slice(1).filter(Boolean);   // bỏ dòng tiêu đề
+  const rows = text.trim().split(/\r?\n/).slice(1).filter(Boolean);   // skip the header row
   document.getElementById('result').textContent = `Đã đọc ${rows.length} khách`;
 });

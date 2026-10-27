@@ -20,7 +20,8 @@ const rows: SpaRow[] = [
     address: { street: '12 Lê Văn Sỹ', district: 'Quận 3', city: 'TP. Hồ Chí Minh' },
     hours: [{ days: week, opens: '09:00', closes: '21:00' }, { days: ['Saturday', 'Sunday'], opens: '08:00', closes: '22:00' }],
     priceRange: '150.000₫ - 1.200.000₫',
-    services: [{ name: 'Gội đầu dưỡng sinh', priceVnd: 150_000 }, { name: 'Massage body 90 phút', priceVnd: 450_000 }],
+    services: [{ name: 'Gội đầu dưỡng sinh', price: { amount: 150_000, currency: 'VND' } },
+      { name: 'Massage body 90 phút', price: { amount: 450_000, currency: 'VND' } }],
     updatedAt: new Date('2026-10-20T03:00:00Z'),
   },
   {
@@ -29,7 +30,7 @@ const rows: SpaRow[] = [
     phone: '0901234567', ownerPhone: '0977000111', customerCount: 12,
     address: { street: '5 Hàng Bông', district: 'Hoàn Kiếm', city: 'Hà Nội' },
     hours: [{ days: week, opens: '10:00', closes: '20:00' }],
-    priceRange: '200.000₫ - 800.000₫', services: [{ name: 'Chăm sóc da mặt', priceVnd: 300_000 }],
+    priceRange: '200.000₫ - 800.000₫', services: [{ name: 'Chăm sóc da mặt', price: { amount: 300_000, currency: 'VND' } }],
     updatedAt: new Date('2026-09-01T00:00:00Z'),
   },
   {

@@ -65,15 +65,37 @@ export function buildVnpayUrl(
   return `${m.payUrl}?${data}&vnp_SecureHash=${vnpHash(data, m.hashSecret)}`;
 }
 
-// Refund request (POST JSON to the merchant_webapi transaction endpoint). The hash covers these
-// fields joined with '|', in this order (official demo). TransactionType: '02' full, '03' partial.
+// merchant_webapi requests (querydr, refund), POSTed as JSON to merchant_webapi/api/transaction.
+// The hash covers the values joined with '|' in the official demo's order: keep the keys in that order.
+const pipeSigned = (body: Record<string, string>, secret: string) =>
+  ({ ...body, vnp_SecureHash: vnpHash(Object.values(body).join('|'), secret) });
+
+// Payment status (querydr), for the expiry job and before resending a refund
+export function vnpQueryRequest(
+  m: VnpMerchant,
+  p: { requestId: string; ref: string; transactionDate: string; ipAddr: string; now?: Date },
+): Record<string, string> {
+  return pipeSigned({
+    vnp_RequestId: p.requestId, // unique per day: a fresh random id per query
+    vnp_Version: '2.1.0',
+    vnp_Command: 'querydr',
+    vnp_TmnCode: m.tmnCode,
+    vnp_TxnRef: p.ref,
+    vnp_TransactionDate: p.transactionDate, // vnp_CreateDate of the payment
+    vnp_CreateDate: vnpDate(p.now ?? new Date()),
+    vnp_IpAddr: p.ipAddr,
+    vnp_OrderInfo: vnpOrderInfo(`Truy van ${p.ref}`),
+  }, m.hashSecret);
+}
+
+// Refund. TransactionType: '02' full, '03' partial
 export function vnpRefundRequest(
   m: VnpMerchant,
   p: { requestId: string; type: '02' | '03'; ref: string; amount: number; transactionNo: string;
        transactionDate: string; createdBy: string; ipAddr: string; now?: Date },
 ): Record<string, string> {
-  const body: Record<string, string> = {
-    vnp_RequestId: p.requestId, // unique per day
+  return pipeSigned({
+    vnp_RequestId: p.requestId, // unique per day only: see sendVnpayRefund before retrying
     vnp_Version: '2.1.0',
     vnp_Command: 'refund',
     vnp_TmnCode: m.tmnCode,
@@ -81,15 +103,10 @@ export function vnpRefundRequest(
     vnp_TxnRef: p.ref,
     vnp_Amount: String(p.amount * 100),
     vnp_TransactionNo: p.transactionNo,
-    vnp_TransactionDate: p.transactionDate, // vnp_PayDate of the original payment
+    vnp_TransactionDate: p.transactionDate, // vnp_CreateDate of the payment
     vnp_CreateBy: p.createdBy,
     vnp_CreateDate: vnpDate(p.now ?? new Date()),
     vnp_IpAddr: p.ipAddr,
     vnp_OrderInfo: vnpOrderInfo(`Hoan tien ${p.ref}`),
-  };
-  const data = [
-    'vnp_RequestId', 'vnp_Version', 'vnp_Command', 'vnp_TmnCode', 'vnp_TransactionType', 'vnp_TxnRef', 'vnp_Amount',
-    'vnp_TransactionNo', 'vnp_TransactionDate', 'vnp_CreateBy', 'vnp_CreateDate', 'vnp_IpAddr', 'vnp_OrderInfo',
-  ].map((k) => body[k]).join('|');
-  return { ...body, vnp_SecureHash: vnpHash(data, m.hashSecret) };
+  }, m.hashSecret);
 }

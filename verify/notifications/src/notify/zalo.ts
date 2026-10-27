@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { withTenant } from '../db/tenant';
+import { openSecret, sealSecret } from '../security/secret-box';
 
 export type ZaloTokens = { access_token: string; refresh_token: string; expires_in: string | number };
 // POST https://oauth.zaloapp.com/v4/oa/access_token (header secret_key; form app_id, refresh_token,
@@ -15,29 +16,34 @@ export function toZaloPhone(phone: string): string {
 // Run from a scheduled job about every 20 hours (access tokens last about 25 hours) and when a send
 // returns -124. Only one refresh may use a refresh token: a short lease claims it, so no transaction
 // stays open during the HTTP call, and a second caller gets 'busy' instead of burning the token.
-export async function refreshZaloToken(pool: Pool, tenantId: string, refresh: ZaloRefresh): Promise<'refreshed' | 'busy'> {
+// key: the 32-byte key from the secret manager; tokens are stored sealed, never in plain text.
+export async function refreshZaloToken(
+  pool: Pool, tenantId: string, refresh: ZaloRefresh, key: Buffer,
+): Promise<'refreshed' | 'busy'> {
   const claimed = await withTenant(pool, tenantId, async (db) =>
-    (await db.query<{ refresh_token: string }>(
+    (await db.query<{ refresh_token_sealed: Buffer }>(
       `UPDATE zalo_tokens SET refresh_lease_until = now() + interval '30 seconds'
         WHERE refresh_lease_until IS NULL OR refresh_lease_until < now()
-        RETURNING refresh_token`)).rows[0]);
+        RETURNING refresh_token_sealed`)).rows[0]);
   if (!claimed) return 'busy';
+  const old = claimed.refresh_token_sealed;   // also identifies the row version we claimed
+  const refreshToken = openSecret(old, key);
   let next: ZaloTokens;
   try {
-    next = await refresh(claimed.refresh_token); // give this call a timeout shorter than the lease
+    next = await refresh(refreshToken); // give this call a timeout shorter than the lease
   } catch (err) {
     // Expired (about 3 months unused) or revoked: the spa must reconnect its OA. Alert.
     await withTenant(pool, tenantId, (db) =>
-      db.query('UPDATE zalo_tokens SET needs_reconnect = true, refresh_lease_until = NULL WHERE refresh_token = $1',
-        [claimed.refresh_token]));
+      db.query('UPDATE zalo_tokens SET needs_reconnect = true, refresh_lease_until = NULL WHERE refresh_token_sealed = $1',
+        [old]));
     throw err;
   }
   await withTenant(pool, tenantId, (db) =>
     db.query(
-      `UPDATE zalo_tokens SET access_token = $2, refresh_token = $3, needs_reconnect = false, refresh_lease_until = NULL,
-              access_expires_at = now() + make_interval(secs => $4::int), updated_at = now()
-        WHERE refresh_token = $1`,
-      [claimed.refresh_token, next.access_token, next.refresh_token, Number(next.expires_in)],
+      `UPDATE zalo_tokens SET access_token_sealed = $2, refresh_token_sealed = $3, needs_reconnect = false,
+              refresh_lease_until = NULL, access_expires_at = now() + make_interval(secs => $4::int), updated_at = now()
+        WHERE refresh_token_sealed = $1`,
+      [old, sealSecret(next.access_token, key), sealSecret(next.refresh_token, key), Number(next.expires_in)],
     ));
   return 'refreshed';
 }

@@ -1,6 +1,6 @@
 ---
 name: vibe-frontend
-description: "Web frontend: UI from mockups (Claude Design handoff, HTML export, Figma, screenshot) with design tokens, all states, motion spec, screenshot checks; state/stores (TanStack Query, SWR, RTK Query, Zustand, Redux Toolkit, Pinia, URL state, forms), cache invalidation, clearing cache on tenant switch or logout; i18n (VND, dates, time zones); SEO for public pages. Use for web screens from a design, prototype animations, choosing or fixing a store, stale or wrong data, excess re-renders. Mobile/desktop apps: their own skills. Small tweaks: just do them. Also use for Vietnamese requests like 'dựng màn hình theo mockup', 'làm animation', 'đổi workspace vẫn thấy dữ liệu cũ', 'dữ liệu hiển thị sai', 'đa ngôn ngữ', 'múi giờ', 'làm SEO'."
+description: "Web frontend: UI from mockups (Claude Design handoff, HTML export, Figma, screenshot) with design tokens, all states, motion spec, screenshot checks; state/stores (TanStack Query, SWR, RTK Query, Zustand, Redux Toolkit, Pinia, URL state, forms), Next.js Server Actions, cache invalidation, clearing cache on tenant switch or logout; i18n (VND, dates, time zones); SEO for public pages. Use for web screens from a design, prototype animations, choosing or fixing a store, stale or wrong data, excess re-renders. Mobile/desktop apps: their own skills. Small tweaks: just do them. Also use for Vietnamese requests like 'dựng màn hình theo mockup', 'làm animation', 'đổi workspace vẫn thấy dữ liệu cũ', 'dữ liệu hiển thị sai', 'đa ngôn ngữ', 'múi giờ', 'làm SEO'."
 ---
 
 # Frontend: UI from design, and state management
@@ -12,6 +12,7 @@ Read only what the current task needs:
 | Building a new screen or component from a mockup or a Claude Design handoff | `references/design-to-code.md` |
 | Animations and effects from a prototype | `references/motion-spec.md` |
 | Stores, API data caching, forms, syncing on tenant switch | `references/state-management.md` |
+| Next.js Server Actions, `'use cache'`, `unstable_cache`, `revalidateTag` with several tenants | `references/server-actions.md` |
 | Multiple languages, formatting money/dates/times, time zones, Vietnamese sorting and diacritics | `references/i18n.md` |
 | Public pages and SEO: metadata, canonical, noindex for app/staging, sitemap, robots.txt, JSON-LD, share images, hreflang | `references/seo.md` |
 | Screens that update live (EventSource + invalidateQueries) | the `vibe-backend` skill (`references/realtime.md` section 4) |
@@ -26,7 +27,7 @@ Frontend libraries change APIs fast (React, Next.js, Tailwind, TanStack Query al
 2. **All states**: loading, empty, error, disabled, plus hover/focus-visible. A screen that only looks good "with data" isn't done.
 3. **Accessible**: semantic HTML, labeled inputs, keyboard usable, AA contrast, respects `prefers-reduced-motion`.
 4. **API data is server state**: let the query library handle the cache; never copy it into a global store and sync it by hand.
-5. **Tenant goes in the query key and in the request itself** (ideally in the URL), never relying on the session cookie's "current tenant"; keep previous data while loading (`keepPreviousData`) only within the same tenant; clear the cache on logout. Then a screen never shows the old workspace's data.
+5. **Tenant goes in the query key and in the request itself** (ideally in the URL), never relying on the session cookie's "current tenant"; to keep the previous page while loading, use a tenant-guarded `placeholderData` (`references/state-management.md` section 3), never plain `keepPreviousData`; clear the cache on logout. Then a screen never shows the old workspace's data.
 6. **Never store tokens or sensitive data in localStorage** when a safer option exists (httpOnly cookie).
 7. **Data follows the backend contract**; if the BE isn't ready, use the contract's mock; never invent fields.
 8. **Money, dates and text go through one formatting module** with an explicit locale and the tenant's time zone; with two or more languages, CI checks that the catalogs have the same keys (`references/i18n.md`).

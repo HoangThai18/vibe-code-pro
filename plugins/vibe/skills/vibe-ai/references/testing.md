@@ -9,11 +9,11 @@ Two different things; do not merge them:
 | When to run | Every PR, in CI | When changing prompt, model, effort or how data is fed; and on a schedule |
 | Result | Deterministic pass/fail | Score on the case set, compared with the previous run |
 
-The code below ran with Node 22 (`node --test` + `tsx`) and `@anthropic-ai/sdk` 1.3, all tests passing. Removing any single protection from the code (contact redaction, JSON instead of a plain concatenated string for notes, aborting the stream when the user disconnects, usage recording, the budget check) made a test fail every time.
+The code below ran with Node 22 (`node --test` + `tsx`), `@anthropic-ai/sdk` 1.3 and PostgreSQL 16 (FORCE RLS, app role), 24 tests passing. Removing any single protection from the code made a test fail every time: contact redaction (each phone format), JSON instead of a plain concatenated string for notes, the membership check, usage queries inside `withTenant`, aborting the stream when the user disconnects, the stop-reason check in the browser, usage recording, the budget check, recording without a price, per-attempt pricing, the eval's main-module and zero-case checks, the conversation owner check, compaction, `json` (not `jsonb`) history, nothing saved on a refused turn, file type from the bytes, the size cap.
 
 ## Contents
 1. Fake client: real SDK, fake fetch
-2. Tests for summarizing and streaming
+2. Tests for summarizing, streaming and tenant isolation
 3. Evals against the real API
 4. Monitoring in production
 
@@ -63,8 +63,8 @@ export function apiError(status: number, type: string) {
 
 const event = (type: string, data: object) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
 
-// SSE stream like the real API; keepOpen = true never ends it (to test a mid-stream abort)
-export function sseResponse(texts: string[], init: RequestInit, keepOpen = false) {
+// SSE stream like the real API; keepOpen never ends it (to test a mid-stream abort)
+export function sseResponse(texts: string[], init: RequestInit, opts: { keepOpen?: boolean; stopReason?: string } = {}) {
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -77,9 +77,10 @@ export function sseResponse(texts: string[], init: RequestInit, keepOpen = false
       push(event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }));
       for (const text of texts) push(event('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }));
       init.signal?.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
-      if (keepOpen) return;
+      if (opts.keepOpen) return;
       push(event('content_block_stop', { index: 0 }));
-      push(event('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 42 } }));
+      push(event('message_delta', {
+        delta: { stop_reason: opts.stopReason ?? 'end_turn', stop_sequence: null }, usage: { output_tokens: 42 } }));
       push(event('message_stop', {}));
       controller.close();
     },
@@ -90,35 +91,35 @@ export function sseResponse(texts: string[], init: RequestInit, keepOpen = false
 
 ```ts
 // test/helpers/memory-usage.ts
-import type Anthropic from '@anthropic-ai/sdk';
-import { costMicroUsd, type AiCallContext, type AiUsageStore } from '../../src/ai/usage';
+import { usageRows, type AiCallContext, type AiUsageStore, type UsageRow } from '../../src/ai/usage';
 
 export function memoryUsage(budgetMicroUsd = 5_000_000) {
-  const rows: (AiCallContext & { model: string; usage: Anthropic.Usage; cost: number })[] = [];
+  const rows: (AiCallContext & UsageRow)[] = [];
   const store: AiUsageStore = {
     async monthCostMicroUsd(tenantId) {
-      return rows.filter((r) => r.tenantId === tenantId).reduce((sum, r) => sum + r.cost, 0);
+      return rows.filter((r) => r.tenantId === tenantId).reduce((sum, r) => sum + (r.costMicroUsd ?? 0), 0);
     },
     async monthBudgetMicroUsd() {
       return budgetMicroUsd;
     },
     async record(ctx, model, usage) {
-      rows.push({ ...ctx, model, usage, cost: costMicroUsd(model, usage) });
+      rows.push(...usageRows(model, usage).map((r) => ({ ...ctx, ...r })));
     },
   };
   return { store, rows };
 }
 ```
 
-## 2. Tests for summarizing and streaming
+## 2. Tests for summarizing, streaming and tenant isolation
 
 ```ts
 // test/summarize-notes.test.ts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import Anthropic from '@anthropic-ai/sdk';
+import { AiUnavailableError } from '../src/ai/errors';
 import { summarizeNotes } from '../src/ai/summarize-notes';
-import { AiBudgetExceededError, AiUnavailableError } from '../src/ai/usage';
+import { AiBudgetExceededError } from '../src/ai/usage';
 import { apiError, fakeAnthropic, messageJson } from './helpers/fake-anthropic';
 import { memoryUsage } from './helpers/memory-usage';
 
@@ -145,7 +146,7 @@ test('sends notes as JSON data, redacts contacts, records usage and cost', async
   assert.equal(sent.notes[1]!.text, injected);                       // the injected "instruction" is still just a data string
   assert.match(sent.notes[0]!.text, /\[số điện thoại\]/);
   assert.doesNotMatch(sent.notes[0]!.text, /0912/);
-  assert.equal(usage.rows[0]!.cost, 1000 * 4 + 100 * 20);            // micro-USD
+  assert.equal(usage.rows[0]!.costMicroUsd, 1000 * 4 + 100 * 20);    // micro-USD
 });
 
 test('refusal reports unavailable and still records billed tokens', async () => {
@@ -173,6 +174,26 @@ test('no API call when the monthly budget is exhausted', async () => {
 ```
 
 ```ts
+// test/redact.test.ts
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { redactContacts } from '../src/ai/redact';
+
+test('redacts every phone format staff type, and emails', () => {
+  for (const phone of ['0912 345 678', '0912.345.678', '+84912345678', '84912345678', '(+84) 912-345-678',
+    '0084 912 345 678', '028 3823 4567', '(028) 3823 4567', '+84 28 3823 4567']) {
+    assert.equal(redactContacts(`Gọi ${phone} nhé`), 'Gọi [số điện thoại] nhé', phone);
+  }
+  assert.equal(redactContacts('mail lan.nguyen@spa.vn'), 'mail [email]');
+});
+
+test('keeps amounts, order codes, dates and times', () => {
+  const text = 'Gói 1.500.000đ, nợ 15.000.000.000đ, mã đơn 2026100512, ngày 2026-10-05 lúc 14:30';
+  assert.equal(redactContacts(text), text);
+});
+```
+
+```ts
 // test/stream-draft-reply.test.ts
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
@@ -180,6 +201,8 @@ import type { AddressInfo } from 'node:net';
 import { test } from 'node:test';
 import type Anthropic from '@anthropic-ai/sdk';
 import { streamDraftReply } from '../src/ai/stream-draft-reply';
+import { readDraftStream } from '../web/read-draft-stream';
+import { settleDraft } from '../web/settle-draft';
 import { fakeAnthropic, sseResponse } from './helpers/fake-anthropic';
 import { memoryUsage } from './helpers/memory-usage';
 
@@ -196,17 +219,33 @@ test('streams text chunks to the browser, ends with done and records usage', asy
   const usage = memoryUsage();
   const { server, url } = await serve(client, usage);
   try {
-    const text = await (await fetch(url)).text();
-    assert.match(text, /event: text\ndata: {"delta":"Dạ chị "}/);
-    assert.match(text, /event: done\ndata: {"stopReason":"end_turn"}/);
-    assert.equal(usage.rows[0]!.usage.output_tokens, 42);
+    let text = '';
+    assert.equal(await readDraftStream(url, { m: 'x' }, (d) => (text += d)), 'done');
+    assert.equal(text, 'Dạ chị cứ đến ạ.');
+    assert.equal(usage.rows[0]!.outputTokens, 42);
   } finally {
     server.close();
   }
 });
 
+test('a refused or truncated stream is not reported as a finished draft', async () => {
+  for (const [stopReason, result, kept] of [['refusal', 'refused', ''], ['max_tokens', 'truncated', 'Dạ chị ']] as const) {
+    const { client } = fakeAnthropic([(init) => sseResponse(['Dạ chị '], init, { stopReason })]);
+    const { server, url } = await serve(client, memoryUsage());
+    try {
+      let text = '';
+      assert.equal(await readDraftStream(url, {}, (d) => (text += d)), result);
+      const settled = settleDraft(text, result);
+      assert.equal(settled.text, kept);                  // refused: the partial text is dropped
+      assert.ok(settled.notice);
+    } finally {
+      server.close();
+    }
+  }
+});
+
 test('user disconnect aborts the API request', async () => {
-  const { client, requests } = fakeAnthropic([(init) => sseResponse(['Dạ '], init, true)]);
+  const { client, requests } = fakeAnthropic([(init) => sseResponse(['Dạ '], init, { keepOpen: true })]);
   const usage = memoryUsage();
   const { server, url } = await serve(client, usage);
   try {
@@ -217,7 +256,7 @@ test('user disconnect aborts the API request', async () => {
     controller.abort();                     // user closes the page
     await waitFor(() => requests[0]?.signal?.aborted === true);
     await waitFor(() => usage.rows.length === 1);
-    assert.equal(usage.rows[0]!.usage.input_tokens, 800);   // known usage is still recorded
+    assert.equal(usage.rows[0]!.inputTokens, 800);   // known usage is still recorded
   } finally {
     server.close();
   }
@@ -232,7 +271,59 @@ async function waitFor(check: () => boolean, timeoutMs = 2_000) {
 }
 ```
 
-Run: `node --import tsx --test test/*.test.ts`.
+Tenant isolation is tested at the endpoint, against a real database: two spas with notes, a call as spa A, and an assertion on the body sent to the model. `test/helpers/db.ts` loads the schema into an empty test database and seeds tenants A and B with their members; `app` connects as the app role, so RLS applies.
+
+```ts
+// test/customer-summary.test.ts — real PostgreSQL (FORCE RLS, app role), fake model API
+import assert from 'node:assert/strict';
+import { after, before, test } from 'node:test';
+import { NotFoundError } from '../src/shared/errors';
+import { customerSummary } from '../src/routes/customer-summary';
+import { A, B, USER_A, admin, app, closeDb, resetDb } from './helpers/db';
+import { fakeAnthropic, messageJson } from './helpers/fake-anthropic';
+
+const CUSTOMER_A = 'c0000000-0000-0000-0000-00000000000a';
+const CUSTOMER_B = 'c0000000-0000-0000-0000-00000000000b';
+
+before(async () => {
+  await resetDb();
+  await admin.query(`INSERT INTO customers (tenant_id, id, full_name, phone) VALUES ($1, $2, 'Lan', '0912345678'), ($3, $4, 'Mai', '0987654321')`,
+    [A, CUSTOMER_A, B, CUSTOMER_B]);
+  await admin.query(`INSERT INTO customer_notes (tenant_id, customer_id, body) VALUES ($1, $2, 'Thích trà gừng sau khi massage.'),
+                     ($3, $4, 'Dị ứng phấn hoa, đang mang thai.')`, [A, CUSTOMER_A, B, CUSTOMER_B]);
+});
+after(closeDb);
+
+test('summary for spa A sends the model only A notes; B ids give 404 and no model call', async () => {
+  const { client, requests } = fakeAnthropic([messageJson(JSON.stringify({ summary: 'Thích trà gừng.', followUps: [] }))]);
+  const deps = { pool: app, client };
+
+  await customerSummary(deps, { userId: USER_A }, { tenantId: A, customerId: CUSTOMER_A });
+  const sent = JSON.stringify(requests[0]!.body);
+  assert.match(sent, /trà gừng/);
+  assert.doesNotMatch(sent, /phấn hoa|mang thai|0987654321/);        // nothing of spa B reaches the model
+
+  // B's customer through A's path, and A's user in B's path: both look missing
+  await assert.rejects(customerSummary(deps, { userId: USER_A }, { tenantId: A, customerId: CUSTOMER_B }), NotFoundError);
+  await assert.rejects(customerSummary(deps, { userId: USER_A }, { tenantId: B, customerId: CUSTOMER_B }), NotFoundError);
+  assert.equal(requests.length, 1);
+
+  const { rows } = await admin.query('SELECT tenant_id, user_id FROM ai_usage');
+  assert.deepEqual(rows, [{ tenant_id: A, user_id: USER_A }]);        // usage recorded under A, through RLS
+});
+```
+
+Other test files (same helpers):
+
+| File | Asserts |
+|---|---|
+| `usage-pg.test.ts` | month total per tenant, budget block, other tenant unaffected; unknown model: tokens stored, cost NULL, alert, no error; fallback response: one row per attempt, each at its model's price |
+| `cost.test.ts` | a model with no price: the summary is still returned, cost NULL; no `cache_control` on the short summary call; an explicit breakpoint on the guide block, none top-level |
+| `chat.test.ts` | history read from the database and replayed unchanged (thinking block included), automatic caching on; a colleague or another tenant gets 404 and no API call; compaction: the summary request carries the whole history, the next context is one user message, its prefix byte-identical turn to turn; key order kept; a refused turn saves nothing |
+| `attachments.test.ts` | type from the bytes; HTML, executables and files over 5 MB rejected before any API call; image block before the instruction |
+| `eval-script.test.ts` | `runEval` scoring and cost; the script runs from a folder named `Dự án eval …`; zero cases exits 1 |
+
+Run: `node --import tsx --test --test-concurrency=1 test/*.test.ts`, with `DATABASE_URL` pointing at a test database.
 
 ## 3. Evals against the real API
 
@@ -265,10 +356,11 @@ Build the case set from anonymized real data and from users' "not useful" rating
 // Run when changing prompt, model or effort: npx tsx scripts/eval-summaries.ts
 // Calls the real API and costs money: run manually or on a schedule, not on every PR
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import type Anthropic from '@anthropic-ai/sdk';
 import { createAiClient } from '../src/ai/client';
 import { summarizeNotes, type CustomerNote } from '../src/ai/summarize-notes';
-import { costMicroUsd, type AiUsageStore } from '../src/ai/usage';
+import { usageRows, type AiUsageStore } from '../src/ai/usage';
 
 interface EvalCase {
   id: string;
@@ -282,7 +374,9 @@ export async function runEval(client: Anthropic, cases: EvalCase[]) {
   const usage: AiUsageStore = {
     monthCostMicroUsd: async () => 0,
     monthBudgetMicroUsd: async () => Number.MAX_SAFE_INTEGER,
-    record: async (_ctx, model, u) => void (spent += costMicroUsd(model, u)),
+    record: async (_ctx, model, u) => {
+      for (const r of usageRows(model, u)) spent += r.costMicroUsd ?? 0;
+    },
   };
   const results = [];
   for (const c of cases) {
@@ -300,11 +394,13 @@ export async function runEval(client: Anthropic, cases: EvalCase[]) {
   return { passed, total: cases.length, costUsd: spent / 1e6, results };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare paths, not `file://${argv[1]}`: the URL is percent-encoded (spaces, "Dự án") and differs on Windows
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const cases = JSON.parse(await readFile(new URL('../evals/summaries.json', import.meta.url), 'utf8')) as EvalCase[];
   const report = await runEval(createAiClient(), cases);
   console.log(JSON.stringify(report, null, 2));
-  process.exitCode = report.passed === report.total ? 0 : 1;
+  // The eval is a merge gate: zero cases (empty or misread file) fails like a failed case
+  process.exitCode = report.total > 0 && report.passed === report.total ? 0 : 1;
 }
 ```
 
@@ -319,5 +415,5 @@ Monitor per feature and per tenant (the `vibe-ship` skill, `references/observabi
 
 - Error rate (`AiUnavailableError`), `refusal` rate, `max_tokens` rate.
 - p95 latency (and time to first chunk for streaming).
-- Daily cost per tenant from the `ai_usage` table; alert above the usual level.
+- Daily cost per tenant from the `ai_usage` table; alert above the usual level, and on any row with `cost_micro_usd` NULL.
 - Rate of "not useful" ratings; each week read a few cases and add them to the eval set.

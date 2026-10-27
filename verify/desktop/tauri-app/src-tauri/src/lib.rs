@@ -3,7 +3,7 @@ use tauri_plugin_dialog::DialogExt;
 
 const MAX_CSV_BYTES: u64 = 5 * 1024 * 1024;
 
-// Renderer không gửi đường dẫn: command tự mở hộp thoại chọn file
+// The renderer sends no path: the command opens the file dialog itself (from Rust: no dialog permission needed)
 #[tauri::command]
 async fn import_customers_csv(app: tauri::AppHandle) -> Result<Option<String>, String> {
     let Some(picked) = app.dialog().file().add_filter("CSV", &["csv"]).blocking_pick_file() else {

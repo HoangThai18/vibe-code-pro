@@ -31,7 +31,7 @@ Pure logic like the write queue (`app-data.md` section 6) is tested without Reac
 
 ```ts
 // src/offline/outbox.test.ts
-import { flushOutbox, type OutboxStore, type PendingWrite } from './outbox';
+import { flushOutbox, type FlushDeps, type OutboxStore, type PendingWrite } from './outbox';
 
 function memoryStore(items: PendingWrite[]): OutboxStore & { items: PendingWrite[] } {
   const store = {
@@ -44,35 +44,175 @@ function memoryStore(items: PendingWrite[]): OutboxStore & { items: PendingWrite
   return store;
 }
 
-const write = (id: string): PendingWrite => ({ id, tenantId: 't1', method: 'POST', path: '/v1/t/t1/customers', body: { name: id }, attempts: 0 });
+const write = (id: string): PendingWrite => ({ id, tenantId: 't1', method: 'POST', path: '/v1/t/t1/customers', body: { fullName: id }, attempts: 0 });
 const status = (code: number) => new Response(null, { status: code });
+const deps = (overrides: Partial<FlushDeps>): FlushDeps => ({
+  send: async () => status(201),
+  refreshSession: async () => 'refreshed',
+  onUpdateRequired: jest.fn(),
+  ...overrides,
+});
+const ids = (store: { items: PendingWrite[] }) => store.items.map((w) => [w.id, w.attempts]);
 
 test('sends in order; stops when offline and keeps the rest', async () => {
   const store = memoryStore([write('a'), write('b'), write('c')]);
   const sent: string[] = [];
-  const result = await flushOutbox(store, async (w) => {
-    if (w.id === 'b') throw new TypeError('Network request failed');
-    sent.push(w.id);
-    return status(201);
-  });
+  const result = await flushOutbox(store, deps({
+    send: async (w) => {
+      if (w.id === 'b') throw new TypeError('Network request failed');
+      sent.push(w.id);
+      return status(201);
+    },
+  }));
   expect(result.status).toBe('offline');
   expect(sent).toEqual(['a']);
-  expect(store.items.map((w) => w.id)).toEqual(['b', 'c']);
+  expect(ids(store)).toEqual([['b', 0], ['c', 0]]);
 });
 
-test('5xx: retry later, never skip to the next write', async () => {
+test.each([500, 503, 408, 425, 429])('%i: retry later, never skip to the next write', async (code) => {
   const store = memoryStore([write('a'), write('b')]);
-  const result = await flushOutbox(store, async () => status(503));
+  const result = await flushOutbox(store, deps({ send: async () => status(code) }));
   expect(result.status).toBe('retry-later');
-  expect(store.items.map((w) => [w.id, w.attempts])).toEqual([['a', 1], ['b', 0]]);
+  expect(ids(store)).toEqual([['a', 1], ['b', 0]]);
 });
 
-test('4xx: removed from the queue and reported to show the user', async () => {
+test.each([400, 403, 404, 409, 422])('%i: removed from the queue and reported to show the user', async (code) => {
   const store = memoryStore([write('a'), write('b')]);
-  const result = await flushOutbox(store, async (w) => status(w.id === 'a' ? 409 : 201));
+  const result = await flushOutbox(store, deps({ send: async (w) => status(w.id === 'a' ? code : 201) }));
   expect(result.status).toBe('done');
-  expect(result.rejected.map((r) => [r.write.id, r.status])).toEqual([['a', 409]]);
+  expect(result.rejected.map((r) => [r.write.id, r.status])).toEqual([['a', code]]);
   expect(store.items).toEqual([]);
+});
+
+test('401: refreshes once, resends with the new token, carries on', async () => {
+  let token = 'expired';
+  const sent: string[] = [];
+  const store = memoryStore([write('a'), write('b')]);
+  const result = await flushOutbox(store, deps({
+    send: async (w) => {
+      sent.push(`${w.id}:${token}`);
+      return status(token === 'fresh' ? 201 : 401);
+    },
+    refreshSession: async () => {
+      token = 'fresh';
+      return 'refreshed';
+    },
+  }));
+  expect(result.status).toBe('done');
+  expect(sent).toEqual(['a:expired', 'a:fresh', 'b:fresh']);
+  expect(store.items).toEqual([]);
+});
+
+test('401 and the refresh token is rejected: stops and keeps every write for after login', async () => {
+  const store = memoryStore([write('a'), write('b')]);
+  const refreshSession = jest.fn(async () => 'signed-out' as const);
+  const result = await flushOutbox(store, deps({ send: async () => status(401), refreshSession }));
+  expect(result).toEqual({ status: 'auth-required', rejected: [] });
+  expect(refreshSession).toHaveBeenCalledTimes(1);
+  expect(ids(store)).toEqual([['a', 0], ['b', 0]]);
+});
+
+test('426: opens the update screen and keeps every write', async () => {
+  const store = memoryStore([write('a'), write('b')]);
+  const onUpdateRequired = jest.fn();
+  const result = await flushOutbox(store, deps({ send: async () => status(426), onUpdateRequired }));
+  expect(result.status).toBe('update-required');
+  expect(onUpdateRequired).toHaveBeenCalledTimes(1);
+  expect(ids(store)).toEqual([['a', 0], ['b', 0]]);
+});
+```
+
+Session storage and refresh (`app-data.md` section 2) run against in-memory fakes of the native modules and a mocked `fetch`:
+
+```ts
+// src/auth/session.test.ts
+import { getAccessToken, prepareTokenStorage, refreshSession, saveSession, setSignedOutHandler } from './session';
+
+// In-memory Keychain and AsyncStorage (the native modules do not run in Jest)
+const mockSecure = new Map<string, string>();
+const mockAsync = new Map<string, string>();
+jest.mock('expo-secure-store', () => ({
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 0,
+  getItemAsync: async (k: string) => mockSecure.get(k) ?? null,
+  setItemAsync: async (k: string, v: string) => { mockSecure.set(k, v); },
+  deleteItemAsync: async (k: string) => { mockSecure.delete(k); },
+}));
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: async (k: string) => mockAsync.get(k) ?? null,
+    setItem: async (k: string, v: string) => { mockAsync.set(k, v); },
+    removeItem: async (k: string) => { mockAsync.delete(k); },
+    getAllKeys: async () => [...mockAsync.keys()],
+  },
+}));
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '1.4.0' }));
+
+const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+const tokens = { accessToken: 'a2', refreshToken: 'r2', expiresIn: 900 };
+
+beforeEach(async () => {
+  mockSecure.clear();
+  mockAsync.clear();
+  jest.restoreAllMocks();
+  await saveSession({ accessToken: 'a1', refreshToken: 'r1', expiresIn: 900 });
+});
+
+test('fresh install: deletes the token an uninstalled copy left in the Keychain', async () => {
+  await prepareTokenStorage();
+  expect(mockSecure.has('auth.refreshToken')).toBe(false);
+  expect(mockAsync.get('app.installed')).toBe('1');
+});
+
+test('update from a release without the marker: keeps the session', async () => {
+  mockAsync.set('settings.theme', 'dark');   // written by the old release
+  await prepareTokenStorage();
+  expect(mockSecure.get('auth.refreshToken')).toBe('r1');
+  expect(mockAsync.get('app.installed')).toBe('1');
+});
+
+test('update from a release that kept the token in AsyncStorage: moves it, never wipes it', async () => {
+  mockSecure.clear();
+  mockAsync.set('refreshToken', 'legacy');
+  await prepareTokenStorage();
+  expect(mockSecure.get('auth.refreshToken')).toBe('legacy');
+  expect(mockAsync.has('refreshToken')).toBe(false);
+});
+
+test('refresh: one call for concurrent callers, saves the rotated pair from { data }', async () => {
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue(json(200, { data: tokens }));
+  expect(await Promise.all([refreshSession(), refreshSession()])).toEqual(['refreshed', 'refreshed']);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  const [url, init] = fetchMock.mock.calls[0]!;
+  expect(url).toMatch(/\/v1\/auth\/refresh$/);
+  expect(JSON.parse(init!.body as string)).toEqual({ refreshToken: 'r1' });
+  expect(init!.headers).toMatchObject({ 'x-app-version': '1.4.0', 'x-app-platform': 'ios' });
+  expect(getAccessToken()).toBe('a2');
+  expect(mockSecure.get('auth.refreshToken')).toBe('r2');
+});
+
+test('refresh: a body without the data envelope saves nothing', async () => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue(json(200, tokens));
+  expect(await refreshSession()).toBe('unavailable');
+  expect(mockSecure.get('auth.refreshToken')).toBe('r1');
+});
+
+test('refresh: 401 refresh_invalid clears the session and goes to login', async () => {
+  const signedOut = jest.fn();
+  setSignedOutHandler(signedOut);
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue(json(401, { error: { code: 'refresh_invalid', message: 'Phiên đã hết hạn' } }));
+  expect(await refreshSession()).toBe('signed-out');
+  expect(getAccessToken()).toBeNull();
+  expect(mockSecure.has('auth.refreshToken')).toBe(false);
+  expect(signedOut).toHaveBeenCalledTimes(1);
+});
+
+test('refresh: offline or 5xx keeps the session', async () => {
+  jest.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new TypeError('Network request failed')).mockResolvedValueOnce(json(503, null));
+  expect(await refreshSession()).toBe('unavailable');
+  expect(await refreshSession()).toBe('unavailable');
+  expect(getAccessToken()).toBe('a1');
+  expect(mockSecure.get('auth.refreshToken')).toBe('r1');
 });
 ```
 
@@ -101,7 +241,7 @@ export function CustomerList({ tenantId }: { tenantId: string }) {
     <FlatList
       data={q.data.data}
       keyExtractor={(c) => c.id}
-      renderItem={({ item }) => <Text>{item.name}</Text>}
+      renderItem={({ item }) => <Text>{item.fullName}</Text>}
       ListEmptyComponent={<Text>Chưa có khách nào.</Text>}
     />
   );
@@ -124,7 +264,7 @@ function renderWithQuery(ui: React.ReactElement) {
 }
 
 test('shows customers of the right workspace', async () => {
-  jest.mocked(customersApi.list).mockResolvedValue({ data: [{ id: 'c1', name: 'Nguyễn Thị Lan' }] });
+  jest.mocked(customersApi.list).mockResolvedValue({ data: [{ id: 'c1', fullName: 'Nguyễn Thị Lan' }] });
   await renderWithQuery(<CustomerList tenantId="spa-a" />);
   expect(await screen.findByText('Nguyễn Thị Lan')).toBeOnTheScreen();
   expect(customersApi.list).toHaveBeenCalledWith('spa-a');
@@ -138,9 +278,9 @@ test('API error shows a message and a retry button', async () => {
 });
 ```
 
-- Native modules (`expo-secure-store`, `expo-sqlite`...) do not run in Jest: separate logic from native calls (like `OutboxStore`), or use the mocks `jest-expo` provides. Test the real native calls with E2E.
+- Native modules (`expo-secure-store`, `expo-sqlite`, AsyncStorage...) do not run in Jest: separate logic from native calls (like `OutboxStore`), or replace them with `jest.mock` fakes as above (factory variables must start with `mock`). Test the real native calls with E2E.
 - Since React Native Testing Library 14, `render` returns a Promise: always `await render(...)`. Matchers like `toBeOnTheScreen` come with the library import; no setup file needed.
-- The code in this section was run with Expo SDK 58, jest-expo 58, React Native Testing Library 14 and strict `tsc`: 5/5 tests pass even with no cache, and Jest exits right after.
+- The code in this section was run with Expo SDK 58, jest-expo 58, React Native Testing Library 14 and strict `tsc`: 23/23 tests pass with `jest --ci --no-cache`, and Jest exits right after.
 
 ## 3. E2E with Maestro
 

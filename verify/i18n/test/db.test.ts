@@ -7,6 +7,7 @@ import pg from 'pg';
 import { appointmentsOnDay } from '../src/appointments/by-day';
 import { withTenant } from '../src/db/tenant';
 import { localDate } from '../src/i18n/format';
+import { listTimeZones, suggestTimeZone } from '../src/i18n/time-zones';
 import { cleanText, compareVi } from '../src/i18n/text';
 
 const url = process.env.DATABASE_URL ?? 'postgres://vibe_test:vibe@localhost:5432/i18n_check';
@@ -65,15 +66,39 @@ test('"today" defaults to the tenant zone; another tenant sees nothing (RLS)', a
 
 test('time zone: only known IANA names are stored', async () => {
   const insert = (tz: string) => admin.query(`INSERT INTO tenants (name, time_zone) VALUES ('x', $1)`, [tz]);
-  // Node 22 and Chromium report Vietnam as 'Asia/Saigon'; this Postgres build (Ubuntu system tzdata) does not know it
+  // Node 22 and Chromium report Vietnam as 'Asia/Saigon'; a Postgres built on tzdata without the old links
+  // (Ubuntu 24.04) rejects it, others still accept it, so the picker maps it either way (time-zones.ts)
   assert.equal(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh' }).resolvedOptions().timeZone, 'Asia/Saigon');
-  await assert.rejects(insert('Asia/Saigon'), /time zone "Asia\/Saigon" not recognized/);
+  const { rowCount: saigonKnown } = await admin.query(`SELECT 1 FROM pg_timezone_names WHERE name = 'Asia/Saigon'`);
+  if (!saigonKnown) await assert.rejects(insert('Asia/Saigon'), /time zone "Asia\/Saigon" not recognized/);
   // POSIX-style strings: Postgres reads 'GMT+7' and '+07' as UTC-7 (Intl reads '+07:00' as UTC+7)
   const { rows: [r] } = await admin.query(`SELECT to_char(TIMESTAMPTZ '2026-10-24 08:30Z' AT TIME ZONE 'GMT+7', 'HH24:MI') AS gmt7,
                                                   to_char(TIMESTAMPTZ '2026-10-24 08:30Z' AT TIME ZONE '+07', 'HH24:MI') AS plus07`);
   assert.deepEqual(r, { gmt7: '01:30', plus07: '01:30' });
-  for (const tz of ['GMT+7', '+07', 'ICT', 'Hà Nội']) await assert.rejects(insert(tz), /tenants_time_zone_check/, tz);
+  for (const tz of ['GMT+7', '+07', 'ICT', 'Hà Nội', 'Etc/GMT+7', 'Etc/UTC', 'UTC', 'EST5EDT']) {
+    await assert.rejects(insert(tz), /tenants_time_zone_check/, tz);
+  }
   await insert('Asia/Bangkok');
+});
+
+test('zone picker: every option is accepted by the CHECK; ICU names map to them', async () => {
+  const options = await listTimeZones(admin);
+  assert.ok(options.includes('Asia/Ho_Chi_Minh') && options.includes('America/Argentina/Buenos_Aires'));
+  assert.ok(!options.some((z) => z.startsWith('Etc/') || z.startsWith('posix') || !z.includes('/')));
+  const client = await admin.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`INSERT INTO tenants (name, time_zone) SELECT 'x', unnest($1::text[])`, [options]);
+  } finally {
+    await client.query('ROLLBACK');
+    client.release();
+  }
+  // What the browser reports (Node 22 = Chromium's ICU): every zone it knows lands on an option or on null
+  assert.equal(suggestTimeZone(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Ho_Chi_Minh' }).resolvedOptions().timeZone, options),
+    'Asia/Ho_Chi_Minh');
+  const unmapped = Intl.supportedValuesOf('timeZone').filter((z) => suggestTimeZone(z, options) === null);
+  assert.deepEqual(unmapped.filter((z) => /^[A-Z][a-z]+\//.test(z) && !z.startsWith('Etc/')), []);
+  assert.equal(suggestTimeZone('Etc/GMT+7', options), null);
 });
 
 test('names: NFD is refused by the CHECK, cleanText fixes it; vi-x-icu sorts like Intl.Collator("vi")', async () => {

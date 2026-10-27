@@ -22,9 +22,13 @@ Build each OS on that OS (CI matrix, section 6); cross-builds tend to miss signi
 ## 2. Code signing and notarization
 
 - **macOS**: a "Developer ID Application" certificate from the Apple Developer account, hardened runtime on, then **notarize** (Apple scans it, `xcrun notarytool`; Electron Forge/electron-builder and Tauri all have built-in config). Gatekeeper blocks non-notarized builds from opening.
-- **Windows**: Authenticode signing with a code signing certificate or a cloud signing service (e.g. Azure Trusted Signing). SmartScreen warns on unsigned builds; new certificates need time to build reputation.
+- **Windows**: Authenticode signing. Since 1 June 2023 the private key of a publicly trusted code signing certificate must be created and used inside a hardware module (FIPS 140-2 Level 2 or Common Criteria EAL 4+, CA/Browser Forum Code Signing Baseline Requirements): there is no `.pfx` to export into CI secrets. Sign through a cloud HSM and keep only its API credentials in CI:
+  - a CA's cloud signing service (DigiCert KeyLocker, SSL.com eSigner...) or your own Azure Key Vault (HSM-backed) holding a CA-issued certificate;
+  - Azure Artifact Signing (formerly Trusted Signing): Public Trust certificates only for organizations in the US, Canada, the EU, the UK, Australia, New Zealand, Japan, South Korea, Singapore, Switzerland, Norway and Israel, and individuals in the US and Canada (Microsoft docs, May 2026). A company registered in Vietnam does not qualify: check the current list before choosing it.
+
+  Certificates issued since 1 March 2026 last at most 460 days. SmartScreen warns on unsigned builds; new certificates need time to build reputation.
 - **Linux**: executables are usually not signed; sign the distribution repo (deb/rpm) if you have one.
-- Certificates, passwords and signing keys live in CI secrets (GitHub Environments with required reviewers), never on personal machines or in the repo. Record in the runbook who holds them, expiry dates and how to renew.
+- Signing credentials (Apple certificate and notarization API key, cloud signing API credentials, Tauri update key) live in CI secrets (GitHub Environments with required reviewers), never on personal machines or in the repo. Record in the runbook who holds them, expiry dates and how to renew.
 
 ## 3. Auto-update
 
@@ -58,7 +62,7 @@ Tauri updater config (test-built with Tauri 2.12: a `.sig` file comes with the i
 
 - A `beta` channel for the internal group before `stable`. electron-updater supports percentage rollout (`stagingPercentage`); with Tauri, the endpoint decides what percentage of machines get the new version.
 - **Installed builds cannot be rolled back.** For a bad release: stop serving it on the endpoint, ship a fix with a higher version number, turn off the broken feature with a server-side feature flag if you have one.
-- The API must stay compatible with supported versions; too-old builds get `app_update_required` as on mobile (the `vibe-backend` skill, `references/api-conventions.md` section 8).
+- The API must stay compatible with supported versions; too-old builds get `426 app_update_required` as on mobile (the `vibe-backend` skill, `references/api-conventions.md` section 8). This works only because the app sends `x-app-version` and `x-app-platform` (`app-data.md` section 3).
 
 ## 5. Crash reports
 

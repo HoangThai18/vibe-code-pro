@@ -1,5 +1,5 @@
 # .maestro/switch-workspace.yaml
-appId: vn.example.spacrm
+appId: vn.example.spacrm.preview      # bundle id of the variant under test (release.md section 1)
 ---
 - launchApp:
     clearState: true

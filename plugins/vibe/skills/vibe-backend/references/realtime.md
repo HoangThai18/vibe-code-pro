@@ -4,7 +4,7 @@ Tell open screens "something changed": the appointment board and notification ba
 
 **Right-size it.** Few users, 30–60 s delay acceptable: poll (`refetchInterval` + `refetchOnWindowFocus`) and skip this file. One instance still needs the trigger and listener (they tie events to commits).
 
-Ran on Node 22, PostgreSQL 16 (FORCE RLS, app role without BYPASSRLS), pg 8.23, React 19.3, TanStack Query 5.104; removing the tenant filter, membership check, cleanup on close, notify-in-transaction, refetch on reconnect or coalescing failed a test.
+Ran on Node 22, PostgreSQL 16 (FORCE RLS, app role without BYPASSRLS), pg 8.23, React 19.3, TanStack Query 5.104; removing the tenant filter, membership check (or its tenant predicate), cleanup on close, notify-in-transaction, refetch on reconnect or coalescing fails a test.
 
 ## Contents
 1. Choosing a transport
@@ -189,7 +189,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function isMember(pool: Pool, tenantId: string, userId: string): Promise<boolean> {
   if (!UUID.test(tenantId)) return false;
   return withTenant(pool, tenantId, async (db) =>
-    (await db.query('SELECT 1 FROM memberships WHERE user_id = $1', [userId])).rowCount === 1);
+    (await db.query('SELECT 1 FROM memberships WHERE user_id = $1 AND tenant_id = app_current_tenant()', [userId])).rowCount === 1);
 }
 
 const sendError = (res: ServerResponse, status: number, code: string, message: string) =>
@@ -310,77 +310,13 @@ Only for many client messages. Same hub and rules, plus: auth and membership che
 
 ## 6. Tests
 
-Helpers (not shown): `openStream` = fetch + SSE parser; `seed` = two spas, users, sessions; `startApp` = `node:http` app wiring these modules.
-
-```ts
-// test/realtime.test.ts — real Postgres (app role, RLS), two app instances, real HTTP streams
-import assert from 'node:assert/strict';
-import { after, before, beforeEach, test } from 'node:test';
-import { createAppointment } from '../src/appointments';
-import { withTenant } from '../src/db/tenant';
-import { startApp } from '../src/server';
-import { A, APP_URL, B, CUSTOMER, admin, openStream, pool, seed, tomorrow, waitFor } from './helpers';
-
-type App = Awaited<ReturnType<typeof startApp>>;
-let app1: App, app2: App, ctx: Awaited<ReturnType<typeof seed>>;
-const sse = { heartbeatMs: 100, retryMs: 100 };
-const sub = (app: App, tenantId: string, sid?: string) => openStream(`${app.baseUrl}/v1/t/${tenantId}/events`, sid);
-const book = (tenantId: string, staffUserId: string) => withTenant(pool, tenantId, (db) =>
-  createAppointment(db, { customerId: tenantId === A ? CUSTOMER.A : CUSTOMER.B, staffUserId, startsAt: tomorrow() }));
-
-before(async () => {
-  app1 = await startApp({ pool, databaseUrl: APP_URL, sse });
-  app2 = await startApp({ pool, databaseUrl: APP_URL, sse });          // a second instance
-  await waitFor(() => app1.listener.isReady() && app2.listener.isReady());
-});
-after(async () => {
-  await Promise.all([app1.close(), app2.close()]);
-  await Promise.all([pool.end(), admin.end()]);
-});
-beforeEach(async () => { ctx = await seed(); });
-
-test('401 without a session, 404 for a non-member or a bad tenant id; a member gets headers, heartbeat, cleanup', async () => {
-  const anon = await sub(app1, A);
-  assert.equal(anon.status, 401);
-  assert.equal((await anon.json()).error.code, 'unauthenticated');
-  assert.equal((await sub(app1, A, ctx.sid.minh)).status, 404);           // minh belongs to B only
-  assert.equal((await sub(app1, 'not-a-uuid', ctx.sid.recep)).status, 404);
-
-  const s = await sub(app1, A, ctx.sid.recep);                             // control
-  assert.deepEqual([s.status, ...['content-type', 'cache-control', 'x-accel-buffering'].map((h) => s.headers.get(h))],
-    [200, 'text/event-stream; charset=utf-8', 'no-cache, no-transform', 'no']);
-  assert.equal((await s.next((f) => f.retry !== undefined)).retry, '100');
-  await s.next((f) => f.comment === 'ping');                               // heartbeat
-  await s.close();
-  await waitFor(() => app1.hub.count() === 0);                             // cleanup on close
-});
-
-test('a committed write reaches the stream; a rolled-back write never does; ids only', async () => {
-  const s = await sub(app1, A, ctx.sid.recep);
-  await assert.rejects(withTenant(pool, A, async (db) => {
-    await createAppointment(db, { customerId: CUSTOMER.A, staffUserId: ctx.users.lan, startsAt: tomorrow() });
-    throw new Error('lỗi sau khi ghi');
-  }));
-  const committed = await book(A, ctx.users.lan);
-  // Events arrive in commit order: a leaked rollback would come first
-  assert.deepEqual(await s.nextData(), { type: 'appointment.changed', id: committed.id, version: 1 });
-  await s.close();
-});
-
-test("tenant isolation: A's events never reach a B stream, even for a user in both", async () => {
-  const [sA, sB, sBoth] = [await sub(app1, A, ctx.sid.recep), await sub(app1, B, ctx.sid.minh), await sub(app2, B, ctx.sid.both)];
-  const inA = await book(A, ctx.users.lan);
-  const inB = await book(B, ctx.users.minh);
-  assert.equal((await sA.nextData()).id, inA.id);
-  assert.equal((await sB.nextData()).id, inB.id);         // B's first event is B's own write
-  assert.equal((await sBoth.nextData()).id, inB.id);
-  await Promise.all([sA.close(), sB.close(), sBoth.close()]);
-});
-```
-
-- Negatives without sleeps: forbidden write first, control write second; the first event must be the control (commit order).
-- Also tested: recipient-only notifications; removed member; 429; logout; listener killed → `resync`; shutdown.
-- Client (jsdom + `eventsource` package, real server): live update, lost event recovered on reconnect, 50 bookings in one transaction → 1 refetch (50 uncoalesced), workspace switch, refused stream retried. `queryClient.clear()` after each test, or gc timers keep Node alive.
+Real Postgres as the app role (RLS), two app instances, real HTTP streams read with `fetch` and a small SSE parser, two spas with users and sessions. Check that:
+- no session gives 401 `unauthenticated`; a non-member or a bad tenant id gives 404; a member gets `text/event-stream; charset=utf-8`, `no-cache, no-transform`, `X-Accel-Buffering: no`, the `retry:` line and heartbeats; closing frees the hub entry;
+- a rolled-back write never reaches the stream; a committed one does, as `{ type, id, version }` only;
+- A's write never reaches a B stream, even on the other instance for a user in both spas;
+- negatives need no sleeps: forbidden write first, control write second; the first event must be the control (commit order);
+- also: recipient-only notifications; a removed member's stream ends and its reconnect gets 404; a role change ends the stream and the reconnect succeeds; 429 past `maxPerUser`; logout ends the stream at the re-check; listener killed → `resync`, then events flow; forged or malformed `NOTIFY` is ignored; a client leaving during the auth check leaves nothing; shutdown ends streams; Node's `requestTimeout` does not cut a stream; with `app.user_id` also set, a B-only user is not a member of A; WebSocket: 403 foreign origin, 401, 404, tenant-only invalidations;
+- client (jsdom + `eventsource` package, real server): live update, lost event recovered on reconnect, 50 bookings in one transaction → 1 refetch (50 uncoalesced), workspace switch, refused stream retried, unmount closes. `queryClient.clear()` after each test, or gc timers keep Node alive.
 
 ## 7. Operations and scale
 

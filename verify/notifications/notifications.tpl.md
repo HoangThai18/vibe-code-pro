@@ -26,11 +26,11 @@ Getting messages delivered (not into spam, not blocked) and within Vietnamese ru
 ## 2. Rules for every channel
 
 1. **Separate transactional from marketing.** They differ in consent, limits, Zalo tag, email stream and brandname type. Store `kind` on every message, and never put an offer inside a reminder (on Zalo that alone makes it tag 3).
-2. **Check consent, hours and limits at send time, in the job.** Don't check them when the campaign is queued: consent can be withdrawn in between (`references/privacy.md`).
+2. **Check consent, hours and limits at send time, in the job.** Don't check them when the campaign is queued: consent can be withdrawn in between (`references/privacy.md`). Reserve the send in the same short transaction as the check (section 5), or two campaigns checking at once both pass.
 3. **One notification id is the idempotency key** with every provider (Zalo `tracking_id`, the SMS provider's request id). A retried job never sends twice.
 4. **Fallback only for "can't reach this person here".** Examples: no Zalo account, or the user refused Zalo messages. A provider outage is not one of them: retry later on the same channel. Record each attempt.
 5. **Per-tenant identity and cost:**
-   - each spa sends as itself (its Zalo OA, its brandname, its name in the email display name);
+   - each spa sends as itself (its Zalo OA, its brandname, its name in the email display name), with its credentials sealed (`references/app-security.md`, "Tenant secrets");
    - set a daily quota per tenant;
    - alert on a spending jump.
 6. **Minimal content.** A reminder needs the first name, time and place, not the treatment or a health note.
@@ -94,6 +94,7 @@ Since 1 January 2026, Zalo's ZNS, UID transaction and UID promotion messages are
   - `template_id` and `template_data`;
   - `tracking_id`: up to 48 characters, no special characters.
 - **Tokens:**
+  - Store both sealed (`*_sealed bytea`, `sealSecret` with a key from the secret manager; `openSecret` the access token just before `sendZaloTemplate`): whoever holds a refresh token can message as the spa's OA for about 3 months.
   - The access token lasts about 25 hours and the refresh token about 3 months (Zalo's guide); read `expires_in` from the response.
   - Each refresh returns a new pair and invalidates the old one (Zalo support answers), so there is one valid pair per OA and app.
   - Refresh from one place, as below. If the refresh token is lost or expired, the spa must re-authorize the OA.
@@ -124,6 +125,7 @@ Since 1 January 2026, Zalo's ZNS, UID transaction and UID promotion messages are
     - opt-out instructions at the end of each message;
     - stopping at once on refusal, with one confirmation that contains no ads.
 - **Encoding is cost.** Vietnamese diacritics force UCS-2: 70 characters per message instead of 160. Send SMS without diacritics (the `vibe-frontend` skill, `references/i18n.md`, has a remover that also handles đ), and count parts before sending.
+- **Reserve, then send.** For each advertising message (any channel), the job runs `reserveAdvertisingSend` in its own `withTenant` transaction and commits, then calls the provider outside any transaction, then `finishAdvertisingSend`: `sent`, or deleted when the send failed for good (invalid number, no Zalo account). A timeout keeps the reservation: it counts, and the campaign is not resent to that customer. Counting first and writing the row after sending let two campaigns both see 2 sends and both send.
 
 ```ts
 {{src/notify/sms.ts}}
@@ -141,35 +143,37 @@ Attackers request OTPs to numbers they earn money from, and you pay per message.
 ## 7. Tests
 
 The tests run on PostgreSQL as `app_user`, with fake providers:
-- **Unsubscribe:**
-  - a POST with `List-Unsubscribe=One-Click` withdraws `marketing_email` once, and repeating it adds no row;
+- **Unsubscribe** (real HTTP requests to the handler):
+  - a `multipart/form-data` POST (RFC 8058's example) withdraws `marketing_email`; a repeat as `application/x-www-form-urlencoded` adds no row; urlencoded alone works too;
   - a tampered link gives 404;
-  - an empty body (a GET or a link scanner) gives 400;
+  - a GET (a link scanner) gives 405 and changes nothing;
   - other purposes stay granted.
 - **Zalo tokens:**
   - three concurrent refreshes give `refreshed, busy, busy` and call Zalo once;
-  - the newest pair is stored and the lease is released;
+  - the newest pair is stored sealed (no plain text in the row, another key cannot open it) and the lease is released;
   - a revoked refresh token sets `needs_reconnect`.
 - **Zalo send:**
   - `0912 345 678` is sent as `84912345678`, and `tracking_id` is the notification id without dashes;
   - `-124` means refresh the token, `-118` means another channel, and `-133` means retry at 06:00 Vietnam time.
-- **Advertising check:**
+- **Advertising reservation:**
   - allowed at 10:00;
   - blocked at 22:30 with `retryAt` 07:00;
   - blocked without consent;
   - blocked after 3 sends in 24 hours, and allowed again once the oldest send is 24 hours old;
-  - blocked after the customer withdraws.
+  - blocked after the customer withdraws;
+  - three campaigns reserving at once after 2 sends (a slow insert trigger widens the race): exactly one allowed;
+  - the same campaign twice gives `already_sent`; a send that failed for good frees the slot.
 - **SMS parts:**
   - the same reminder is 1 GSM-7 part without diacritics and 2 UCS-2 parts with them;
   - `{` counts as two characters.
 
-Each of these safeguards, removed alone, fails a test: the link signature, the body check, the refresh lease, quiet hours, the daily limit and the consent check.
+Removing any one safeguard fails a test: the link signature, the POST check, the refresh lease, quiet hours, the daily limit, the consent check, the advisory lock, the reservation before sending.
 
 ## Done when
 
 - [ ] SPF, DKIM (2048-bit) and DMARC pass for each sending subdomain; marketing mail has one-click unsubscribe; bounces and complaints are suppressed.
-- [ ] Every message has a kind; consent, hours and the 3-per-24-hours limit are checked at send time for advertising.
-- [ ] Zalo templates are approved per tag; tokens refresh from one place; `needs_reconnect` alerts the spa.
+- [ ] Every message has a kind; consent, hours and the 3-per-24-hours limit are checked at send time for advertising, and the send is reserved under a per-customer lock before the provider call.
+- [ ] Zalo templates are approved per tag; tokens are sealed and refresh from one place; `needs_reconnect` alerts the spa.
 - [ ] Fallback to SMS only when Zalo cannot reach the person; SMS without diacritics; OTP sends are limited and monitored.
 
 Sources:

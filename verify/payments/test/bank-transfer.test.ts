@@ -1,39 +1,18 @@
-// test/bank-transfer.test.ts: DATABASE_URL=postgres://<superuser>@localhost/payments_check_bank node --import tsx --test
-import { execFileSync } from 'node:child_process';
+// test/bank-transfer.test.ts: DATABASE_URL=postgres://<superuser>@localhost/verify_payments node --import tsx --test
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
-import pg from 'pg';
 import { handleSepayWebhook, type SepayTransfer } from '../src/payments/bank-transfer';
-import type { Paid } from '../src/payments/vnpay-ipn';
+import { admin, apiKeys, app, count, getApiKey, hooks, insertPayment, resetDb, status, tenantA, tenantB, truncate } from './helpers';
 
-const url = process.env.DATABASE_URL!;
-const admin = new pg.Pool({ connectionString: url });
-const app = new pg.Pool({ connectionString: url, options: '-c role=app_user' });
-const tenantA = '00000000-0000-4000-8000-00000000000a';
-const tenantB = '00000000-0000-4000-8000-00000000000b';
-const keys: Record<string, string> = { [tenantA]: 'key-a', [tenantB]: 'key-b' };
-const getApiKey = async (t: string) => keys[t] ?? null;
-const confirm = async (db: pg.PoolClient, p: Paid) => {
-  await db.query('INSERT INTO confirmations (tenant_id, payment_id) VALUES ($1, $2)', [p.tenantId, p.paymentId]);
-};
-let refA = '';
-let refB = '';
+let payA = { id: '', ref: '' };
+let payB = { id: '', ref: '' };
 let nextId = 1;
 
-before(async () => {
-  await admin.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
-  execFileSync('psql', [url, '-q', '-v', 'ON_ERROR_STOP=1', '-f', 'test/schema.sql', '-f', 'payments.sql']);
-  await admin.query('GRANT USAGE ON SCHEMA public TO app_user; GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user');
-  await admin.query("INSERT INTO tenants (id, name) VALUES ($1, 'Spa A'), ($2, 'Spa B')", [tenantA, tenantB]);
-});
+before(resetDb);
 beforeEach(async () => {
-  await admin.query('TRUNCATE confirmations, payment_events, payments, appointments');
-  const ins = async (t: string) => (await admin.query(
-    `WITH a AS (INSERT INTO appointments (tenant_id) VALUES ($1) RETURNING id)
-     INSERT INTO payments (tenant_id, appointment_id, provider, amount, expires_at)
-     SELECT $1, id, 'bank_transfer', 300000, now() + interval '1 day' FROM a RETURNING ref`, [t])).rows[0].ref as string;
-  refA = await ins(tenantA);
-  refB = await ins(tenantB);
+  await truncate();
+  payA = await insertPayment(tenantA, 'bank_transfer', 300000, { ref: 'K7M1Q0XA7', expires: '1 day' }); // has a 1 and a 0
+  payB = await insertPayment(tenantB, 'bank_transfer', 300000, { expires: '1 day' });
 });
 after(async () => {
   await Promise.all([admin.end(), app.end()]);
@@ -41,23 +20,20 @@ after(async () => {
 
 const transfer = (over: Partial<SepayTransfer>): SepayTransfer => ({
   id: nextId++, gateway: 'Vietcombank', transactionDate: '2026-10-26 10:15:00', accountNumber: '0071000123456',
-  code: null, content: `NGUYEN THI THAO chuyen tien SPA${refA}`, transferType: 'in', transferAmount: 300000,
+  code: null, content: `NGUYEN THI THAO chuyen tien SPA${payA.ref}`, transferType: 'in', transferAmount: 300000,
   referenceCode: 'FT26299', description: '', ...over,
 });
-const send = (t: string, body: SepayTransfer, key = keys[t]) =>
-  handleSepayWebhook(app, t, `Apikey ${key}`, body, getApiKey, confirm);
-const status = async (ref: string) =>
-  (await admin.query('SELECT status FROM payments WHERE ref = $1', [ref])).rows[0].status as string;
+const send = (t: string, body: SepayTransfer, key = apiKeys[t]) =>
+  handleSepayWebhook(app, t, `Apikey ${key}`, body, getApiKey, hooks);
 const outcomes = async () =>
   (await admin.query('SELECT outcome FROM payment_events ORDER BY id')).rows.map((r) => r.outcome as string);
-const confirmations = async () => Number((await admin.query('SELECT count(*) FROM confirmations')).rows[0].count);
 
 test('matching code and amount: paid; a retried delivery changes nothing', async () => {
-  const body = transfer({ content: `chuyen khoan spa${refA} dat coc` }); // customers change case and add text
+  const body = transfer({ content: 'chuyen khoan spa-k7mlqoxa7 dat coc' }); // lower case, a dash, l and o for 1 and 0
   assert.equal((await send(tenantA, body)).status, 200);
   assert.equal((await send(tenantA, body)).status, 200);
-  assert.equal(await status(refA), 'paid');
-  assert.equal(await confirmations(), 1);
+  assert.equal(await status(payA.id), 'paid');
+  assert.equal(await count('confirmations'), 1);
   assert.deepEqual(await outcomes(), ['paid']);
 });
 
@@ -66,17 +42,28 @@ test('wrong API key: 401, nothing recorded', async () => {
   assert.deepEqual(await outcomes(), []);
 });
 
-test('partial payment goes to review, never auto-confirmed', async () => {
+test('partial payment goes to review with an alert, never auto-confirmed', async () => {
   await send(tenantA, transfer({ transferAmount: 150000 }));
-  assert.equal(await status(refA), 'needs_review');
-  assert.equal(await confirmations(), 0);
+  assert.equal(await status(payA.id), 'needs_review');
+  assert.deepEqual([await count('confirmations'), await count('reviews')], [0, 1]);
+});
+
+test('a mistyped or swapped code never pays a deposit: unmatched, both payments stay pending', async () => {
+  // Another pending deposit with the same amount, one typo away. Valid codes are never this close: the row
+  // stands for what a sequence (SPA1042, SPA1043) or a code without a check character allows.
+  const near = await insertPayment(tenantA, 'bank_transfer', 300000, { ref: 'K7M1Q0XB7', expires: '1 day' });
+  for (const typed of ['K7M1Q0XB7', 'K7M1Q0AX7', 'K7M1Q0XA', 'K7M1Q0XA77']) {    // typo, swap, too short, too long
+    await send(tenantA, transfer({ content: `chuyen tien SPA${typed}` }));
+  }
+  assert.deepEqual(await outcomes(), ['unmatched', 'unmatched', 'unmatched', 'unmatched']);
+  assert.deepEqual([await status(payA.id), await status(near.id)], ['pending', 'pending']);
 });
 
 test('no code, or a code from another spa: kept as unmatched', async () => {
   await send(tenantA, transfer({ content: 'THAO CK' }));
-  await send(tenantA, transfer({ content: `SPA${refB}` }));
+  await send(tenantA, transfer({ content: `SPA${payB.ref}` }));
   assert.deepEqual(await outcomes(), ['unmatched', 'unmatched']);
-  assert.equal(await status(refB), 'pending');
+  assert.equal(await status(payB.id), 'pending');
 });
 
 test('a second transfer for a paid payment is flagged, and money going out is ignored', async () => {
@@ -84,5 +71,11 @@ test('a second transfer for a paid payment is flagged, and money going out is ig
   await send(tenantA, transfer({}));
   await send(tenantA, transfer({ transferType: 'out' }));
   assert.deepEqual(await outcomes(), ['paid', 'already_settled']);
-  assert.equal(await confirmations(), 1);
+  assert.equal(await count('confirmations'), 1);
+});
+
+test('the same code may exist in two spas: unique per tenant', async () => {
+  const twin = await insertPayment(tenantB, 'bank_transfer', 300000, { ref: payA.ref, expires: '1 day' });
+  await send(tenantB, transfer({}));
+  assert.deepEqual([await status(twin.id), await status(payA.id)], ['paid', 'pending']);
 });

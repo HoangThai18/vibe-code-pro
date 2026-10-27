@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 import { withTenant } from '../db/tenant';
-import type { Paid } from './vnpay-ipn';
+import { findPaymentCode } from './payment-code';
+import type { PaymentHooks } from './vnpay-ipn';
 
 // SePay webhook body (fields from SePay's own integration code)
 export type SepayTransfer = {
@@ -20,14 +21,14 @@ function sameText(a: string, b: string): boolean {
 }
 
 // POST /v1/webhooks/sepay/{tenantId}: each spa connects its own bank account, with its own API key.
-// The transfer note carries the payment code (SPA<ref>), which customers can edit or delete.
+// The transfer note carries the payment code (SPA<ref>), which customers can edit, mistype or delete.
 export async function handleSepayWebhook(
   pool: Pool,
   tenantId: string,
   authorization: string | undefined,
   body: SepayTransfer,
   getApiKey: (tenantId: string) => Promise<string | null>,
-  onPaid: (db: PoolClient, paid: Paid) => Promise<void>,
+  hooks: PaymentHooks,
 ): Promise<Reply> {
   const key = UUID.test(tenantId) ? await getApiKey(tenantId) : null;
   if (!key || !sameText(authorization ?? '', `Apikey ${key}`)) return { status: 401, body: { success: false } };
@@ -41,8 +42,9 @@ export async function handleSepayWebhook(
     );
     if (event.rowCount === 0) return OK; // SePay retried a delivery we already processed
 
-    // Only this tenant's payments are visible (RLS): a code from another spa never matches here
-    const ref = /SPA(\d{1,12})/i.exec(`${body.code ?? ''} ${body.content}`)?.[1];
+    // Only this tenant's payments are visible (RLS): a code from another spa never matches here.
+    // A mistyped code fails its check character and stays unmatched instead of paying someone else's deposit.
+    const ref = findPaymentCode(`${body.code ?? ''} ${body.content}`);
     const { rows } = ref
       ? await db.query<{ id: string; amount: string; status: string }>(
           `SELECT id, amount, status FROM payments WHERE provider = 'bank_transfer' AND ref = $1 FOR UPDATE`, [ref])
@@ -55,13 +57,14 @@ export async function handleSepayWebhook(
     else if (body.transferAmount !== Number(payment.amount)) {
       outcome = 'amount_mismatch'; // partial or over payment: never auto-confirm
       await db.query(`UPDATE payments SET status = 'needs_review' WHERE id = $1`, [payment.id]);
+      await hooks.onReview(db, { tenantId, paymentId: payment.id, amount: Number(payment.amount) });
     } else {
       outcome = 'paid';
       await db.query(
         `UPDATE payments SET status = 'paid', provider_txn_id = $2, paid_at = now() WHERE id = $1`,
         [payment.id, String(body.id)],
       );
-      await onPaid(db, { tenantId, paymentId: payment.id, amount: Number(payment.amount) });
+      await hooks.onPaid(db, { tenantId, paymentId: payment.id, amount: Number(payment.amount) });
     }
     await db.query(`UPDATE payment_events SET payment_id = $2, outcome = $3 WHERE id = $1`,
       [event.rows[0]!.id, payment?.id ?? null, outcome]);

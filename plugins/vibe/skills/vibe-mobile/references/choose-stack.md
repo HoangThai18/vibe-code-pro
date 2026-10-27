@@ -8,7 +8,8 @@ The first question is not "React Native or Flutter" but "do we need an app insta
 3. Recommended default
 4. Shared repo with web
 5. Expo: know this from the start
-6. Record the decision
+6. Zalo Mini App (customer-facing, Vietnam)
+7. Record the decision
 
 ## 1. Do you need a native app
 
@@ -30,6 +31,7 @@ If none apply, build a good mobile web experience first; add the app later, reus
 | **Flutter** | Team knows Dart or wants identical self-drawn UI on every platform | No code sharing with React web; one more language in the project | Team has only React web devs |
 | **Native** (Swift/SwiftUI, Kotlin/Compose) | Deep system API dependence, maximum performance, team has native devs | Two codebases, two teams | Small team must ship both platforms fast |
 | **Kotlin Multiplatform** | Shared logic with native UI per platform | Tooling and ecosystem still change fast | No Kotlin dev on the team |
+| **Zalo Mini App** | Customer-facing booking, loyalty, vouchers for customers in Vietnam: opens inside Zalo, no install, login with Zalo (section 6) | Runs only inside Zalo; each version goes through Zalo's review; platform rules and limits are Zalo's | Staff app, customers outside Vietnam, offline or hardware needs |
 
 ## 3. Recommended default
 
@@ -62,6 +64,16 @@ packages/
 - **Install libraries with `npx expo install <package>`**, not `npm install`: it picks the version matching the current SDK.
 - Each Expo SDK is tied to one React Native version; upgrade the SDK following Expo's upgrade guide, as a separate task with tests (the `vibe-ship` skill, `references/maintenance.md`).
 
-## 6. Record the decision
+## 6. Zalo Mini App (customer-facing, Vietnam)
+
+Spa customers in Vietnam already use Zalo daily; a Mini App lets them book from a link or QR code without installing anything. Keep the staff app (Expo) for staff; the Mini App is one more client of the same API.
+
+- **Stack**: a web app built with React, `zmp-sdk` (Zalo APIs) and `zmp-ui` (components), tooling `zmp-cli`; created in the Mini App Center under a Zalo App (developers.zalo.me). Many SDK APIs work only inside the Zalo mobile app.
+- **Login with Zalo**: `getAccessToken()` returns a Zalo access token; send it to your server, which verifies it with the Zalo Open API, maps the Zalo user id (unique per Zalo App) to a customer and issues your own session. Name and avatar need the user's consent (`authorize` with `scope.userInfo`). `getPhoneNumber()` returns a one-time token (valid 2 minutes) that your server exchanges for the number through a server-to-server Zalo API; the API must be approved for your Mini App ID first.
+- **Payments and messages**: Zalo's Checkout SDK (`createOrder`); messages to customers through a Zalo Official Account, after `requestSendNotification` consent.
+- **Review**: every version is submitted for review in the Mini App Center and published after approval. Check the current review time, size limits and the list of APIs that need approval in the docs (`mini.zalo.me/documents`) before planning a launch date.
+- Customer personal data (phone, name) follows the `vibe-backend` skill (`references/privacy.md`): consent, purpose, deletion.
+
+## 7. Record the decision
 
 Write in `docs/plan/ARCHITECTURE.md` (ADR table): platforms (iOS, Android, PWA), approach, minimum supported iOS/Android versions, whether offline is needed and at what level (`app-data.md` section 5), policy for old app versions (`release.md` section 6).

@@ -21,17 +21,18 @@ export const oneClickHeaders = (url: string) => ({
   'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
 });
 
-// POST /v1/unsubscribe?t=&c=&s= with body "List-Unsubscribe=One-Click", sent by the mailbox provider.
-// GET only shows a confirm page: link scanners open every URL in an email, and must not unsubscribe anyone.
+// POST /v1/unsubscribe?t=&c=&s=, sent by the mailbox provider. Don't require an exact body: RFC 8058's own
+// example posts multipart/form-data, and application/x-www-form-urlencoded is allowed too. The signed URL
+// plus the POST method is the check. GET only shows a confirm page whose button POSTs: link scanners open
+// (GET) every URL in an email, and must not unsubscribe anyone.
 export async function handleOneClickUnsubscribe(
   pool: Pool,
-  query: { t?: string; c?: string; s?: string },
-  body: string,
+  req: { method: string; query: { t?: string; c?: string; s?: string } },
   secret: string,
 ): Promise<{ status: number }> {
-  const { t = '', c = '', s = '' } = query;
+  const { t = '', c = '', s = '' } = req.query;
   if (!validSignature(t, c, s, secret)) return { status: 404 };
-  if (body.trim() !== 'List-Unsubscribe=One-Click') return { status: 400 };
+  if (req.method !== 'POST') return { status: 405 }; // GET, HEAD: render the confirm page instead
   await withTenant(pool, t, async (db) => {
     // Withdrawal is a new consent row (references/privacy.md); skip if already withdrawn
     await db.query(

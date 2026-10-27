@@ -5,5 +5,16 @@
   "realtime/realtime.tpl.md": "plugins/vibe/skills/vibe-backend/references/realtime.md",
   "data-import/data-import.tpl.md": "plugins/vibe/skills/vibe-backend/references/data-import.md",
   "i18n/i18n.tpl.md": "plugins/vibe/skills/vibe-frontend/references/i18n.md",
-  "seo/seo.tpl.md": "plugins/vibe/skills/vibe-frontend/references/seo.md"
+  "seo/seo.tpl.md": "plugins/vibe/skills/vibe-frontend/references/seo.md",
+  "ai/integration.tpl.md": "plugins/vibe/skills/vibe-ai/references/integration.md",
+  "ai/cost.tpl.md": "plugins/vibe/skills/vibe-ai/references/cost.md",
+  "ai/testing.tpl.md": "plugins/vibe/skills/vibe-ai/references/testing.md",
+  "ai/chat-and-files.tpl.md": "plugins/vibe/skills/vibe-ai/references/chat-and-files.md",
+  "next-actions/server-actions.tpl.md": "plugins/vibe/skills/vibe-frontend/references/server-actions.md",
+  "mobile/app-data.tpl.md": "plugins/vibe/skills/vibe-mobile/references/app-data.md",
+  "mobile/testing.tpl.md": "plugins/vibe/skills/vibe-mobile/references/testing.md",
+  "mobile/platform-features.tpl.md": "plugins/vibe/skills/vibe-mobile/references/platform-features.md",
+  "desktop/security.tpl.md": "plugins/vibe/skills/vibe-desktop/references/security.md",
+  "desktop/testing.tpl.md": "plugins/vibe/skills/vibe-desktop/references/testing.md",
+  "desktop/app-data.tpl.md": "plugins/vibe/skills/vibe-desktop/references/app-data.md"
 }
