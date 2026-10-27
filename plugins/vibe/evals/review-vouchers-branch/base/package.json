@@ -1,0 +1,13 @@
+{
+  "name": "spa-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "migrate": "node scripts/migrate.js"
+  },
+  "dependencies": {
+    "fastify": "5.6.1",
+    "pg": "8.16.3"
+  }
+}

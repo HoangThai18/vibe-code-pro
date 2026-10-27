@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: review-vouchers-branch
+expected_outcome: |
+  Review nhánh feat/vouchers so với main, không sửa code. Báo được: hai yêu cầu đổi cùng lúc đều thành công
+  (SELECT rồi UPDATE không điều kiện; sửa bằng UPDATE ... WHERE redeemed_at IS NULL RETURNING hoặc khoá dòng);
+  UNIQUE (code) thiếu tenant_id (spa B không tạo được mã spa A đã dùng, lộ mã của tenant khác); customer_id
+  không có FK ghép (tenant_id, customer_id); thiếu FORCE ROW LEVEL SECURITY; test thiếu ca cô lập tenant và
+  ca đổi đồng thời. Mỗi lỗi có file:dòng và tình huống gây lỗi.
+context:
+  scaffold_script: place-files.sh

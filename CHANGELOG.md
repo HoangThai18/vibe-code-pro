@@ -13,6 +13,7 @@ New references, each with code that was run (tests, and safeguards removed one a
 - New eval cases: payments design, Vietnamese search, Zalo/SMS notifications, and one each for realtime, import, i18n and SEO.
 - Evals, 26 cases: 0.98 with the skills vs 0.80 without; the 7 new cases score 0.97 vs 0.64. Always-on skill descriptions: 3,620 → 3,791 tokens.
 - `vibe-frontend`: new core rule, one formatting module with explicit locale and time zone, and a catalog check in CI.
+- `vibe-mobile`: routes multiple languages, money and date formatting to the `vibe-frontend` i18n reference (Expo + i18next).
 
 ## 1.0.0
 
