@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: permissions-ask-model
+expected_outcome: |
+  PRD ghi "phân quyền chi tiết: chưa chốt", có chuỗi nhiều chi nhánh, kỹ thuật viên chỉ xem lịch của mình. Chưa
+  code: đưa 2–3 phương án (vai trò cố định, vai trò mỗi spa tự tạo, ma trận theo module/bitmask) kèm đánh đổi,
+  nêu phạm vi dữ liệu (của mình / chi nhánh / cả chuỗi), đề xuất một phương án và hỏi người dùng chọn, sẽ ghi ADR.
+context:
+  scaffold_script: place-files.sh
