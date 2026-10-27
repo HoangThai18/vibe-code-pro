@@ -94,7 +94,7 @@ Since 1 January 2026, Zalo's ZNS, UID transaction and UID promotion messages are
   - `template_id` and `template_data`;
   - `tracking_id`: up to 48 characters, no special characters.
 - **Tokens:**
-  - Store both sealed (`*_sealed bytea`, `sealSecret` with a key from the secret manager; `openSecret` the access token just before `sendZaloTemplate`): whoever holds a refresh token can message as the spa's OA for about 3 months.
+  - Store both sealed (`*_sealed bytea`, `sealSecret` with a key from the secret manager; `openSecret` the access token just before `sendZaloTemplate`): whoever holds a refresh token can message as the spa's OA for about 3 months. The example uses one key; to rotate keys, add a `key_version` column and a key ring (`references/app-security.md`, "Tenant secrets").
   - The access token lasts about 25 hours and the refresh token about 3 months (Zalo's guide); read `expires_in` from the response.
   - Each refresh returns a new pair and invalidates the old one (Zalo support answers), so there is one valid pair per OA and app.
   - Refresh from one place, as below. If the refresh token is lost or expired, the spa must re-authorize the OA.

@@ -1,3 +1,4 @@
+// src/db/tenant.ts
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { Role, UserActor } from '../shared/authz';
@@ -34,8 +35,7 @@ export async function withMember<T>(
 ): Promise<T> {
   if (!UUID.test(tenantId)) throw new NotFoundError();   // malformed id: 404, not a 500 from ::uuid
   return withTenant(pool, tenantId, async (db) => {
-    // Keep tenant_id = app_current_tenant(): membership_read also matches app.user_id, so if anything set it,
-    // a member of tenant B calling tenant A's path would get their B row and pass
+    // Filter on the current tenant: membership_read alone also matches app.user_id (see above)
     const { rows } = await db.query<{ role: Role }>(
       'SELECT role FROM memberships WHERE tenant_id = app_current_tenant() AND user_id = $1', [userId]);
     const role = rows[0]?.role;

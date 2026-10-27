@@ -25,7 +25,7 @@ How a SaaS takes payments in Vietnam without losing money to duplicates, forged 
 Don't collect customers' money into your own account and pay the spas later. Decree 52/2024/NĐ-CP on cashless payments lists collection and disbursement support (thu hộ, chi hộ) and payment gateways as intermediary payment services. Those are licensed by the State Bank of Vietnam. Talk to a lawyer before designing that flow.
 
 Credentials per tenant (section 4, `payment_accounts`):
-- sealed at rest: `payment_accounts.credentials_sealed` holds `sealSecret(JSON.stringify(credentials), key)` (AES-256-GCM), the key is in a secret manager, never in the database (`references/app-security.md`, "Tenant secrets"), and `openSecret` runs only when a callback or job needs it;
+- sealed at rest: `payment_accounts.credentials_sealed` holds `sealSecret(JSON.stringify(credentials), key)` (AES-256-GCM), the key is in a secret manager, never in the database (`references/app-security.md`, "Tenant secrets"), and `openSecret` runs only when a callback or job needs it; the example uses one key: to rotate keys, add a `key_version` column and a key ring as in that section;
 - read only by the server;
 - never sent to the browser or written to logs.
 
