@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: dotnet-query-filter-isolation
+expected_outcome: |
+  Trả lời: chưa đủ, global query filter không phải ranh giới bảo mật. Chỉ ra trong code: (1) AddDbContextPool tái
+  dùng instance DbContext, TenantId do middleware gán vẫn còn từ request trước, nên webhook Zalo (không qua
+  middleware) tìm và đổi opt-out của khách ở spa khác; (2) IgnoreQueryFilters() ở thùng rác và khôi phục bỏ luôn
+  điều kiện tenant, thấy và khôi phục khách đã xoá của mọi spa (EF Core 10: đặt tên filter rồi chỉ bỏ filter
+  soft delete, hoặc thêm điều kiện tenant); (3) báo cáo doanh thu dùng Database.SqlQuery (SQL thô) nên cộng doanh
+  thu của mọi spa; (4) app kết nối bằng postgres (superuser) nên DB không chặn gì. Đề xuất chặn ở DB: Postgres
+  RLS có FORCE, app chạy bằng role không BYPASSRLS, đặt tenant bằng set_config(..., true) trong transaction của
+  mỗi request; webhook xác định tenant từ OA trước khi truy vấn; test cô lập hai spa chạy bằng role của app.
+context:
+  scaffold_script: place-files.sh
