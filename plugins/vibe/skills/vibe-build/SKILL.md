@@ -1,11 +1,11 @@
 ---
 name: vibe-build
-description: "Turns a task card or feature request into working, tested code: one agent writes the feature and its tests, checks version-correct docs for unfamiliar APIs, picks the test level (unit, real-DB integration, E2E), verifies, merges. Use for any task or feature, for writing or fixing any test (especially Playwright UI and user-flow tests: login, roles, workspace switch, screenshots, a11y, flaky tests), and when deciding on subagents or parallel tasks (default: no). Also use for Vietnamese requests like 'làm task P1-T03', 'code tiếp', 'viết test', 'test giao diện', 'test chập chờn', 'chạy song song'."
+description: "Builds a task card, or a feature in an existing project, as tested code: one agent writes the feature and its tests (unit, real-DB integration, Playwright E2E with roles, workspace switch, screenshots, a11y), verifies, hands over to review. Also for writing tests, flaky tests, and deciding on subagents or parallel tasks (default: no). Also use for Vietnamese requests like 'làm task P1-T03', 'code tiếp', 'viết test', 'test giao diện', 'test chập chờn', 'chạy song song'."
 ---
 
 # Build: from task card to verified code
 
-Task viewer: `scripts/tasks.py` in the `vibe-tasks` skill (`python3 <tasks-skill>/scripts/tasks.py next --dir docs/tasks`).
+Task script: `scripts/tasks.py` in the `vibe-tasks` skill (skills sit side by side: `python3 <this skill's folder>/../vibe-tasks/scripts/tasks.py next --dir docs/tasks`; Windows: `py -3`).
 
 | Task | Read |
 |---|---|
@@ -19,20 +19,29 @@ Task viewer: `scripts/tasks.py` in the `vibe-tasks` skill (`python3 <tasks-skill
 
 ## Default: one agent, one loop
 
-The main session does tasks one at a time: read the task card, code, write tests, run, fix, merge. Whoever writes a feature writes its tests too, because they hold the context: why this approach, where it can break. Splitting "one agent codes, another tests" loses context at every handoff. Use subagents only when it clearly pays off (last section).
+The main session does tasks one at a time: read the task card, code, write tests, run, fix, hand over to review. Whoever writes a feature writes its tests too, because they hold the context: why this approach, where it can break. Splitting "one agent codes, another tests" loses context at every handoff. Use subagents only when it clearly pays off (last section).
 
-**Scale to fit.** If the repo has no `docs/tasks`, or the job is small (a few files, one session): skip task cards, phase branches and status updates. Keep what makes quality: read similar code before writing, test the change, run verify, change only what was asked.
+**Scale to fit.** If the repo has no `docs/tasks`, or the job is small (a few files, one session): skip task cards, phase branches and status updates; self-review against the `vibe-review` skill's checklist and commit. Keep what makes quality: read similar code before writing, test the change, run verify, change only what was asked.
 
 ## Workflow for one task
 
-1. **Pick the task**: the one `next` suggests, or the one the user names. Set `status: doing`, create branch `task/<ID>` from the phase branch (`phase/P1`).
+1. **Branch**:
+   - No git repo: ask the user, then `git init -b main`, check `.gitignore` covers `.env*` and dependency folders, commit the existing files.
+   - No phase branch: `git switch -c phase/P1 main` (or the repo's default branch).
+   - `task/<ID>` exists (resumed or after a BLOCK): `git switch task/<ID>`; read `docs/reviews/<ID>.md` if the card links it and fix its findings first. Otherwise `git switch -c task/<ID> phase/P1`.
+   - Set `status: doing`, commit `<ID>: start` (the checkpoint to return to).
 2. **Read before coding**: the task card, `AGENTS.md`, the relevant part of `docs/domain/DOMAIN.md` (rules `BR-xx`), the contract, the design, and 1–2 places in the codebase that already do something similar, so you follow their structure and conventions (unfamiliar codebase: use the `vibe-architecture` skill). Use the `vibe-backend`, `vibe-frontend`, `vibe-mobile`, `vibe-desktop` or `vibe-ai` skill when the task touches that area; each skill loads only the docs needed.
-3. **Check docs for any API you are unsure of**: check the installed version and read the docs for that version (the `vibe-plan` skill, `references/tech-research.md`). Never guess function signatures.
+3. **Check docs for any API you are unsure of**: check the installed version and read the docs for that version (the `vibe-plan` skill, `references/tech-research.md`). Never guess function signatures or package names.
 4. **Code and tests together**, following codebase conventions (reuse existing helpers, error classes, components; put code in the right layer and module), sub-task by sub-task, committing `<ID>: <what>` after each meaningful step. Tests cover every acceptance criterion and error path; pick the level per `references/testing.md`.
 5. **Change only files in `touches`**. If something outside scope needs changing, stop and tell the user (or create a new task); don't spread.
-6. **Verify**: run the task card's verify command plus typecheck, lint and all related tests. UI task: take screenshots to check (the `vibe-frontend` skill). Task touching a main flow that has E2E: run that flow's E2E too.
-7. **Review**: task touches auth, tenant data, money or migrations → the `vibe-review` skill (independent verifier: if your agent supports subagents, run the `vibe-verifier` subagent; otherwise review in a fresh session with the `vibe-review` skill's checklist). Small, low-risk task → self-review with that checklist.
-8. **Merge** into the phase branch (`git merge --no-ff task/<ID>`), rerun all tests, update the task card (`done`, commit, tick acceptance criteria), delete the branch, commit the status.
+6. **Verify**: run the task card's verify command plus typecheck, lint and all related tests. UI task: take screenshots to check (the `vibe-frontend` skill). Task touching a main flow that has E2E: run that flow's E2E too. Never make a check pass by weakening it: deleting, skipping or loosening tests or assertions, changing expected values or snapshots to match new output, excluding files from test or lint. An expected value that really changed: say why in the commit.
+7. **Hand over to review**: tick the sub-tasks, set `status: review`, commit, keep `task/<ID>` (don't merge). Report what changed and the checks run, then suggest the review (`/vibe-check <ID>`, written the way this agent runs commands). The `vibe-review` skill reviews (independent verifier for auth, tenant data, money or migrations) and, on PASS, merges with `--no-ff` and sets `done`.
+
+## Safety net
+
+- Start each task from a clean tree (`git status`): commit or set aside leftover changes first, asking whose they are, so every change of this task can be undone.
+- Undo: an uncommitted edit → `git restore <file>`; a committed step → `git revert <sha>` (keeps history).
+- `git reset --hard`, `git clean`, `git push --force`, and deleting a branch with unmerged work: only when the user explicitly agrees to that exact command.
 
 ## When to use subagents
 

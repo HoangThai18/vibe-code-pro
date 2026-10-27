@@ -1,6 +1,6 @@
 ---
 name: vibe-plan
-description: "Plan a project before coding: domain analysis (roles, workflows, business rules, data lifecycles), user, competitor and tech-stack research (version-correct docs, library choice), PRD, platform choice (web, mobile, desktop), architecture, phases, AGENTS.md. Use when starting a product, system or large feature (kickoff, PRD, research, tech stack, architecture, phases), or when the domain is still vague. A small prototype needs only a one-page plan. Also use for Vietnamese requests like 'lên plan', 'phân tích nghiệp vụ', 'viết PRD', 'chọn tech stack', 'thiết kế kiến trúc', 'chia phase'."
+description: "Plan a project before coding: domain analysis (roles, workflows, business rules, data lifecycles), user, competitor and tech-stack research, PRD, platform choice (web, mobile, desktop), architecture, phases, AGENTS.md. Use when starting a product, system or large feature, including requests to build a whole new app, or when the domain is still vague; a small prototype gets a one-page plan. Also use for Vietnamese requests like 'làm cho mình app ...', 'xây hệ thống ...', 'lên plan', 'phân tích nghiệp vụ', 'viết PRD', 'chọn tech stack', 'chia phase'."
 ---
 
 # Plan: from idea to a buildable plan
@@ -15,7 +15,7 @@ Write project docs in the user's language unless the repo already uses another.
 
 ## Size it right
 
-- **Prototype, demo, small tool**: one file `docs/plan/PLAN.md` (goal, scope, stack, 3–5 steps). Ask the user before doing the full version.
+- **Prototype, demo, small tool**: one file `docs/plan/PLAN.md` (goal, scope, stack, 3–5 steps as `- [ ]` checkboxes, ticked as each is done). Ask the user before doing the full version.
 - **Real product, many roles, many customers**: do every step below. Skip a step that doesn't apply (e.g. a trivial domain) with a one-line reason.
 
 ## Workflow
@@ -36,4 +36,4 @@ Write project docs in the user's language unless the repo already uses another.
    - Each later phase is a vertical slice (DB → API → UI) for one user flow, ending in something demoable and deployable; never "BE done" then "FE done".
    - Each phase has a goal, scope, verifiable exit criteria, screens to design, risks; about 5–15 tasks.
 7. **`AGENTS.md`** from `templates/AGENTS.template.md`: commands, structure, mandatory rules, conventions. Also create a `CLAUDE.md` whose only line is `@AGENTS.md` (Claude Code reads CLAUDE.md). If either file exists, extend it, never overwrite (an existing `CLAUDE.md` keeps its content and gains the `@AGENTS.md` line). Keep it short: only what the agent can't infer from the code. Pick the project's agent tools (docs lookup, browser, Figma, DB, GitHub, LSP) with `references/dev-tools.md`: only what the project needs, least privilege, never connected to production.
-8. **Confirm with the user**: summarize the goal, the architecture in 5 lines, the phase list, assumptions and open questions. Once approved, move to the `vibe-tasks` skill to split P0 into tasks (a phase with new UI is designed in Claude Design first).
+8. **Confirm with the user**: summarize the goal, the architecture in 5 lines, the phase list, assumptions and open questions. Once approved, move to the `vibe-tasks` skill to split P0 into tasks (design a phase's new screens first: Claude Design, Figma or a screenshot mockup). Later phases are split when the previous one closes.

@@ -79,3 +79,4 @@ A reminder, not a form to fill. Report only real issues in the diff, each with `
 - Bug fixes have a test reproducing the bug (fails before the fix, passes after).
 - Tests don't depend on run order, real time or external networks.
 - Tenant isolation and authorization tests are not skipped.
+- No weakened tests: the diff doesn't delete, skip (`.skip`, `xit`, `@pytest.mark.skip`) or loosen tests or assertions, change expected values or snapshots just to match new output, or exclude files from test, coverage or lint config. A changed expectation needs a reason tied to the requirement.

@@ -10,7 +10,7 @@ size: M
 ---
 
 ## Goal
-List screen per the "Customers / List" mockup in Claude Design: search, status filter, pagination, all loading / empty / error states. Use MSW mocks until the API is done.
+List screen per the "Customers / List" mockup (linked in docs/design/; made in Claude Design, Figma or as a screenshot): search, status filter, pagination, all loading / empty / error states. Use MSW mocks until the API is done.
 
 ## Acceptance criteria
 - [ ] Matches the mockup at 375 / 768 / 1280 (screenshots attached to the report)

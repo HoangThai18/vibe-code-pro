@@ -1,6 +1,6 @@
 ---
 name: vibe-ship
-description: "Ships software to production and keeps it running: CI/CD (GitHub Actions), environments, deploy order with migrations, feature flags, release checklist, rollback; then logs, metrics, alerts, error tracking (Sentry), backup and restore (RPO/RTO, PITR, restore drills), dependency upgrades and security patches, performance (slow app or queries, k6 load tests, Web Vitals, whether to add a cache). Use for deploy, go-live, monitoring, backup or slowness questions. Also use for Vietnamese requests like 'lên production', 'nâng cấp thư viện', 'vá lỗ hổng', 'load lâu', 'kiểm tải', 'thêm Redis'."
+description: "Ships to production and keeps it running: CI/CD (GitHub Actions), environments, deploys with migrations, feature flags, releases, rollback; logs, metrics, alerts, error tracking, backup and restore drills, dependency upgrades and security patches, performance (slow pages or queries, load tests, Web Vitals, caching). Use for deploy, go-live, monitoring, backup, restore or slowness questions. Also use for Vietnamese requests like 'triển khai', 'lên production', 'sao lưu', 'khôi phục dữ liệu', 'nâng cấp thư viện', 'vá lỗ hổng', 'load lâu', 'thêm Redis'."
 ---
 
 # Ship: go to production and keep it running
@@ -33,6 +33,7 @@ Deploy platforms (Vercel, Fly, Railway, Render, AWS, GCP, VPS + Docker...) chang
 6. **A backup is worth something only after a test restore succeeds.**
 7. **Alert on symptoms users see** (rising errors, slowness), with handling instructions; don't alert on everything.
 8. **Production holds real data**: never run writes, migrations or cleanup scripts on production without the user's confirmation and a recent backup.
+9. **Production secrets stay out of the agent session**: never ask for or accept production keys or service-role keys in chat; keep the production `DATABASE_URL` out of any local `.env` the agent can run commands against (use staging or a read-only role); never print `.env` files or secret values (`cat .env`, `printenv`, `echo $SECRET`). A secret pasted into chat counts as leaked: rotate it.
 
 ## Suggested order for a new project
 
