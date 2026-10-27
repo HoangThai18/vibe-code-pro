@@ -1,6 +1,6 @@
 # MySQL: the multi-tenant SaaS on MySQL instead of PostgreSQL
 
-The other references are written for PostgreSQL. This one lists what replaces RLS, exclusion constraints, `timestamptz`, transactional DDL and `unaccent` on MySQL. Ran with Node 22, mysql2 3.24.6, `node:test`, on MySQL 8.4.13 (official `mysql:8.4` image) and 8.0.46 (Ubuntu 24.04): 61 tests from an empty database, as an app user with DML grants only.
+The other references are written for PostgreSQL. This one lists what replaces RLS, exclusion constraints, `timestamptz`, transactional DDL and `unaccent` on MySQL. Ran with Node 22, mysql2 3.24.6, `node:test`, on MySQL 8.4.13 (official `mysql:8.4` image) and 8.0.46 (Ubuntu 24.04): 63 tests from an empty database, as an app user with DML grants only.
 
 **Versions.** 8.0 reached end of life on 2026-04-30. 8.4 is LTS (premier support to 2029-04, extended to 2032-04); 9.7 (2026-04) is the newest LTS, not tested here.
 
@@ -24,7 +24,7 @@ The other references are written for PostgreSQL. This one lists what replaces RL
 | `timestamptz` | `DATETIME(3)` holding UTC |
 | `pg_trgm` + `unaccent` | The column collation `utf8mb4_0900_ai_ci` |
 | Transactional DDL, `CONCURRENTLY`, `lock_timeout` | Each DDL statement commits; `ALGORITHM`/`LOCK`; `lock_wait_timeout` |
-| Exclusion constraint | Lock the staff member's row |
+| Exclusion constraint | Lock the staff member's row, at READ COMMITTED |
 | `RETURNING` | None (`1064`): generate ids in the app |
 | An error aborts the transaction | Only the failed statement is undone; `COMMIT` keeps the rest |
 | pg-boss | A `jobs` table claimed with `SKIP LOCKED` |
@@ -112,7 +112,7 @@ On 220,000 rows: `INSTANT` 0.01 s, an index 0.8 s, `ADD COLUMN` + `ADD INDEX` in
 
 ## 6. Concurrency: double booking, deadlocks, job queue
 
-Under REPEATABLE READ (the default) a plain `SELECT` reads the snapshot of the transaction's first read; a locking read (`FOR UPDATE`, `FOR SHARE`) reads the latest rows and locks every index entry its plan scans, gaps included. Bookings serialize on the staff member's row:
+InnoDB defaults to REPEATABLE READ: a plain `SELECT` reads the snapshot of the transaction's first read, and a locking read (`FOR UPDATE`, `FOR SHARE`) locks every index entry its plan scans, gaps included (next-key locks). Run the app at READ COMMITTED, as PostgreSQL does: each statement sees the latest commits and searches take no gap locks. The pool sets it on connect and `checkSession` refuses to start without it (section 7). Bookings serialize on the staff member's row:
 
 ```ts
 {{src/appointments.ts}}
@@ -120,20 +120,20 @@ Under REPEATABLE READ (the default) a plain `SELECT` reads the snapshot of the t
 
 | Guard (tested) | Result |
 |---|---|
-| Plain `SELECT` check, then `INSERT` | double booking |
-| `FOR UPDATE` on the overlap check only | both get the gap lock and the inserts deadlock (`1213`) when the window ends the index; else the second waits |
-| Staff lock + plain `SELECT` | double booking at REPEATABLE READ (the snapshot predates the wait); holds at READ COMMITTED |
-| Staff lock + `FOR SHARE` on the optimizer's `(tenant_id, starts_at)` plan | 10 staff at the same hour × 20: 176–178 of 200 deadlocked, both versions |
-| The code above | one slot × 10 requests (no retry, and through `withMember`): 1 booked, 9 × 409 `appointment_slot_taken`; 10 staff at once: 0 deadlocks |
+| Plain `SELECT` check, then `INSERT` | double booking, either level |
+| `FOR UPDATE` on the overlap check only | REPEATABLE READ: both get the gap lock and the inserts deadlock (`1213`); READ COMMITTED: no gap lock, double booking |
+| Staff lock + plain `SELECT` | REPEATABLE READ: double booking (the snapshot predates the lock wait); READ COMMITTED: holds |
+| Staff lock + `FOR SHARE` at REPEATABLE READ; 10 staff book the same hour, 20 rounds, no retry | on the optimizer's `(tenant_id, starts_at)` plan 174–179 of 200 deadlocked; pinned to `appointments_staff`, 19–29 on a new tenant (staff with no appointments share one index gap), 0 once each has history |
+| The code above, at READ COMMITTED | the same race: 0 deadlocks, new tenant or not; one slot × 10 requests × 10 rounds: 1 booked, 9 × 409 `appointment_slot_taken` |
 | Fixed slots: `appointment_slots` with `PRIMARY KEY (tenant_id, staff_user_id, slot_start)`, a row per 30 minutes | 1 booked, 9 × `1062` → 409 |
 
-`withMember` reruns the whole transaction on `1213` (`retryOnDeadlock`). Jobs go into a `jobs` table in the business transaction; a worker claims in a short transaction, `SELECT ... FROM jobs FORCE INDEX (jobs_ready) WHERE queue = ? AND status = 'queued' AND run_at <= UTC_TIMESTAMP(3) ORDER BY run_at LIMIT ? FOR UPDATE SKIP LOCKED`, marks the rows `running` with a lease, commits, then works. Pin the index: on a small table the optimizer's full scan locked every queued row and a second worker claimed nothing, index present or not (at READ COMMITTED too). The reminder job follows `references/jobs.md`: a plain tenant loop, one `notifications` row per appointment (`UNIQUE`, `1062` skipped), backoff, dead after 5 attempts, expired leases requeued.
+`FOR SHARE` is the backstop for a session left at REPEATABLE READ (`resetOnRelease`, another pool): one slot × 10 through `withMember` there still gave 1 booked, 9 × 409. For one transaction only: `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` before `BEGIN` (inside a transaction: `1568`). `withMember` still reruns the whole transaction on `1213` (`retryOnDeadlock`). Jobs go into a `jobs` table in the business transaction; a worker claims in a short transaction, `SELECT ... FROM jobs FORCE INDEX (jobs_ready) WHERE queue = ? AND status = 'queued' AND run_at <= UTC_TIMESTAMP(3) ORDER BY run_at LIMIT ? FOR UPDATE SKIP LOCKED`, marks the rows `running` with a lease, commits, then works. Pin the index: on a small table the optimizer's full scan locked every queued row and a second worker claimed nothing, index present or not (at READ COMMITTED too). The reminder job follows `references/jobs.md`: a plain tenant loop, one `notifications` row per appointment (`UNIQUE`, `1062` skipped), backoff, dead after 5 attempts, expired leases requeued.
 
 ## 7. Session settings and sql_mode
 
 | Setting | Tested |
 |---|---|
-| Pool: `charset: 'utf8mb4_0900_ai_ci'`, `timezone: 'Z'`, `SET time_zone = '+00:00'` per new connection; `checkSession` at startup | refuses to start without strict mode or UTC |
+| Pool: `charset: 'utf8mb4_0900_ai_ci'`, `timezone: 'Z'`, `SET SESSION time_zone = '+00:00', transaction_isolation = 'READ-COMMITTED'` per new connection; `checkSession` at startup | refuses to start without strict mode, UTC or READ COMMITTED |
 | Strict `sql_mode` + `ONLY_FULL_GROUP_BY` (8.x default) | with `''`: `'Nguyễn Thị Thảo'` → `'Nguyễ'` in `VARCHAR(5)`, `'abc'` → 0, `'2026-02-30'` → `0000-00-00`, warnings only; `GROUP BY` returned any `name`. Strict: `1406`, `1366`, `1292`, `1055` |
 | `INSERT IGNORE` | truncates even when strict, turns FK failures into warnings: catch `1062` instead |
 | `affectedRows` | mysql2 sets `CLIENT_FOUND_ROWS`: an `UPDATE` changing nothing counts its row (no false 404); an `ON DUPLICATE KEY UPDATE` no-op counts 1, like an insert |
@@ -150,7 +150,7 @@ As the DML-only app user on a real MySQL (CI: a `mysql:8.4` service): the matrix
 | Runner behind a young / an old open transaction | `1205` within 3 s / refuses to start |
 | Pooled `@tenant_id`; `resetOnRelease` | leaks to the next request; cleared, `time_zone` reset |
 
-Each of these was removed once and a test failed: the `tenant_id` filter, the composite FK, `tenant_id` in the phone unique, the staff lock, `FOR SHARE`, both `FORCE INDEX`, `SKIP LOCKED`, `lock_wait_timeout`, the long-transaction check, `timezone: 'Z'`, NFC, `LIKE` escaping.
+Each of these was removed once and a test failed: the `tenant_id` filter, the composite FK, `tenant_id` in the phone unique, READ COMMITTED (new tenant: deadlocks), the staff lock, `FOR SHARE` (at REPEATABLE READ), `FORCE INDEX` and `SKIP LOCKED` in the claim, `lock_wait_timeout`, the long-transaction check, `timezone: 'Z'`, NFC, `LIKE` escaping.
 
 ## 9. MariaDB
 
