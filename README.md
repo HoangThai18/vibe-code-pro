@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img alt="Agent Skills standard" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
   <img alt="12 skills, 5 commands, 2 subagents" src="https://img.shields.io/badge/skills-12%20·%20commands%205%20·%20subagents%202-DB2777?style=flat-square">
   <img alt="Examples executed" src="https://img.shields.io/badge/examples-executed-059669?style=flat-square">
-  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.98 with the skills vs 0.75 without, 31 cases" src="https://img.shields.io/badge/eval-0.98%20with%20·%200.75%20without-F59E0B?style=flat-square"></a>
+  <a href="#evals-with-and-without-the-skills"><img alt="Eval: 0.97 with the skills vs 0.78 without, 41 cases" src="https://img.shields.io/badge/eval-0.97%20with%20·%200.78%20without-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><b>English</b> · <a href="README.vi.md">Tiếng Việt</a></p>
@@ -148,60 +148,68 @@ Not run here: the skills inside agents other than Claude Code (no Codex, Cursor,
 
 ## Evals: with and without the skills
 
-`plugins/vibe/evals/` holds 31 cases: real requests (in Vietnamese, as users type them) with grading criteria. Most criteria are objective: which tools ran, in what order (the test is written and seen failing before the fix), file contents after the run, whether an agent was spawned. Each case runs 3 times with the skills and 3 times without (`claude plugin eval`, the command's default model and judge). Results for 1.2.0, run in Claude Code:
+`plugins/vibe/evals/` holds 41 cases: real requests (in Vietnamese, as users type them) with grading criteria. 64 criteria are deterministic: which tools ran and in what order (the test is written and seen failing before the fix), what was written to files, whether an agent was spawned. The other 144 are judged by an LLM (the command's default judge, three votes each) against PASS/FAIL criteria that a reader can apply. Each case runs 5 times with the skills and 5 times without (`claude plugin eval`, the command's default model). Results for 1.3.0, run in Claude Code:
 
 | Case | With | Without | Main difference |
 |---|---|---|---|
-| **New in 1.2.0:** "build me a spa management app" in an empty folder | **1.00** | 0.33 | Asked a numbered list of questions with defaults before any code: 3/3 vs 0/3 (without the skills it wrote the app straight away) |
-| **New:** "do the permissions" when the PRD leaves them open | **1.00** | 0.67 | Offered 2–3 permission models with trade-offs and a recommendation, then asked: 3/3 vs 0/3 |
-| **New:** review a branch with five planted issues | **1.00** | 0.95 | Missing `FORCE ROW LEVEL SECURITY`: 3/3 vs 2/3; the double-redeem race, `UNIQUE` without `tenant_id` and the missing composite FK were found both ways |
-| **New:** "continue" with a handoff note and uncommitted work | **0.96** | 0.92 | Card handed over at `review`, not left at `doing` or set to `done`: 2/3 vs 1/3 |
-| **New:** "it's done, tests pass, mark it done and merge" | 1.00 | 1.00 | Both runs found the two gaps and neither marked it done; kept as a guard |
-| Live appointment board (realtime) | **1.00** | 0.40 | Events as hints, stream authorized per spa, one LISTEN connection per instance: 3/3 vs 0/3 each |
-| Slow list page, team wants to add Redis | **1.00** | 0.44 | Load test with thresholds on staging: 3/3 vs 0/3 |
-| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.50 | New build and staged rollout, old app versions kept working: 3/3 vs 0/3 |
-| Fix `slugify('Đường')` | **1.00** | 0.58 | Saw the repro test fail before fixing: 3/3 vs 0/3 |
-| Switching workspace still shows old data | **1.00** | 0.58 | Cancel requests and drop the old workspace's cache: 3/3 vs 0/3 |
-| Import 20,000 customers from Excel/CSV | **1.00** | 0.60 | Resumable job in committed chunks; formula escaping and UTF-8 check: 3/3 vs 0/3 |
-| Zalo reminders with SMS fallback, promotions | **1.00** | 0.60 | Refresh token rotation from one place; advertising rules: 3/3 vs 0/3 |
-| Online deposits by QR transfer or VNPay | **1.00** | 0.60 | Edited transfer notes, partial payments, duplicate webhooks; e-invoice timing: 3/3 vs 0/3 |
-| SEO for public spa pages, app and staging hidden | **1.00** | 0.60 | Real 404/308 for spa pages: 3/3 vs 0/3 |
-| SMS reminder job design | **1.00** | 0.67 | How the scan lists spas under RLS (a narrow `SECURITY DEFINER` function, then per-spa work): 3/3 vs 0/3 (grader added in 1.2.0) |
-| Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines: 3/3 vs 0/3 |
-| Playwright test for workspace switching | **1.00** | 0.73 | Role/label locators: 3/3 vs 0/3 |
-| "Where are we, what's next?" on task cards | **1.00** | 0.73 | The right next step: 3/3 vs 0/3 |
-| AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, friendly API errors: 3/3 vs 0/3 |
-| Move mobile tokens out of AsyncStorage | **1.00** | 0.78 | Clear Keychain tokens left after a reinstall: 3/3 vs 0/3 |
-| Pick an architecture for a 3-person team | **1.00** | 0.80 | When to revisit the choice: 3/3 vs 1/3 |
-| Search "nguyen thao" finds "Nguyễn Thị Thảo" under RLS | **1.00** | 0.80 | Saw that RLS keeps LIKE off the trigram index: 3/3 vs 1/3 |
-| Vietnamese/English, prices and times for a Singapore branch | **0.73** | 0.53 | "Today" bounded by local midnight: 2/3 vs 1/3; catalog check in CI: 0/3 both ways |
-| Link preview (SSRF) | 0.92 | 0.92 | The skill was not loaded in any run |
-| RLS for memberships | 0.93 | **1.00** | The one run that skipped the skill set the user id on every request (grader added in 1.2.0) |
-| NOT NULL backfill under FORCE RLS, column rename without downtime, follow the codebase's patterns, Electron app security, parallel agents for small tasks? | 1.00 | 1.00 | Done right without the skills too |
+| **New in 1.3.0:** Spring Boot + RLS, "spa A sometimes sees spa B's customers" | **0.84** | 0.44 | Spring Data query methods run outside a transaction, so after the fix they would see 0 rows: 4/5 vs 0/5; open-in-view turned off: 3/5 vs 0/5; `set_config(..., true)` in the code: 5/5 vs 3/5 |
+| **New:** parse a CSV exported from Excel | **0.90** | 0.50 | A maintained CSV library instead of a hand-written parser: 4/5 vs 0/5 (the rule is in the `vibe-build` description, so no skill has to load) |
+| **New:** ASP.NET Core, "put the role in the JWT and use `RequireRole`" | **0.80** | 0.69 | Membership checked first, a non-member gets 404: 5/5 vs 0/5. No run wrote the HTTP test for it (0/5 both ways); runs with the skills listed it as missing |
+| **New:** EF Core global query filter, "is that enough to isolate spas?" | **0.80** | 0.67 | Enforcement in the database (RLS with `FORCE`, an app role, the tenant set per transaction): 3/5 vs 0/5; noticed that the app connects as `postgres`: 1/5 vs 0/5 |
+| **New:** Laravel + MySQL, two receptionists double-book a technician | 0.87 | **0.93** | The overlap check can't read a stale snapshot: 3/5 vs 4/5. The skill loaded in 1 of 5 runs; both misses were runs without it |
+| **New:** MySQL search "dang anh" finds "Đặng Thị Ánh"; review a Laravel module for tenant leaks; add a column and an index to 20 million rows on MySQL; a third copy of a function; comments | 0.97–1.00 | 0.97–1.00 | Done right without the skills too |
+| "Build me a spa management app" in an empty folder | **1.00** | 0.33 | Asked a numbered list of questions with defaults before any code: 5/5 vs 0/5 |
+| Live appointment board (realtime) | **1.00** | 0.44 | Stream authorized per spa, one LISTEN connection per instance: 5/5 vs 0/5 each |
+| Slow list page, team wants to add Redis | **1.00** | 0.53 | Load test with thresholds on staging: 5/5 vs 0/5 |
+| Fix `slugify('Đường')` | **1.00** | 0.55 | Saw the repro test fail before fixing: 5/5 vs 0/5 |
+| Import 20,000 customers from Excel/CSV | **0.92** | 0.56 | Resumable job in committed chunks: 5/5 vs 0/5; formula escaping and UTF-8 check: 3/5 vs 0/5 |
+| Zalo reminders with SMS fallback, promotions | **0.96** | 0.56 | Advertising rules: 5/5 vs 0/5; refresh token rotation from one place: 4/5 vs 0/5 |
+| Vietnamese/English, prices and times for a Singapore branch | **0.92** | 0.60 | Catalog check in CI: 5/5 vs 0/5; "today" bounded by local midnight: 5/5 vs 2/5 |
+| SEO for public spa pages, app and staging hidden | **1.00** | 0.64 | Real 404/308 for spa pages: 5/5 vs 0/5 |
+| "Do the permissions" when the PRD leaves them open | **0.95** | 0.65 | Offered permission models with trade-offs, then asked: 4/5 vs 0/5 |
+| Customer asks to delete their data (Vietnam law) | **1.00** | 0.67 | Current law and deadlines: 5/5 vs 0/5 |
+| Search "nguyen thao" finds "Nguyễn Thị Thảo" under RLS | **1.00** | 0.68 | Saw that RLS keeps LIKE off the trigram index: 5/5 vs 2/5 |
+| "Where are we, what's next?" on task cards | **1.00** | 0.68 | The right next step: 5/5 vs 1/5 |
+| Ship a mobile app that just added `expo-camera` via EAS Update | **1.00** | 0.70 | New build and staged rollout: 5/5 vs 0/5 |
+| Move mobile tokens out of AsyncStorage | **0.97** | 0.73 | Clear Keychain tokens left after a reinstall: 4/5 vs 0/5 |
+| AI feature: summarize customer notes | **1.00** | 0.75 | `max_tokens`, `stop_reason` check, friendly API errors: 5/5 vs 0/5 |
+| Switching workspace still shows old data | **1.00** | 0.75 | Drop the old workspace's cache: 5/5 vs 0/5 |
+| Playwright test for workspace switching | **0.92** | 0.76 | Role/label locators: 4/5 vs 1/5 |
+| Electron app security | **0.98** | 0.78 | Permission handlers that deny by default: 5/5 vs 0/5 |
+| Online deposits by QR transfer or VNPay | **0.92** | 0.80 | Edited transfer notes and partial payments: 3/5 vs 0/5 |
+| SMS reminder job design | **1.00** | 0.84 | How the scan lists spas under RLS: 5/5 vs 1/5 |
+| "Continue" with a handoff note and uncommitted work | **0.97** | 0.88 | Card handed over at `review`: 4/5 vs 0/5 |
+| Pick an architecture for a 3-person team | **1.00** | 0.88 | When to revisit the choice: 5/5 vs 2/5 |
+| RLS for memberships | **1.00** | 0.92 | User id set only for the login lookup: 5/5 vs 3/5 |
+| Link preview (SSRF) | **1.00** | 0.95 | Internal addresses blocked after DNS: 5/5 vs 4/5. The skill still did not load in any run |
+| Review a branch with five planted issues | 0.97 | **1.00** | Missing `FORCE ROW LEVEL SECURITY`: 4/5 vs 5/5 |
+| NOT NULL backfill under FORCE RLS, column rename without downtime, follow the codebase's patterns, parallel agents for small tasks?, "it's done, mark it done and merge" | 1.00 | 1.00 | Done right without the skills too; kept as guards |
 | **Small change** ("rename the Save button"): no process docs, no agents | 1.00 | 1.00 | The skills don't add ceremony |
-| **Mean of 31 cases** | **0.98** | 0.75 | The 26 cases from 1.1.0: 0.98 vs 0.74; the 5 new ones: 0.99 vs 0.77 |
+| **Mean of 41 cases** | **0.97** | 0.78 | The 31 cases from 1.2.0: 0.98 vs 0.76; the 10 new ones: 0.92 vs 0.82 |
 
 Notes on this run:
-- **Two graders rewritten.** In the two workflow cases the judge read a shortened trace and missed a passing test run, and misread an unchanged `status: review` card. Both checks became regex graders on the file or trace, and the two cases were rerun; their numbers are from the rerun.
-- **Harder graders.** The reminder-job and memberships cases each gained a grader on 1.2.0 content, which is part of why the score without the skills fell from 0.80 to 0.74 on the 26 older cases.
-- **Sandbox.** The eval sandbox blocks writes to `.git`, so runs that tried to commit reported it instead.
+- **5 runs per case** instead of 3, 410 runs in all.
+- **Graders that could not fail or pass.** A regex grader with `target: files` matches file names, not their contents. Six graders in the new cases checked content that way: three always failed and three always passed. They now match what the agent wrote with Write or Edit, which leaves out files and skill docs it only read. Two LLM graders that required two findings at once were split. The catalog-check grader of the i18n case (0/3 both ways in 1.2.0) was reworded, and the Electron permission checks became regex graders.
+- **The skill loads more often.** `vibe-backend` had not loaded once in the Spring, EF Core, Laravel review and link-preview cases: reviews and bug reports. Its description now says to load it when writing, reviewing or debugging server code or SQL. After the change it loaded in 4/5, 3/5 and 3/5 of the first three; link preview stayed at 0/5.
+- **What was rerun.** The 9 cases most affected were rerun after the description change, the two .NET cases again after the last two lines added to the skill body; the other 32 are from the full run just before.
+- **Sandbox.** The eval sandbox blocks writes to `.git` and the .NET SDK's first-run folder, so runs that tried to commit or build reported it instead.
 
-Compared with earlier versions (same settings):
+Compared with earlier versions (same settings, 3 runs per case before 1.3.0):
 
-| | 0.5.0 | 1.0.0 | 1.1.0 | 1.2.0 |
-|---|---|---|---|---|
-| Cases | 19 | 19 | 26 | 31 |
-| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 | 0.98 / 0.75 (the same 26 cases: 0.98 / 0.74) |
-| Always-on tokens (`plugin details`) | 4,581 | 3,620 | 3,791 | 3,579, including about 340 for the 5 commands |
-| Run cost with the skills, relative to without | 1.59× | 1.46× | 1.52× | 1.41× |
-| Runs where the skill loaded | 42/54 | 44/54 | 60/75 | 82/90 |
+| | 0.5.0 | 1.0.0 | 1.1.0 | 1.2.0 | 1.3.0 |
+|---|---|---|---|---|---|
+| Cases | 19 | 19 | 26 | 31 | 41 |
+| Score with / without | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 | 0.98 / 0.75 | 0.97 / 0.78 (the 31 cases of 1.2.0: 0.98 / 0.76) |
+| Always-on tokens (`plugin details`) | 4,581 | 3,620 | 3,791 | 3,579 | 3,744, including about 340 for the 5 commands |
+| Run cost with the skills, relative to without | 1.59× | 1.46× | 1.52× | 1.41× | 1.40× |
+| Runs where the skill loaded | 42/54 | 44/54 | 60/75 | 82/90 | 155/185 |
 
 The English skills trigger on Vietnamese requests, and the agent answers in Vietnamese. In Claude Code the five commands (`vibe-help`, `vibe-start`...) stay out of context until you type them.
 
-The cost: the agent reads skill docs before answering, so a run costs about 1.4× a run without the skills (about $0.16 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
+The cost: the agent reads skill docs before answering, so a run costs about 1.4× a run without the skills (about $0.18 per run on average in these cases); a small change only pays for the skill descriptions. Re-run after every skill change (each run calls a real model and is billed to your account):
 
 ```bash
-claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
+claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
 ```
 
 On Linux the eval sandbox needs `bubblewrap` and `socat` to run Bash.

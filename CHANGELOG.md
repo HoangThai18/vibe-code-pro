@@ -19,8 +19,11 @@ Four more stacks, each a `vibe-backend` reference rendered from tested code in `
   - logic about to appear a third time becomes one function at the lowest level its callers share, moving up as usage spreads;
   - comments say why, never what;
   - the project's libraries, the platform or a maintained library before hand-written CSV, date, validation or retry code.
-- **`vibe-backend` triggers**: the description now says to load it when writing, reviewing or debugging server code or SQL, including one tenant seeing another's data. In the 1.3.0 eval it had not loaded once in the Laravel, Spring, link-preview and EF query filter cases (reviews and bug reports). Isolation tests are written even where no database runs, and the answer says they haven't run.
-- **Evals**: EVAL_LINE
+- **`vibe-backend` triggers**: the description now says to load it when writing, reviewing or debugging server code or SQL, including one tenant seeing another's data. Before the change it had not loaded once in the Spring, EF query filter, Laravel review and link-preview cases (reviews and bug reports); after it, in 4, 3 and 3 of 5 runs of the first three. On PostgreSQL the database is the boundary, not ORM scopes or query filters, so a review checks the user in the connection string. Isolation tests are written even where no database runs, and the answer says they haven't run.
+- **Evals**: 41 cases (10 new: seven for the new stacks, three for the code rules), 5 runs per case instead of 3. 0.97 with the skills vs 0.78 without; the 31 cases of 1.2.0: 0.98 vs 0.76; the 10 new ones: 0.92 vs 0.82. The skill loaded in 155 of 185 runs (1.2.0: 82/90), still never in the link-preview case.
+  - A regex grader with `target: files` matches file names, not contents: six graders always failed or always passed. They now match what the agent wrote with Write or Edit, leaving out what it only read.
+  - Two graders that required two findings at once were split; the i18n catalog check (0/3 both ways in 1.2.0) was reworded.
+  - Gaps still shown: no run writes the HTTP test for a non-member (.NET), and 1 run in 5 notices an app connecting as `postgres`.
 - **Tokens**: always-on 3,579 → 3,744 (`claude plugin details`): the stack names and the code rules in the descriptions.
 
 ## 1.2.0

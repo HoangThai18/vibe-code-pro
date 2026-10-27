@@ -7,7 +7,7 @@
   <a href="https://agentskills.io"><img alt="Chuẩn Agent Skills" src="https://img.shields.io/badge/Agent%20Skills-standard-0891B2?style=flat-square"></a>
   <img alt="12 skill, 5 lệnh, 2 subagent" src="https://img.shields.io/badge/skills-12%20·%20lệnh%205%20·%20subagents%202-DB2777?style=flat-square">
   <img alt="Ví dụ đã chạy thật" src="https://img.shields.io/badge/ví%20dụ-đã%20chạy%20thật-059669?style=flat-square">
-  <a href="#eval-có-và-không-có-skill"><img alt="Eval: 0.98 có skill, 0.75 không có, 31 case" src="https://img.shields.io/badge/eval-0.98%20có%20skill%20·%200.75%20không-F59E0B?style=flat-square"></a>
+  <a href="#eval-có-và-không-có-skill"><img alt="Eval: 0.97 có skill, 0.78 không có, 41 case" src="https://img.shields.io/badge/eval-0.97%20có%20skill%20·%200.78%20không-F59E0B?style=flat-square"></a>
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>Tiếng Việt</b></p>
@@ -148,60 +148,68 @@ Chưa chạy ở đây: dùng skill trong agent khác Claude Code (môi trườn
 
 ## Eval: có và không có skill
 
-`plugins/vibe/evals/` có 31 case: yêu cầu thật (bằng tiếng Việt, như người dùng gõ) kèm tiêu chí chấm. Phần lớn tiêu chí kiểm khách quan: công cụ nào được gọi, theo thứ tự nào (viết test và thấy fail trước khi sửa), nội dung file sau khi chạy, có spawn agent không. Mỗi case chạy 3 lượt có skill và 3 lượt không (`claude plugin eval`, model và judge mặc định của lệnh). Kết quả bản 1.2.0, chạy trong Claude Code:
+`plugins/vibe/evals/` có 41 case: yêu cầu thật (bằng tiếng Việt, như người dùng gõ) kèm tiêu chí chấm. 64 tiêu chí kiểm tự động: công cụ nào được gọi, theo thứ tự nào (viết test và thấy fail trước khi sửa), agent ghi gì vào file, có spawn agent không. 144 tiêu chí còn lại do LLM chấm (judge mặc định của lệnh, ba phiếu mỗi tiêu chí) theo điều kiện PASS/FAIL mà người đọc cũng tự áp được. Mỗi case chạy 5 lượt có skill và 5 lượt không (`claude plugin eval`, model mặc định của lệnh). Kết quả bản 1.3.0, chạy trong Claude Code:
 
 | Case | Có skill | Không có | Khác biệt chính |
 |---|---|---|---|
-| **Mới ở 1.2.0:** "làm cho mình cái app quản lý tiệm spa" trong thư mục trống | **1.00** | 0.33 | Hỏi một danh sách câu hỏi có gợi ý mặc định trước khi viết code: 3/3 so với 0/3 (không có skill thì agent viết app luôn) |
-| **Mới:** "làm phần phân quyền" khi PRD chưa chốt | **1.00** | 0.67 | Đưa 2–3 mô hình phân quyền kèm đánh đổi và đề xuất, rồi hỏi: 3/3 so với 0/3 |
-| **Mới:** review một nhánh có năm lỗi cài sẵn | **1.00** | 0.95 | Thiếu `FORCE ROW LEVEL SECURITY`: 3/3 so với 2/3; lỗi đổi voucher hai lần, `UNIQUE` thiếu `tenant_id`, thiếu FK ghép thì cả hai bên đều bắt được |
-| **Mới:** "làm tiếp đi" khi có ghi chú handoff và code chưa commit | **0.96** | 0.92 | Card chuyển sang `review`, không để ở `doing` hay nhảy thẳng lên `done`: 2/3 so với 1/3 |
-| **Mới:** "xong rồi, test pass hết, đánh dấu done rồi merge giúp mình" | 1.00 | 1.00 | Cả hai bên đều tìm ra hai chỗ thiếu và không đánh dấu done; giữ làm case canh chừng |
-| Bảng lịch hẹn cập nhật trực tiếp (realtime) | **1.00** | 0.40 | Sự kiện chỉ là gợi ý, stream được cấp quyền theo spa, mỗi instance một kết nối LISTEN: mỗi mục 3/3 so với 0/3 |
-| Trang danh sách chậm, team định thêm Redis | **1.00** | 0.44 | Kiểm tải có ngưỡng trên staging: 3/3 so với 0/3 |
-| Ship app mobile vừa thêm `expo-camera` bằng EAS Update | **1.00** | 0.50 | Build mới, phát hành dần, bản app cũ vẫn chạy: 3/3 so với 0/3 |
-| Sửa `slugify('Đường')` | **1.00** | 0.58 | Thấy test tái hiện fail trước khi sửa: 3/3 so với 0/3 |
-| Đổi workspace vẫn thấy dữ liệu cũ | **1.00** | 0.58 | Huỷ request và xoá cache của workspace cũ: 3/3 so với 0/3 |
-| Nhập 20.000 khách từ Excel/CSV | **1.00** | 0.60 | Job chạy lại được theo từng phần đã commit; chặn công thức và kiểm UTF-8: 3/3 so với 0/3 |
-| Nhắc lịch qua Zalo, dự phòng SMS, tin khuyến mãi | **1.00** | 0.60 | Làm mới token từ một chỗ; luật quảng cáo: 3/3 so với 0/3 |
-| Đặt cọc online qua chuyển khoản QR hoặc VNPay | **1.00** | 0.60 | Nội dung chuyển khoản bị sửa, trả thiếu, webhook trùng; thời điểm xuất hoá đơn: 3/3 so với 0/3 |
-| SEO trang spa công khai, ẩn app và staging | **1.00** | 0.60 | 404/308 thật cho trang spa: 3/3 so với 0/3 |
-| Thiết kế job nhắc lịch qua SMS | **1.00** | 0.67 | Lần quét lấy danh sách spa thế nào khi có RLS (hàm `SECURITY DEFINER` hẹp, rồi làm theo từng spa): 3/3 so với 0/3 (tiêu chí thêm ở 1.2.0) |
-| Khách yêu cầu xoá dữ liệu (luật Việt Nam) | **1.00** | 0.67 | Luật và thời hạn hiện hành: 3/3 so với 0/3 |
-| Test Playwright cho việc đổi workspace | **1.00** | 0.73 | Locator theo role/label: 3/3 so với 0/3 |
-| "Tới đâu rồi, làm gì tiếp?" trên task card | **1.00** | 0.73 | Đúng việc tiếp theo: 3/3 so với 0/3 |
-| Tính năng AI tóm tắt ghi chú khách | **1.00** | 0.75 | Có `max_tokens`, kiểm `stop_reason`, lỗi API thành thông báo dễ hiểu: 3/3 so với 0/3 |
-| Chuyển token mobile khỏi AsyncStorage | **1.00** | 0.78 | Xoá token Keychain còn sót sau khi cài lại: 3/3 so với 0/3 |
-| Chọn kiến trúc cho team 3 người | **1.00** | 0.80 | Khi nào nên xem lại lựa chọn: 3/3 so với 1/3 |
-| Tìm "nguyen thao" ra "Nguyễn Thị Thảo" khi có RLS | **1.00** | 0.80 | Thấy RLS làm LIKE không dùng được index trigram: 3/3 so với 1/3 |
-| Tiếng Việt/tiếng Anh, giá và giờ cho chi nhánh Singapore | **0.73** | 0.53 | "Hôm nay" tính theo nửa đêm giờ địa phương: 2/3 so với 1/3; kiểm file dịch trong CI: 0/3 cả hai bên |
-| Xem trước link (SSRF) | 0.92 | 0.92 | Không lượt nào nạp skill |
-| RLS cho bảng memberships | 0.93 | **1.00** | Lượt duy nhất không nạp skill set user id cho mọi request (tiêu chí thêm ở 1.2.0) |
-| Backfill NOT NULL khi có FORCE RLS, đổi tên cột không downtime, theo đúng mẫu code có sẵn, bảo mật app Electron, việc nhỏ có nên chạy song song? | 1.00 | 1.00 | Không có skill cũng làm đúng |
+| **Mới ở 1.3.0:** Spring Boot + RLS, "thỉnh thoảng spa A thấy khách của spa B" | **0.84** | 0.44 | Query method của Spring Data chạy ngoài transaction, nên sau khi sửa sẽ thấy 0 dòng: 4/5 so với 0/5; tắt open-in-view: 3/5 so với 0/5; `set_config(..., true)` trong code: 5/5 so với 3/5 |
+| **Mới:** đọc file CSV xuất từ Excel | **0.90** | 0.50 | Dùng thư viện CSV được bảo trì thay vì tự viết parser: 4/5 so với 0/5 (quy tắc nằm trong mô tả của `vibe-build`, không cần nạp skill) |
+| **Mới:** ASP.NET Core, "thêm role vào JWT rồi dùng `RequireRole`" | **0.80** | 0.69 | Kiểm membership trước, người ngoài spa nhận 404: 5/5 so với 0/5. Không lượt nào viết test HTTP cho trường hợp này (0/5 cả hai bên); lượt có skill ghi rõ là còn thiếu |
+| **Mới:** global query filter của EF Core, "vậy đã đủ cô lập các spa chưa?" | **0.80** | 0.67 | Chặn ở DB (RLS có `FORCE`, role riêng cho app, tenant đặt theo transaction): 3/5 so với 0/5; nhận ra app đang kết nối bằng `postgres`: 1/5 so với 0/5 |
+| **Mới:** Laravel + MySQL, hai lễ tân đặt trùng giờ một kỹ thuật viên | 0.87 | **0.93** | Bước kiểm trùng không đọc snapshot cũ: 3/5 so với 4/5. Skill chỉ được nạp ở 1/5 lượt; hai lượt trượt đều là lượt không nạp skill |
+| **Mới:** tìm "dang anh" ra "Đặng Thị Ánh" trên MySQL; review module Laravel tìm chỗ lộ dữ liệu giữa các spa; thêm cột và index cho bảng 20 triệu dòng trên MySQL; bản sao thứ ba của một hàm; comment | 0.97–1.00 | 0.97–1.00 | Không có skill cũng làm đúng |
+| "Làm cho mình app quản lý spa" trong thư mục trống | **1.00** | 0.33 | Hỏi một danh sách câu hỏi đánh số, có mặc định, trước khi viết code: 5/5 so với 0/5 |
+| Bảng lịch hẹn cập nhật trực tiếp (realtime) | **1.00** | 0.44 | Stream kiểm quyền theo spa, mỗi instance một kết nối LISTEN: mỗi ý 5/5 so với 0/5 |
+| Trang danh sách chậm, team muốn thêm Redis | **1.00** | 0.53 | Load test có ngưỡng trên staging: 5/5 so với 0/5 |
+| Sửa `slugify('Đường')` | **1.00** | 0.55 | Thấy test tái hiện lỗi fail trước khi sửa: 5/5 so với 0/5 |
+| Nhập 20.000 khách từ Excel/CSV | **0.92** | 0.56 | Job chạy tiếp được, commit theo từng lô: 5/5 so với 0/5; chặn công thức và kiểm UTF-8: 3/5 so với 0/5 |
+| Nhắc lịch qua Zalo, SMS dự phòng, khuyến mãi | **0.96** | 0.56 | Quy định quảng cáo: 5/5 so với 0/5; xoay refresh token từ một chỗ: 4/5 so với 0/5 |
+| Tiếng Việt/Anh, giá và giờ cho chi nhánh Singapore | **0.92** | 0.60 | Kiểm catalog trong CI: 5/5 so với 0/5; "hôm nay" tính theo nửa đêm giờ địa phương: 5/5 so với 2/5 |
+| SEO cho trang công khai của spa, ẩn app và staging | **1.00** | 0.64 | Trang spa trả 404/308 thật: 5/5 so với 0/5 |
+| "Làm phân quyền" khi PRD chưa chốt | **0.95** | 0.65 | Đưa các mô hình phân quyền kèm ưu nhược điểm rồi hỏi: 4/5 so với 0/5 |
+| Khách yêu cầu xoá dữ liệu (luật Việt Nam) | **1.00** | 0.67 | Đúng luật hiện hành và thời hạn: 5/5 so với 0/5 |
+| Tìm "nguyen thao" ra "Nguyễn Thị Thảo" khi có RLS | **1.00** | 0.68 | Thấy RLS làm LIKE không dùng được index trigram: 5/5 so với 2/5 |
+| "Đang tới đâu rồi, làm gì tiếp?" trên task card | **1.00** | 0.68 | Đúng bước tiếp theo: 5/5 so với 1/5 |
+| App mobile vừa thêm `expo-camera` mà định đẩy bằng EAS Update | **1.00** | 0.70 | Build mới và phát hành theo đợt: 5/5 so với 0/5 |
+| Chuyển token mobile ra khỏi AsyncStorage | **0.97** | 0.73 | Xoá token Keychain còn sót sau khi cài lại: 4/5 so với 0/5 |
+| Tính năng AI: tóm tắt ghi chú khách | **1.00** | 0.75 | `max_tokens`, kiểm `stop_reason`, báo lỗi API dễ hiểu: 5/5 so với 0/5 |
+| Đổi workspace vẫn thấy dữ liệu cũ | **1.00** | 0.75 | Bỏ cache của workspace cũ: 5/5 so với 0/5 |
+| Test Playwright cho việc đổi workspace | **0.92** | 0.76 | Locator theo role/label: 4/5 so với 1/5 |
+| Bảo mật app Electron | **0.98** | 0.78 | Permission handler mặc định từ chối: 5/5 so với 0/5 |
+| Đặt cọc online qua chuyển khoản QR hoặc VNPay | **0.92** | 0.80 | Nội dung chuyển khoản bị sửa, trả thiếu: 3/5 so với 0/5 |
+| Thiết kế job nhắc lịch qua SMS | **1.00** | 0.84 | Cách job liệt kê các spa khi có RLS: 5/5 so với 1/5 |
+| "Làm tiếp" khi có ghi chú bàn giao và code chưa commit | **0.97** | 0.88 | Card được chuyển sang `review`: 4/5 so với 0/5 |
+| Chọn kiến trúc cho team 3 người | **1.00** | 0.88 | Khi nào cần xem lại lựa chọn: 5/5 so với 2/5 |
+| RLS cho bảng memberships | **1.00** | 0.92 | Chỉ đặt user id cho bước tra cứu lúc đăng nhập: 5/5 so với 3/5 |
+| Xem trước link (SSRF) | **1.00** | 0.95 | Chặn địa chỉ nội bộ sau khi phân giải DNS: 5/5 so với 4/5. Skill vẫn không được nạp ở lượt nào |
+| Review một nhánh có cài sẵn năm lỗi | 0.97 | **1.00** | Thiếu `FORCE ROW LEVEL SECURITY`: 4/5 so với 5/5 |
+| Backfill NOT NULL khi có FORCE RLS, đổi tên cột không downtime, theo đúng mẫu code có sẵn, việc nhỏ có nên chạy song song?, "xong rồi, đánh dấu done rồi merge đi" | 1.00 | 1.00 | Không có skill cũng làm đúng; giữ làm case canh chừng |
 | **Việc nhỏ** ("đổi chữ nút Lưu"): không dựng quy trình, không spawn agent | 1.00 | 1.00 | Skill không làm agent "quan liêu" hơn |
-| **Trung bình 31 case** | **0.98** | 0.75 | 26 case từ 1.1.0: 0.98 so với 0.74; 5 case mới: 0.99 so với 0.77 |
+| **Trung bình 41 case** | **0.97** | 0.78 | 31 case từ 1.2.0: 0.98 so với 0.76; 10 case mới: 0.92 so với 0.82 |
 
 Ghi chú về lượt chạy này:
-- **Viết lại hai tiêu chí.** Ở hai case quy trình, judge đọc bản trace bị cắt ngắn nên không thấy lần chạy test đã pass, và đọc nhầm một card vẫn ở `status: review`. Cả hai được đổi sang tiêu chí regex trên file hoặc trace, rồi chạy lại hai case; số liệu của chúng lấy từ lượt chạy lại.
-- **Tiêu chí khó hơn.** Case job nhắc lịch và case memberships mỗi case thêm một tiêu chí về nội dung 1.2.0, đây là một phần lý do điểm khi không có skill trên 26 case cũ giảm từ 0.80 xuống 0.74.
-- **Sandbox.** Sandbox của eval chặn ghi vào `.git`, nên lượt nào định commit thì báo lại thay vì commit.
+- **5 lượt mỗi case** thay vì 3, tổng cộng 410 lượt.
+- **Tiêu chí không thể trượt hoặc không thể đạt.** Tiêu chí regex có `target: files` chỉ khớp tên file, không đọc nội dung. Sáu tiêu chí của các case mới kiểm nội dung theo cách đó: ba cái luôn trượt, ba cái luôn đạt. Giờ chúng khớp phần agent ghi bằng Write hoặc Edit, không tính file và tài liệu skill mà agent chỉ đọc. Hai tiêu chí LLM đòi hai phát hiện cùng lúc được tách đôi. Tiêu chí kiểm catalog của case i18n (0/3 cả hai bên ở 1.2.0) được viết lại, còn các ý kiểm permission của Electron chuyển sang regex.
+- **Skill được nạp thường hơn.** `vibe-backend` chưa từng được nạp ở các case Spring, EF Core, review Laravel và xem trước link, tức là các yêu cầu review và báo lỗi. Mô tả của nó giờ ghi rõ: nạp khi viết, review hoặc debug code server hay SQL. Sau khi sửa, ba case đầu được nạp lần lượt 4/5, 3/5 và 3/5; xem trước link vẫn 0/5.
+- **Phần chạy lại.** 9 case bị ảnh hưởng nhiều nhất được chạy lại sau khi đổi mô tả, hai case .NET chạy lại thêm lần nữa sau hai dòng mới thêm vào thân skill; 32 case còn lại lấy từ lượt chạy đầy đủ ngay trước đó.
+- **Sandbox.** Sandbox của eval chặn ghi vào `.git` và thư mục first-run của .NET SDK, nên lượt nào định commit hoặc build thì báo lại thay vì làm.
 
-So với các bản trước, cùng thiết lập:
+So với các bản trước, cùng thiết lập (trước 1.3.0 là 3 lượt mỗi case):
 
-| | 0.5.0 | 1.0.0 | 1.1.0 | 1.2.0 |
-|---|---|---|---|---|
-| Số case | 19 | 19 | 26 | 31 |
-| Điểm có / không có skill | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 | 0.98 / 0.75 (cùng 26 case: 0.98 / 0.74) |
-| Token luôn nằm trong context (`plugin details`) | 4.581 | 3.620 | 3.791 | 3.579, trong đó khoảng 340 là của 5 lệnh |
-| Chi phí mỗi lượt có skill so với không | 1,59 lần | 1,46 lần | 1,52 lần | 1,41 lần |
-| Số lượt skill được nạp | 42/54 | 44/54 | 60/75 | 82/90 |
+| | 0.5.0 | 1.0.0 | 1.1.0 | 1.2.0 | 1.3.0 |
+|---|---|---|---|---|---|
+| Số case | 19 | 19 | 26 | 31 | 41 |
+| Điểm có / không có skill | 0.99 / 0.85 | 0.99 / 0.85 | 0.98 / 0.80 | 0.98 / 0.75 | 0.97 / 0.78 (31 case của 1.2.0: 0.98 / 0.76) |
+| Token luôn nằm trong context (`plugin details`) | 4.581 | 3.620 | 3.791 | 3.579 | 3.744, trong đó khoảng 340 là của 5 lệnh |
+| Chi phí mỗi lượt có skill so với không | 1,59 lần | 1,46 lần | 1,52 lần | 1,41 lần | 1,40 lần |
+| Số lượt skill được nạp | 42/54 | 44/54 | 60/75 | 82/90 | 155/185 |
 
 Skill tiếng Anh vẫn được gọi đúng khi yêu cầu viết bằng tiếng Việt, và agent vẫn trả lời bằng tiếng Việt. Trong Claude Code, năm lệnh tắt (`vibe-help`, `vibe-start`...) không nằm trong context cho tới khi bạn gõ.
 
-Cái giá: agent đọc tài liệu của skill trước khi trả lời, nên mỗi lượt tốn khoảng 1,4 lần so với không có skill (trung bình khoảng 0,16 USD mỗi lượt ở các case trên); việc nhỏ chỉ tốn thêm phần mô tả skill. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần gọi model thật, tính phí theo tài khoản):
+Cái giá: agent đọc tài liệu của skill trước khi trả lời, nên mỗi lượt tốn khoảng 1,4 lần so với không có skill (trung bình khoảng 0,18 USD mỗi lượt ở các case trên); việc nhỏ chỉ tốn thêm phần mô tả skill. Chạy lại sau mỗi lần sửa skill (mỗi lượt là một lần gọi model thật, tính phí theo tài khoản):
 
 ```bash
-claude plugin eval ./plugins/vibe --runs 3 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
+claude plugin eval ./plugins/vibe --runs 5 --no-publish --trust-plugin --scaffold --allow-tools "Bash" "Write" "Edit"
 ```
 
 Linux cần `bubblewrap` và `socat` để sandbox của eval chạy được Bash.
