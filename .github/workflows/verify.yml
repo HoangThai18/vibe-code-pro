@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [search, payments, notifications, realtime, data-import, i18n, seo, jobs, app-security, privacy, ai]
+        project: [search, payments, notifications, realtime, data-import, i18n, seo, next-actions, jobs, app-security, privacy, ai]
     services:
       postgres:
         image: postgres:16
@@ -39,3 +39,42 @@ jobs:
       - run: verify/tools/run.sh ${{ matrix.project }}
         env:
           PG_URL: postgres://postgres:postgres@localhost:5432
+
+  mobile:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verify/mobile/app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: verify/mobile/app
+      - run: verify/tools/run.sh mobile
+        env:
+          PG_URL: postgres://postgres:postgres@localhost:5432
+
+  desktop-electron:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verify/desktop/electron-app/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: verify/desktop/electron-app
+      # Ubuntu 24.04 blocks the unprivileged user namespaces Chromium's sandbox needs
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: xvfb-run -a npm run verify
+        working-directory: verify/desktop/electron-app

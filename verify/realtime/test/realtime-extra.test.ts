@@ -4,8 +4,10 @@ import { after, before, beforeEach, test } from 'node:test';
 import { createAppointment } from '../src/appointments';
 import { makeAuthenticate } from '../src/auth';
 import { withTenant } from '../src/db/tenant';
+import { isMember } from '../src/realtime/sse';
 import { startApp } from '../src/server';
-import { A, APP_URL, CUSTOMER, admin, openStream, pool, seed, tomorrow, waitFor } from './helpers';
+import pg from 'pg';
+import { A, APP_URL, B, CUSTOMER, admin, openStream, pool, seed, tomorrow, waitFor } from './helpers';
 
 type App = Awaited<ReturnType<typeof startApp>>;
 let app: App, ctx: Awaited<ReturnType<typeof seed>>;
@@ -149,5 +151,16 @@ test('Node requestTimeout does not cut a long-lived stream (it only covers recei
     await s.close();
   } finally {
     await strict.close();
+  }
+});
+
+test('the membership check is scoped to the tenant even when app.user_id is set too', async () => {
+  // memberships' read policy also shows the user's own rows in other tenants when app.user_id is set (login flow)
+  const withUser = new pg.Pool({ connectionString: APP_URL, options: `-c app.user_id=${ctx.users.minh}` });
+  try {
+    assert.equal(await isMember(withUser, A, ctx.users.minh), false);   // minh belongs to B only
+    assert.equal(await isMember(withUser, B, ctx.users.minh), true);
+  } finally {
+    await withUser.end();
   }
 });

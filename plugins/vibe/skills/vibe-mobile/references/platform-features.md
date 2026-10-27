@@ -12,13 +12,17 @@
 
 ```ts
 // src/push/register.ts
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { api } from '../api/client';
 
-export async function registerForPush(tenantId: string): Promise<'granted' | 'denied' | 'unsupported'> {
+const PUSH_TOKEN_KEY = 'push.token';
+
+// One registration per device, not per workspace: every spa the user works in reaches it (server side below)
+export async function registerForPush(): Promise<'granted' | 'denied' | 'unsupported'> {
   if (!Device.isDevice) return 'unsupported';                 // simulators get no APNs push
   if (Platform.OS === 'android') {
     // Android 13+: the channel must exist before asking for permission
@@ -32,19 +36,50 @@ export async function registerForPush(tenantId: string): Promise<'granted' | 'de
   if (!granted) return 'denied';
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
   const { data: pushToken } = await Notifications.getExpoPushTokenAsync({ projectId });
-  await api(`/v1/t/${tenantId}/devices`, {
-    method: 'PUT',
-    body: JSON.stringify({ pushToken, platform: Platform.OS }),
-  });
+  await api('/v1/devices', { method: 'PUT', body: JSON.stringify({ pushToken, platform: Platform.OS }) });
+  await AsyncStorage.setItem(PUSH_TOKEN_KEY, pushToken);
   return 'granted';
+}
+
+// First logout step, while the session still works
+export async function unregisterPush(): Promise<void> {
+  const pushToken = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+  if (!pushToken) return;
+  await api(`/v1/devices/${encodeURIComponent(pushToken)}`, { method: 'DELETE' });   // Expo tokens contain [ ]
+  await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
 }
 ```
 
+The server stores **one row per device**, linked to the user, not to a workspace: a staff member of two spas gets pushes from both through one registration, and each spa's worker reaches only its current members:
+
+```sql
+-- One row per device (push token), not per workspace. Like users, devices are not tenant data:
+-- a staff member of two spas has one row, and each spa reaches it through memberships.
+CREATE TABLE devices (
+  push_token   text PRIMARY KEY,
+  user_id      uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  platform     text NOT NULL CHECK (platform IN ('ios', 'android')),
+  last_seen_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- PUT /v1/devices: the device belongs to whoever registered last on it ($2: user from the session, never the body)
+INSERT INTO devices (push_token, user_id, platform) VALUES ($1, $2, $3)
+ON CONFLICT (push_token) DO UPDATE SET user_id = EXCLUDED.user_id, platform = EXCLUDED.platform, last_seen_at = now();
+
+-- DELETE /v1/devices/:pushToken (logout)
+DELETE FROM devices WHERE push_token = $1 AND user_id = $2;
+
+-- Push worker inside withTenant: the memberships RLS policy keeps only this spa's members
+SELECT d.push_token FROM devices d JOIN memberships m ON m.user_id = d.user_id WHERE m.user_id = $1;
+```
+
+No RLS on `devices` (not tenant data, like `users`): every query filters by the session user or joins `memberships`. Register on every app start (refreshes `last_seen_at`, catches token changes). Registering moves the row to the new user, so a shared phone stops getting the previous user's pushes as soon as the next user signs in, even if the previous logout call failed offline.
+
 - **Ask at the right moment**: after the user sees the benefit (e.g. when turning on "appointment reminders"), not on the first screen. iOS shows the system dialog only once; after a denial the only way is Settings.
-- **Server stores tokens per device**: table `devices(user_id, tenant_id, push_token UNIQUE, platform, last_seen_at)`. Logout deletes that device's row; when the push service reports an invalid token (e.g. Expo's `DeviceNotRegistered`, the matching FCM/APNs error), delete the token.
+- **Invalid tokens**: when the push service reports one (e.g. Expo's `DeviceNotRegistered`, the matching FCM/APNs error), delete the row.
 - **Push content shows on the lock screen**: no sensitive data in title or body (amounts, diagnoses, someone else's OTP). Send an id and let the app load details after opening.
 - **Send push from the server via a queue** (outbox + worker, the `vibe-backend` skill), with retry; never send inside a DB transaction.
-- Tapping a push opens the right screen via deep link (section 2), still checking login and permissions like any route.
+- Put the `tenantId` in the push data: tapping a push opens the right workspace and screen via deep link (section 2), still checking login and permissions like any route.
 - Use the Expo push service for simplicity, or send to FCM/APNs directly when needed; both need credentials configured on EAS (`release.md` section 2).
 
 ## 2. Deep links and universal links

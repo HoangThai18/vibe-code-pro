@@ -3,9 +3,10 @@ CREATE TABLE tenants (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name           text NOT NULL,
   default_locale text NOT NULL DEFAULT 'vi' CHECK (default_locale IN ('vi', 'en')),
-  -- IANA Area/City only: Postgres also accepts 'GMT+7' and '+07', and reads both as UTC-7 (POSIX sign)
+  -- IANA Area/City only: Postgres also accepts 'GMT+7', '+07' and 'Etc/GMT+7', and reads all three as UTC-7 (POSIX sign)
   time_zone      text NOT NULL DEFAULT 'Asia/Ho_Chi_Minh'
-                 CHECK (time_zone ~ '^[A-Za-z]+/[A-Za-z0-9_/+-]+$' AND now() AT TIME ZONE time_zone IS NOT NULL),
+                 CHECK (time_zone ~ '^(Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)/[A-Za-z0-9_/+-]+$'
+                        AND now() AT TIME ZONE time_zone IS NOT NULL),
   currency       char(3) NOT NULL DEFAULT 'VND'
 );
 ALTER TABLE users ADD COLUMN locale text CHECK (locale IN ('vi', 'en'));  -- NULL: follow the tenant

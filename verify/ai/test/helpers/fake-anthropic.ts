@@ -1,5 +1,5 @@
 // test/helpers/fake-anthropic.ts
-// SDK thật, chỉ thay fetch: test chạy không cần mạng, không tốn tiền, kiểm được request gửi đi
+// Real SDK, only fetch replaced: tests run offline, cost nothing, and can inspect outgoing requests
 import Anthropic from '@anthropic-ai/sdk';
 
 type Reply = Response | ((init: RequestInit) => Response);
@@ -39,8 +39,8 @@ export function apiError(status: number, type: string) {
 
 const event = (type: string, data: object) => `event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`;
 
-// Luồng SSE như API thật; keepOpen = true thì không kết thúc (để test huỷ giữa chừng)
-export function sseResponse(texts: string[], init: RequestInit, keepOpen = false) {
+// SSE stream like the real API; keepOpen never ends it (to test a mid-stream abort)
+export function sseResponse(texts: string[], init: RequestInit, opts: { keepOpen?: boolean; stopReason?: string } = {}) {
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -53,9 +53,10 @@ export function sseResponse(texts: string[], init: RequestInit, keepOpen = false
       push(event('content_block_start', { index: 0, content_block: { type: 'text', text: '' } }));
       for (const text of texts) push(event('content_block_delta', { index: 0, delta: { type: 'text_delta', text } }));
       init.signal?.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
-      if (keepOpen) return;
+      if (opts.keepOpen) return;
       push(event('content_block_stop', { index: 0 }));
-      push(event('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 42 } }));
+      push(event('message_delta', {
+        delta: { stop_reason: opts.stopReason ?? 'end_turn', stop_sequence: null }, usage: { output_tokens: 42 } }));
       push(event('message_stop', {}));
       controller.close();
     },

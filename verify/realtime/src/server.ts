@@ -46,7 +46,7 @@ export async function startApp(opts: AppOptions) {
     if (!user) throw new HttpError(401, 'unauthenticated');
     if (!UUID.test(tenantId)) throw new HttpError(404, 'not_found');
     return withTenant(pool, tenantId, async (db) => {
-      const { rowCount } = await db.query('SELECT 1 FROM memberships WHERE user_id = $1', [user.userId]);
+      const { rowCount } = await db.query('SELECT 1 FROM memberships WHERE user_id = $1 AND tenant_id = app_current_tenant()', [user.userId]);
       if (rowCount !== 1) throw new HttpError(404, 'not_found');
       return fn(db, user.userId);
     });

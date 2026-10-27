@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process';
 import ExcelJS from 'exceljs';
 import pg from 'pg';
 
-export const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://vibe_test:vibe@localhost:5432/import_check';
+export const ADMIN_URL = process.env.DATABASE_URL ?? '';   // a superuser on a scratch database (verify/tools/run.sh sets it)
+if (!ADMIN_URL) throw new Error('DATABASE_URL is not set');
 // The app connects as app_user (NOSUPERUSER NOBYPASSRLS). app_user already exists cluster-wide, so the test
 // connects as the admin and switches role for the whole session: RLS and privileges are app_user's.
 export const APP_URL = `${ADMIN_URL}?options=${encodeURIComponent('-c role=app_user')}`;

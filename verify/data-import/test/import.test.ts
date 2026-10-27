@@ -71,6 +71,40 @@ test('idempotent: same file twice is the same batch; a re-export updates instead
   assert.deepEqual([skip.inserted, skip.skipped, await count(A)], [1, 301, 302]);
 });
 
+test('emails: a repeat in the file or one another customer has is rejected at preview, never stalling the apply', async () => {
+  await withTenant(pool, A, (db) => db.query(
+    "INSERT INTO customers (full_name, phone, email) VALUES ('Lan', '0911000001', 'lan@spa.vn'), ('Mai', '0911000002', 'mai@spa.vn')"));
+  await withTenant(pool, B, (db) => db.query("INSERT INTO customers (full_name, phone, email) VALUES ('Hà', '0911000003', 'ha@spa.vn')"));
+  const lines = [
+    'Lan mới|0911000001|lan@spa.vn',        // the same customer (same phone): fine, updates
+    'Khách A|0911000010|Mai@Spa.vn',        // another customer's email (case ignored)
+    'Khách B|0911000011|ha@spa.vn',         // another spa's customer: no conflict here
+    'Khách C|0911000012|chung@spa.vn',
+    'Khách D|0911000013|CHUNG@spa.vn',      // repeats row 5
+  ];
+  const preview = await previewImport(pool, boss, A, { name: 'email.csv', data: csv(['Họ tên|SĐT|Email', ...lines]) });
+  assert.deepEqual(preview.errors, [
+    { row: 3, column: 'Email (C)', message: 'Email đã có ở khách hàng khác' },
+    { row: 6, column: 'Email (C)', message: 'Email trùng với dòng 5' },
+  ]);
+  await confirmImport(pool, boss, A, preview.batch.id, 'update');
+  await applyBatch(pool, { tenantId: A, batchId: preview.batch.id });
+  const done = await batchRow(A, preview.batch.id);
+  assert.deepEqual([done.status, done.inserted, done.updated, await count(A)], ['done', 2, 1, 4]);
+});
+
+test('an email taken after the preview: that row is rejected and reported, the batch finishes', async () => {
+  const preview = await previewImport(pool, boss, A, { name: 'late.csv',
+    data: csv(['Họ tên|SĐT|Ngày sinh|Email', 'Khách E|0911000020|01/01/1990|e@spa.vn', 'Khách F|0911000021|01/01/1990|']) });
+  await withTenant(pool, A, (db) => db.query("INSERT INTO customers (full_name, phone, email) VALUES ('Eva', '0911000099', 'e@spa.vn')"));
+  await confirmImport(pool, boss, A, preview.batch.id, 'skip');
+  await applyBatch(pool, { tenantId: A, batchId: preview.batch.id });
+  const done = await batchRow(A, preview.batch.id);
+  assert.deepEqual([done.status, done.inserted, done.valid_rows, await count(A)], ['done', 1, 1, 2]);
+  const report = (await errorReportCsv(pool, A, done.id))!.split('\r\n');
+  assert.equal(report[1], '"Khách E","0911000020","01/01/1990","e@spa.vn","2","Email: Email đã có ở khách hàng khác"');
+});
+
 test('crash inside a chunk: the chunk rolls back, the rerun resumes and applies every row once', async () => {
   const preview = await previewImport(pool, boss, A, file(customers(350, 0, (i) => (i === 250 ? 'CRASH' : `Khách ${i}`))));
   await confirmImport(pool, boss, A, preview.batch.id, 'skip');

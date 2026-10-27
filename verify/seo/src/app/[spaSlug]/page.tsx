@@ -1,6 +1,7 @@
 // src/app/[spaSlug]/page.tsx — a spa's public booking page, rendered on the server per request
 import { notFound, permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
+import { formatMoney } from '@/i18n/format';
 import { JsonLd, spaJsonLd } from '@/lib/json-ld';
 import type { Day } from '@/lib/public-spa';
 import { findPublicSpa } from '@/lib/spa-repo';
@@ -28,7 +29,6 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 
-const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
 const dayVi: Record<Day, string> = { Monday: 'T2', Tuesday: 'T3', Wednesday: 'T4', Thursday: 'T5', Friday: 'T6', Saturday: 'T7', Sunday: 'CN' };
 
 export default async function SpaPage({ params }: Props) {
@@ -50,7 +50,7 @@ export default async function SpaPage({ params }: Props) {
       <p>Giá: {spa.priceRange}</p>
       <ul>
         {spa.services.map((s) => (
-          <li key={s.name}>{s.name}: {vnd.format(s.priceVnd)}</li>
+          <li key={s.name}>{s.name}: {formatMoney(s.price, 'vi')}</li>
         ))}
       </ul>
       <BookingForm spa={spa} />

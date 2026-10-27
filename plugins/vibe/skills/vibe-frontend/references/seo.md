@@ -82,12 +82,13 @@ The root layout sets only `metadataBase: new URL(SITE_URL)` (relative URLs becom
 
 ### 3.2 The spa page
 
-`PublicSpa` holds only what the spa published (name, about, public phone, address, hours, price range, services, `updatedAt`). Client component props are serialized into the HTML: when the repository returned the whole row, the test found the owner's phone in the page. A real repository resolves the slug via the read-only `tenant_domains` table, then reads the profile inside `withTenant` (the `vibe-backend` skill, `references/postgres-rls.md` sections 3–4); old slugs stay in `tenant_domains` and redirect.
+`PublicSpa` holds only what the spa published (name, about, public phone, address, hours, price range, services priced as `Money`, `updatedAt`); prices go through `formatMoney` (`references/i18n.md` section 2). Client component props are serialized into the HTML: when the repository returned the whole row, the test found the owner's phone in the page. A real repository resolves the slug via the read-only `tenant_domains` table, then reads the profile inside `withTenant` (the `vibe-backend` skill, `references/postgres-rls.md` sections 3–4); old slugs stay in `tenant_domains` and redirect.
 
 ```tsx
 // src/app/[spaSlug]/page.tsx — a spa's public booking page, rendered on the server per request
 import { notFound, permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
+import { formatMoney } from '@/i18n/format';
 import { JsonLd, spaJsonLd } from '@/lib/json-ld';
 import type { Day } from '@/lib/public-spa';
 import { findPublicSpa } from '@/lib/spa-repo';
@@ -115,7 +116,6 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 
-const vnd = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' });
 const dayVi: Record<Day, string> = { Monday: 'T2', Tuesday: 'T3', Wednesday: 'T4', Thursday: 'T5', Friday: 'T6', Saturday: 'T7', Sunday: 'CN' };
 
 export default async function SpaPage({ params }: Props) {
@@ -137,7 +137,7 @@ export default async function SpaPage({ params }: Props) {
       <p>Giá: {spa.priceRange}</p>
       <ul>
         {spa.services.map((s) => (
-          <li key={s.name}>{s.name}: {vnd.format(s.priceVnd)}</li>
+          <li key={s.name}>{s.name}: {formatMoney(s.price, 'vi')}</li>
         ))}
       </ul>
       <BookingForm spa={spa} />
@@ -293,94 +293,20 @@ Not in `next.config.ts` `headers()`, which is evaluated at build: a build made w
 
 ## 5. Tests
 
-`test/server.ts` starts the build as production and as staging; `page()` fetches with `redirect: 'manual'`; `seoOf()` reads title, meta, link and JSON-LD tags by regex; `visibleHtml()` drops `<script>` (with the RSC payload) and React's `<!-- -->`. No browser: nothing here may need JavaScript.
+`node --import tsx --test --test-concurrency=1 test/*.test.ts` after `next build` (11 tests). `test/server.ts` starts the build twice, as production and as staging (`APP_ENV`); requests use `redirect: 'manual'` and read `<title>`, meta, link and JSON-LD tags by regex from the HTML with `<script>` and React's `<!-- -->` removed. No browser: nothing here may need JavaScript.
 
-```ts
-// test/seo.test.ts — runs against the production build (commands below)
-import assert from 'node:assert/strict';
-import { after, before, test } from 'node:test';
-import { visibleHtml } from './html';
-import { get, norm, page, start, stopAll, url } from './server';
+| Area | Asserts |
+|---|---|
+| Public pages (`/`, `/en`, `/pricing`, `/spa-hoa-mai`) | 200; text in the HTML (`'Massage body 90 phút: 450.000\u00a0₫'`); canonical and `og:url` = the page itself; absolute `og:image`; no `robots` meta, no `X-Robots-Tag`; titles and descriptions all different |
+| hreflang | `/` and `/en` both list `vi`, `en`, `x-default` (→ `/`) |
+| noindex | `/login`, `/t/{id}/appointments`: `noindex, nofollow` meta; staging build: `X-Robots-Tag` on `/`, a spa page, `/sitemap.xml`; 404 pages carry `noindex` |
+| Spa status | draft, deleted, unknown: 404; old slug, `/Spa-Hoa-Mai`: 308 → `/spa-hoa-mai` |
+| JSON-LD | parses; `DaySpa`, `telephone: '+84912345678'`, 2 opening-hours entries; phone, hours, price range visible on the page; name `Sen Vàng </script><script>alert(1)</script>` comes back intact, no raw `<script>alert(1)</script>` in the HTML |
+| robots.txt, sitemaps | no `Disallow` on `/login`, `/t/`; lists the 3 sitemaps; 50,002 spa URLs split ≤ 50,000 per file, no duplicates, no draft/deleted/old slug; `lastmod` = `updatedAt` |
+| Private data | owner phone, customer count, tenant id not in the spa page |
+| Share images | spa page uses its own `opengraph-image` (PNG, 200); 404 for an unpublished spa; `ogImage('Đặt Lịch Spa Hoa Mai', ...)` renders with `fetch` stubbed and makes no request |
 
-let prod = '';
-let staging = '';
-before(async () => {
-  [prod, staging] = await Promise.all([start(3101, 'production'), start(3102, 'staging')]);
-});
-after(stopAll);
-
-test('public pages: text in the HTML, unique title and description, own canonical, indexable', async () => {
-  const pages = [
-    ['/', 'Phần mềm quản lý và đặt lịch cho spa'],
-    ['/en', 'Spa management and online booking'],
-    ['/pricing', 'Gói Cơ bản 299.000₫/tháng'],
-    ['/spa-hoa-mai', 'Massage body 90 phút'],
-  ] as const;
-  const titles = new Set<string>();
-  const descriptions = new Set<string>();
-  for (const [path, text] of pages) {
-    const { res, html, seo } = await page(prod, path);
-    assert.equal(res.status, 200, path);
-    assert.ok(visibleHtml(html).includes(text), `${path}: readable without JavaScript`);
-    assert.equal(norm(seo.canonical), url(path), path);
-    assert.equal(norm(seo.ogUrl), url(path), path);
-    assert.ok(seo.ogImage?.startsWith(url('/')), `${path}: absolute og:image`);
-    assert.equal(seo.robots, undefined, path);
-    assert.equal(res.headers.get('x-robots-tag'), null, path);
-    titles.add(seo.title);
-    descriptions.add(seo.description ?? assert.fail(`${path}: no description`));
-  }
-  assert.equal(titles.size, pages.length);
-  assert.equal(descriptions.size, pages.length);
-});
-
-test('hreflang: vi, en and x-default, the same set on both versions', async () => {
-  for (const path of ['/', '/en']) {
-    const { hreflang } = (await page(prod, path)).seo;
-    assert.deepEqual(Object.keys(hreflang).sort(), ['en', 'vi', 'x-default'], path);
-    assert.equal(norm(hreflang.vi), url('/'));
-    assert.equal(norm(hreflang.en), url('/en'));
-    assert.equal(norm(hreflang['x-default']), url('/'));
-  }
-});
-
-test('noindex: app and auth pages; on staging, every response of the same build', async () => {
-  for (const path of ['/login', '/t/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/appointments']) {
-    assert.equal((await page(prod, path)).seo.robots, 'noindex, nofollow', path);
-  }
-  for (const path of ['/', '/spa-hoa-mai', '/sitemap.xml']) {
-    assert.equal((await get(staging, path)).headers.get('x-robots-tag'), 'noindex, nofollow', path);
-  }
-});
-
-test('spa status codes: 404 for draft, deleted, unknown; 308 for an old slug or other case', async () => {
-  for (const path of ['/spa-nhap', '/spa-da-dong', '/khong-co-spa-nay']) {
-    assert.equal((await get(prod, path)).status, 404, path);
-  }
-  for (const path of ['/hoa-mai-spa', '/Spa-Hoa-Mai']) {
-    const res = await get(prod, path);
-    assert.equal(res.status, 308, path);
-    assert.equal(new URL(res.headers.get('location')!, prod).pathname, '/spa-hoa-mai');
-  }
-});
-
-test('JSON-LD: parses, states only visible facts, and a name with </script> cannot break out', async () => {
-  const { html, seo } = await page(prod, '/spa-hoa-mai');
-  const [spa] = seo.jsonLd;
-  assert.equal(spa?.['@type'], 'DaySpa');
-  assert.equal(spa?.telephone, '+84912345678');
-  assert.equal((spa?.openingHoursSpecification as unknown[]).length, 2);
-  for (const fact of ['0912345678', '09:00–21:00', String(spa?.priceRange)]) {
-    assert.ok(visibleHtml(html).includes(fact), `${fact} is visible`);
-  }
-
-  const xss = await page(prod, '/sen-vang');
-  assert.ok(!xss.html.includes('<script>alert(1)</script>'));
-  assert.equal(xss.seo.jsonLd[0]?.name, 'Sen Vàng </script><script>alert(1)</script>');
-});
-```
-
-`test/seo-extra.test.ts` covers robots.txt, sitemaps, private data and share images. `test/og-font.test.ts` stubs `fetch`, renders `ogImage('Đặt Lịch Spa Hoa Mai', ...)` and asserts no request. In CI, after the build (the `vibe-ship` skill, `references/ci-cd.md`):
+In CI, after the build (the `vibe-ship` skill, `references/ci-cd.md`):
 
 ```text
 SITE_URL=https://datlich.example.vn npx next build

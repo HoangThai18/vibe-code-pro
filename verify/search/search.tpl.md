@@ -106,13 +106,15 @@ For long text (notes, treatment history), match words rather than fragments:
 
 ## 6. Tests
 
-These run against a real PostgreSQL with the app role (`options: '-c role=app_user'`), not a superuser. They cover the tenant boundary, the fail-closed context, wildcard escaping, phone formats, accent ranking and the planner behavior that makes section 3 necessary:
-
-```ts
-{{test/search.test.ts}}
-```
-
-Notes test: `da nhay cam` finds the note, `da` lists notes with "da" before the one with "đã", `"cam on"` matches the phrase and `"on cam"` does not.
+Run them against a real PostgreSQL as the app role (`options: '-c role=app_user'`), never a superuser, with two tenants that both have a "Nguyễn Thị Thảo". Check that:
+- `search_key` gives `nguyen van duc` for `Nguyễn Văn ĐỨC`, `phuong` for an NFD `Phượng`, `dong` for `Ðông` (U+00D0);
+- `thao`, `thao nguyen`, `ĐẶNG  ánh` and `dang anh` find the one matching customer; `thi` lists three names in Vietnamese order;
+- `ánh` lists Ánh before Anh, while `anh` keeps name order;
+- `0912 345 678`, `+84 912 345 678`, `84912345678` and `345678` find the same customer;
+- `%%` and `__` find nothing;
+- a search never returns the other tenant's Thảo, and without a tenant context `search_customers` raises `no tenant context`;
+- `EXPLAIN` of `search_key(full_name) LIKE '%thao%'` (sequential and index scans off) has no trigram `Index Cond` as `app_user`, and has one as `search_owner`;
+- notes: `da nhay cam` finds the note, `da` lists notes with "da" before the one with "đã", `"cam on"` matches the phrase and `"on cam"` does not.
 
 Hook tests (Testing Library `renderHook` under `global-jsdom`, `fetch` mocked with a response slower than the debounce):
 - fast typing sends one request, for the final text;
@@ -124,7 +126,7 @@ Two runner details:
 - set `gcTime: Infinity` on the test `QueryClient`, or its timers keep the process alive;
 - call `cleanup()` in `afterEach`, because `node:test` has no global `afterEach` for Testing Library to hook into.
 
-Removing any one safeguard fails a test: the tenant filter in the function, wildcard escaping, `unaccent`, the `84` prefix rule, accent ranking, `signal`, the tenant-guarded `placeholderData`, the debounce, or the minimum length.
+Removing any one safeguard fails a test: the tenant filter in the function, wildcard escaping, `unaccent`, the `84` prefix rule, accent ranking, `signal`, the tenant-guarded `placeholderData`, the debounce, the minimum length.
 
 ## 7. When to move to a search engine
 

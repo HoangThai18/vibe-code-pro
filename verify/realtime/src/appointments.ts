@@ -10,7 +10,8 @@ export async function createAppointment(
   db: PoolClient, input: { customerId: string; staffUserId: string; startsAt: string },
 ): Promise<Appointment> {
   const { rows: [appt] } = await db.query<Appointment>(
-    `INSERT INTO appointments (customer_id, staff_user_id, starts_at) VALUES ($1, $2, $3) RETURNING ${COLUMNS}`,
+    `INSERT INTO appointments (customer_id, staff_user_id, starts_at, ends_at)
+     VALUES ($1, $2, $3, $3::timestamptz + interval '1 hour') RETURNING ${COLUMNS}`,
     [input.customerId, input.staffUserId, input.startsAt],
   );
   await db.query(

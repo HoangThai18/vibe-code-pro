@@ -11,7 +11,7 @@ Read only what the current task needs (paths relative to this skill folder):
 |---|---|
 | Choose an approach (PWA, Tauri, Electron, native) for a new app | `references/choose-stack.md` |
 | Window config, preload, IPC, CSP, opening links, Tauri permissions | `references/security.md` |
-| Local data, files, tokens; offline; multiple tenants | `references/app-data.md` |
+| Local data, files, tokens; API client and version headers; offline; multiple tenants | `references/app-data.md` |
 | Tests: unit, Electron E2E with Playwright, Tauri | `references/testing.md` |
 | Packaging, code signing, notarization, auto-update, crash reports | `references/release.md` |
 
@@ -23,12 +23,12 @@ Electron and Tauri change APIs between major versions. Check the installed versi
 
 ## Rules that always apply
 
-1. **The renderer is an untrusted web page.** Never enable `nodeIntegration`; never disable `contextIsolation`, `sandbox` or `webSecurity`. The renderer can call only a few specific functions via preload (Electron) or permitted commands (Tauri), never `fs`, `child_process` or a raw `ipcRenderer`.
+1. **The renderer is an untrusted web page.** Never enable `nodeIntegration`; never disable `contextIsolation`, `sandbox` or `webSecurity`. The renderer can call only a few specific functions via preload (Electron) or permitted commands (Tauri), never `fs`, `child_process` or a raw `ipcRenderer`. Electron grants camera, microphone and other web permissions unless you set deny-by-default permission handlers.
 2. **Every IPC message is untrusted input**: check the sender, validate parameters, do one narrow thing. No IPC like "read a file at any path" or "run a command".
 3. **Run only code packaged with the app.** Never load remote pages into a privileged window; block navigation and new windows; `shell.openExternal` only with URLs checked against an allowlist.
 4. **Data goes in the app's data folder** (e.g. `app.getPath('userData')`), not next to the executable. Tokens go in the OS keystore (`safeStorage`, keychain), never plain text.
-5. **Installed apps cannot be rolled back**, as on mobile: the API stays compatible with supported versions and has a minimum version; for a bad release, ship a newer version via auto-update.
-6. **Sign every release.** macOS needs signing and notarization, Windows needs Authenticode signing; unsigned builds are warned about or blocked by the OS, and auto-update is not safe.
+5. **Installed apps cannot be rolled back**, as on mobile: the API stays compatible with supported versions and has a minimum version, which works only if every request sends `x-app-version` and `x-app-platform` (`references/app-data.md`); for a bad release, ship a newer version via auto-update.
+6. **Sign every release.** macOS needs signing and notarization, Windows needs Authenticode signing with the key in a (cloud) HSM; unsigned builds are warned about or blocked by the OS, and auto-update is not safe.
 7. **Test on every OS you ship**: Tauri uses the OS webview (WebView2, WKWebView, WebKitGTK), so rendering and web APIs can differ.
 
 ## Before calling it done

@@ -26,25 +26,29 @@ Getting messages delivered (not into spam, not blocked) and within Vietnamese ru
 ## 2. Rules for every channel
 
 1. **Separate transactional from marketing.** They differ in consent, limits, Zalo tag, email stream and brandname type. Store `kind` on every message, and never put an offer inside a reminder (on Zalo that alone makes it tag 3).
-2. **Check consent, hours and limits at send time, in the job.** Don't check them when the campaign is queued: consent can be withdrawn in between (`references/privacy.md`).
+2. **Check consent, hours and limits at send time, in the job.** Don't check them when the campaign is queued: consent can be withdrawn in between (`references/privacy.md`). Reserve the send in the same short transaction as the check (section 5), or two campaigns checking at once both pass.
 3. **One notification id is the idempotency key** with every provider (Zalo `tracking_id`, the SMS provider's request id). A retried job never sends twice.
 4. **Fallback only for "can't reach this person here".** Examples: no Zalo account, or the user refused Zalo messages. A provider outage is not one of them: retry later on the same channel. Record each attempt.
 5. **Per-tenant identity and cost:**
-   - each spa sends as itself (its Zalo OA, its brandname, its name in the email display name);
+   - each spa sends as itself (its Zalo OA, its brandname, its name in the email display name), with its credentials sealed (`references/app-security.md`, "Tenant secrets");
    - set a daily quota per tenant;
    - alert on a spending jump.
 6. **Minimal content.** A reminder needs the first name, time and place, not the treatment or a health note.
 
 ```sql
--- Marketing messages actually sent, per customer and channel: the 24-hour limit is counted from here
+-- Advertising messages per customer and channel: the 24-hour limit is counted from here. A row is
+-- reserved before sending (reserveAdvertisingSend) and deleted only if the send failed for good.
 create table marketing_messages (
   tenant_id uuid not null default app_current_tenant() references tenants(id),
-  id uuid primary key default gen_random_uuid(),
-  customer_id uuid not null references customers(id),
+  id uuid not null default gen_random_uuid(),
+  customer_id uuid not null,
   channel text not null check (channel in ('zalo', 'sms', 'email')),
   campaign_id uuid not null,
-  sent_at timestamptz not null default now(),
-  unique (campaign_id, customer_id, channel)               -- a retried job never sends a campaign twice
+  status text not null default 'reserved' check (status in ('reserved', 'sent')),
+  sent_at timestamptz not null default now(),              -- reserved at, just before the send
+  primary key (tenant_id, id),
+  unique (tenant_id, campaign_id, customer_id, channel),   -- a retried job never sends a campaign twice
+  foreign key (tenant_id, customer_id) references customers (tenant_id, id)
 );
 create index on marketing_messages (tenant_id, customer_id, channel, sent_at);
 alter table marketing_messages enable row level security;
@@ -53,11 +57,12 @@ create policy tenant_isolation on marketing_messages
   using (tenant_id = (select app_current_tenant()))
   with check (tenant_id = (select app_current_tenant()));
 
--- One Zalo OA token pair per tenant. Zalo rotates the refresh token on every use.
+-- One Zalo OA token pair per tenant, sealed (references/app-security.md, "Tenant secrets").
+-- Zalo rotates the refresh token on every use.
 create table zalo_tokens (
   tenant_id uuid primary key default app_current_tenant() references tenants(id),
-  access_token text not null,
-  refresh_token text not null,
+  access_token_sealed bytea not null,                      -- sealSecret(token, key)
+  refresh_token_sealed bytea not null,
   access_expires_at timestamptz not null,
   needs_reconnect boolean not null default false,          -- refresh failed: the spa must re-authorize the OA
   refresh_lease_until timestamptz,                          -- a refresh is in progress until then
@@ -121,17 +126,18 @@ export const oneClickHeaders = (url: string) => ({
   'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
 });
 
-// POST /v1/unsubscribe?t=&c=&s= with body "List-Unsubscribe=One-Click", sent by the mailbox provider.
-// GET only shows a confirm page: link scanners open every URL in an email, and must not unsubscribe anyone.
+// POST /v1/unsubscribe?t=&c=&s=, sent by the mailbox provider. Don't require an exact body: RFC 8058's own
+// example posts multipart/form-data, and application/x-www-form-urlencoded is allowed too. The signed URL
+// plus the POST method is the check. GET only shows a confirm page whose button POSTs: link scanners open
+// (GET) every URL in an email, and must not unsubscribe anyone.
 export async function handleOneClickUnsubscribe(
   pool: Pool,
-  query: { t?: string; c?: string; s?: string },
-  body: string,
+  req: { method: string; query: { t?: string; c?: string; s?: string } },
   secret: string,
 ): Promise<{ status: number }> {
-  const { t = '', c = '', s = '' } = query;
+  const { t = '', c = '', s = '' } = req.query;
   if (!validSignature(t, c, s, secret)) return { status: 404 };
-  if (body.trim() !== 'List-Unsubscribe=One-Click') return { status: 400 };
+  if (req.method !== 'POST') return { status: 405 }; // GET, HEAD: render the confirm page instead
   await withTenant(pool, t, async (db) => {
     // Withdrawal is a new consent row (references/privacy.md); skip if already withdrawn
     await db.query(
@@ -171,6 +177,7 @@ Since 1 January 2026, Zalo's ZNS, UID transaction and UID promotion messages are
   - `template_id` and `template_data`;
   - `tracking_id`: up to 48 characters, no special characters.
 - **Tokens:**
+  - Store both sealed (`*_sealed bytea`, `sealSecret` with a key from the secret manager; `openSecret` the access token just before `sendZaloTemplate`): whoever holds a refresh token can message as the spa's OA for about 3 months.
   - The access token lasts about 25 hours and the refresh token about 3 months (Zalo's guide); read `expires_in` from the response.
   - Each refresh returns a new pair and invalidates the old one (Zalo support answers), so there is one valid pair per OA and app.
   - Refresh from one place, as below. If the refresh token is lost or expired, the spa must re-authorize the OA.
@@ -188,6 +195,7 @@ Since 1 January 2026, Zalo's ZNS, UID transaction and UID promotion messages are
 ```ts
 import type { Pool } from 'pg';
 import { withTenant } from '../db/tenant';
+import { openSecret, sealSecret } from '../security/secret-box';
 
 export type ZaloTokens = { access_token: string; refresh_token: string; expires_in: string | number };
 // POST https://oauth.zaloapp.com/v4/oa/access_token (header secret_key; form app_id, refresh_token,
@@ -203,29 +211,34 @@ export function toZaloPhone(phone: string): string {
 // Run from a scheduled job about every 20 hours (access tokens last about 25 hours) and when a send
 // returns -124. Only one refresh may use a refresh token: a short lease claims it, so no transaction
 // stays open during the HTTP call, and a second caller gets 'busy' instead of burning the token.
-export async function refreshZaloToken(pool: Pool, tenantId: string, refresh: ZaloRefresh): Promise<'refreshed' | 'busy'> {
+// key: the 32-byte key from the secret manager; tokens are stored sealed, never in plain text.
+export async function refreshZaloToken(
+  pool: Pool, tenantId: string, refresh: ZaloRefresh, key: Buffer,
+): Promise<'refreshed' | 'busy'> {
   const claimed = await withTenant(pool, tenantId, async (db) =>
-    (await db.query<{ refresh_token: string }>(
+    (await db.query<{ refresh_token_sealed: Buffer }>(
       `UPDATE zalo_tokens SET refresh_lease_until = now() + interval '30 seconds'
         WHERE refresh_lease_until IS NULL OR refresh_lease_until < now()
-        RETURNING refresh_token`)).rows[0]);
+        RETURNING refresh_token_sealed`)).rows[0]);
   if (!claimed) return 'busy';
+  const old = claimed.refresh_token_sealed;   // also identifies the row version we claimed
+  const refreshToken = openSecret(old, key);
   let next: ZaloTokens;
   try {
-    next = await refresh(claimed.refresh_token); // give this call a timeout shorter than the lease
+    next = await refresh(refreshToken); // give this call a timeout shorter than the lease
   } catch (err) {
     // Expired (about 3 months unused) or revoked: the spa must reconnect its OA. Alert.
     await withTenant(pool, tenantId, (db) =>
-      db.query('UPDATE zalo_tokens SET needs_reconnect = true, refresh_lease_until = NULL WHERE refresh_token = $1',
-        [claimed.refresh_token]));
+      db.query('UPDATE zalo_tokens SET needs_reconnect = true, refresh_lease_until = NULL WHERE refresh_token_sealed = $1',
+        [old]));
     throw err;
   }
   await withTenant(pool, tenantId, (db) =>
     db.query(
-      `UPDATE zalo_tokens SET access_token = $2, refresh_token = $3, needs_reconnect = false, refresh_lease_until = NULL,
-              access_expires_at = now() + make_interval(secs => $4::int), updated_at = now()
-        WHERE refresh_token = $1`,
-      [claimed.refresh_token, next.access_token, next.refresh_token, Number(next.expires_in)],
+      `UPDATE zalo_tokens SET access_token_sealed = $2, refresh_token_sealed = $3, needs_reconnect = false,
+              refresh_lease_until = NULL, access_expires_at = now() + make_interval(secs => $4::int), updated_at = now()
+        WHERE refresh_token_sealed = $1`,
+      [old, sealSecret(next.access_token, key), sealSecret(next.refresh_token, key), Number(next.expires_in)],
     ));
   return 'refreshed';
 }
@@ -283,6 +296,7 @@ export function nextVietnamHour(hour: number, now = new Date()): Date {
     - opt-out instructions at the end of each message;
     - stopping at once on refusal, with one confirmation that contains no ads.
 - **Encoding is cost.** Vietnamese diacritics force UCS-2: 70 characters per message instead of 160. Send SMS without diacritics (the `vibe-frontend` skill, `references/i18n.md`, has a remover that also handles đ), and count parts before sending.
+- **Reserve, then send.** For each advertising message (any channel), the job runs `reserveAdvertisingSend` in its own `withTenant` transaction and commits, then calls the provider outside any transaction, then `finishAdvertisingSend`: `sent`, or deleted when the send failed for good (invalid number, no Zalo account). A timeout keeps the reservation: it counts, and the campaign is not resent to that customer. Counting first and writing the row after sending let two campaigns both see 2 sends and both send.
 
 ```ts
 import type { PoolClient } from 'pg';
@@ -303,15 +317,21 @@ export function smsParts(text: string): { encoding: 'GSM-7' | 'UCS-2'; parts: nu
   return { encoding: 'UCS-2', parts: units <= 70 ? 1 : Math.ceil(units / 67) };
 }
 
-export type AdCheck = { ok: true } | { ok: false; reason: 'no_consent' | 'quiet_hours' | 'daily_limit'; retryAt?: Date };
+export type AdReservation =
+  | { ok: true; messageId: string }
+  | { ok: false; reason: 'no_consent' | 'quiet_hours' | 'daily_limit' | 'already_sent'; retryAt?: Date };
 
-// Decree 91/2020/NĐ-CP: advertising messages only with prior consent, 07:00–22:00, and at most
-// 3 per recipient per 24 hours. Checked at send time inside withTenant, not when the campaign is queued.
-export async function checkAdvertisingSend(
+// Decree 91/2020/NĐ-CP: advertising messages only with prior consent, 07:00–22:00, and at most 3 per
+// recipient per 24 hours. Checked at send time, not when the campaign is queued. Run it in its own short
+// withTenant transaction, commit, then send: the reserved row counts from the start, and the lock makes two
+// campaigns or workers checking the same customer and channel take turns, so both cannot see 2 and send.
+export async function reserveAdvertisingSend(
   db: PoolClient,
-  m: { customerId: string; channel: 'sms' | 'zalo' | 'email'; purposeId: string; now?: Date },
-): Promise<AdCheck> {
+  m: { customerId: string; channel: 'sms' | 'zalo' | 'email'; purposeId: string; campaignId: string; now?: Date },
+): Promise<AdReservation> {
   const now = m.now ?? new Date();
+  await db.query(`SELECT pg_advisory_xact_lock(hashtextextended(app_current_tenant()::text || ':' || $1 || ':' || $2, 0))`,
+    [m.customerId, m.channel]); // released at commit
   const consent = await db.query(
     'SELECT 1 FROM current_consents WHERE subject_id = $1 AND purpose_id = $2 AND granted',
     [m.customerId, m.purposeId],
@@ -327,8 +347,19 @@ export async function checkAdvertisingSend(
     [m.customerId, m.channel, now],
   );
   if (rows[0]!.n >= 3) return { ok: false, reason: 'daily_limit' };
-  return { ok: true };
+  const { rows: [row] } = await db.query<{ id: string }>(
+    `INSERT INTO marketing_messages (customer_id, channel, campaign_id, sent_at) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (tenant_id, campaign_id, customer_id, channel) DO NOTHING RETURNING id`,
+    [m.customerId, m.channel, m.campaignId, now],
+  );
+  return row ? { ok: true, messageId: row.id } : { ok: false, reason: 'already_sent' };
 }
+
+// After the provider answered: sent, or failed for good (the slot is free again). Outcome unknown
+// (timeout): keep the reservation; it counts as sent, and the campaign is not resent to this customer.
+export const finishAdvertisingSend = (db: PoolClient, messageId: string, sent: boolean) =>
+  db.query(sent ? "UPDATE marketing_messages SET status = 'sent' WHERE id = $1" : 'DELETE FROM marketing_messages WHERE id = $1',
+    [messageId]);
 ```
 
 ## 6. OTP abuse (SMS pumping)
@@ -343,35 +374,37 @@ Attackers request OTPs to numbers they earn money from, and you pay per message.
 ## 7. Tests
 
 The tests run on PostgreSQL as `app_user`, with fake providers:
-- **Unsubscribe:**
-  - a POST with `List-Unsubscribe=One-Click` withdraws `marketing_email` once, and repeating it adds no row;
+- **Unsubscribe** (real HTTP requests to the handler):
+  - a `multipart/form-data` POST (RFC 8058's example) withdraws `marketing_email`; a repeat as `application/x-www-form-urlencoded` adds no row; urlencoded alone works too;
   - a tampered link gives 404;
-  - an empty body (a GET or a link scanner) gives 400;
+  - a GET (a link scanner) gives 405 and changes nothing;
   - other purposes stay granted.
 - **Zalo tokens:**
   - three concurrent refreshes give `refreshed, busy, busy` and call Zalo once;
-  - the newest pair is stored and the lease is released;
+  - the newest pair is stored sealed (no plain text in the row, another key cannot open it) and the lease is released;
   - a revoked refresh token sets `needs_reconnect`.
 - **Zalo send:**
   - `0912 345 678` is sent as `84912345678`, and `tracking_id` is the notification id without dashes;
   - `-124` means refresh the token, `-118` means another channel, and `-133` means retry at 06:00 Vietnam time.
-- **Advertising check:**
+- **Advertising reservation:**
   - allowed at 10:00;
   - blocked at 22:30 with `retryAt` 07:00;
   - blocked without consent;
   - blocked after 3 sends in 24 hours, and allowed again once the oldest send is 24 hours old;
-  - blocked after the customer withdraws.
+  - blocked after the customer withdraws;
+  - three campaigns reserving at once after 2 sends (a slow insert trigger widens the race): exactly one allowed;
+  - the same campaign twice gives `already_sent`; a send that failed for good frees the slot.
 - **SMS parts:**
   - the same reminder is 1 GSM-7 part without diacritics and 2 UCS-2 parts with them;
   - `{` counts as two characters.
 
-Each of these safeguards, removed alone, fails a test: the link signature, the body check, the refresh lease, quiet hours, the daily limit and the consent check.
+Removing any one safeguard fails a test: the link signature, the POST check, the refresh lease, quiet hours, the daily limit, the consent check, the advisory lock, the reservation before sending.
 
 ## Done when
 
 - [ ] SPF, DKIM (2048-bit) and DMARC pass for each sending subdomain; marketing mail has one-click unsubscribe; bounces and complaints are suppressed.
-- [ ] Every message has a kind; consent, hours and the 3-per-24-hours limit are checked at send time for advertising.
-- [ ] Zalo templates are approved per tag; tokens refresh from one place; `needs_reconnect` alerts the spa.
+- [ ] Every message has a kind; consent, hours and the 3-per-24-hours limit are checked at send time for advertising, and the send is reserved under a per-customer lock before the provider call.
+- [ ] Zalo templates are approved per tag; tokens are sealed and refresh from one place; `needs_reconnect` alerts the spa.
 - [ ] Fallback to SMS only when Zalo cannot reach the person; SMS without diacritics; OTP sends are limited and monitored.
 
 Sources:

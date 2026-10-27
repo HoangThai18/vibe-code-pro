@@ -1,4 +1,6 @@
 // src/lib/public-spa.ts — what a spa's public page may show
+import type { Money } from '@/i18n/format';
+
 export type Day = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 
 // Only what the spa chose to publish. Nothing from customers, staff, billing or the owner's account.
@@ -10,7 +12,7 @@ export interface PublicSpa {
   address: { street: string; district: string; city: string };
   hours: { days: Day[]; opens: string; closes: string }[];
   priceRange: string;
-  services: { name: string; priceVnd: number }[];
+  services: { name: string; price: Money }[];
   updatedAt: Date;
 }
 

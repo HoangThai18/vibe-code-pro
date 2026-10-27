@@ -53,8 +53,8 @@ When the model calls tools (look up schedules or customers, create appointments.
 
 - All prompt data comes through tenant-filtered repositories, under RLS if present (`design.md` section 4 for search and RAG).
 - Never combine several tenants' data in one prompt, not even to "save" money by batching.
-- Conversation history, stored AI results, caches: keys always include `tenant_id` (and `user_id` for user-private data).
-- Test: requests sent to the API contain only the calling tenant's data (`testing.md` section 2).
+- Conversation history, stored AI results, caches: keys always include `tenant_id` (and `user_id` for user-private data); history storage in `chat-and-files.md` section 1.
+- Test at the endpoint: with two tenants' data in the database, the body sent to the model holds only the caller's (`testing.md` section 2, `customer-summary.test.ts`).
 
 ## 7. Abuse prevention
 

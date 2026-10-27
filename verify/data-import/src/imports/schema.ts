@@ -22,6 +22,6 @@ export const CustomerRow = z.object({
   phone: cell(normalizePhone),
   birthday: cell(parseDate)
     .refine((d) => d === null || (d >= '1900-01-01' && d <= VN_DATE.format(new Date())), 'Ngày sinh phải từ 1900 đến hôm nay'),
-  email: cell((v) => text(v) || null).pipe(z.email('Email không hợp lệ').nullable()),
+  email: cell((v) => text(v).toLowerCase() || null).pipe(z.email('Email không hợp lệ').nullable()),   // stored lower-case
 });
 export type CustomerInput = z.output<typeof CustomerRow>;

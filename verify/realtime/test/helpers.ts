@@ -2,8 +2,14 @@
 import pg from 'pg';
 import { createSession } from '../src/auth';
 
-export const ADMIN_URL = process.env.DATABASE_URL ?? 'postgres://vibe_test:vibe@localhost:5432/realtime_check';
-export const APP_URL = process.env.APP_DATABASE_URL ?? 'postgres://rt_app:rt@localhost:5432/realtime_check';
+// A superuser on a scratch database (verify/tools/run.sh sets it); the app logs in to the same database as
+// rt_app (sql/setup.sql). Both must point at one database: seeding one and serving from another fails.
+export const ADMIN_URL = process.env.DATABASE_URL ?? '';
+if (!ADMIN_URL) throw new Error('DATABASE_URL is not set');
+const app = new URL(ADMIN_URL);
+app.username = 'rt_app';
+app.password = 'rt';
+export const APP_URL = app.href;
 export const admin = new pg.Pool({ connectionString: ADMIN_URL });   // superuser: seeding and "attacks" only
 export const pool = new pg.Pool({ connectionString: APP_URL });      // app role: RLS applies
 

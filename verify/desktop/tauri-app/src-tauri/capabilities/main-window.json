@@ -3,5 +3,5 @@
   "identifier": "main-window",
   "description": "Quyền của cửa sổ chính",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default"]
 }

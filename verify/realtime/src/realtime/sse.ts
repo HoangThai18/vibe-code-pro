@@ -19,7 +19,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function isMember(pool: Pool, tenantId: string, userId: string): Promise<boolean> {
   if (!UUID.test(tenantId)) return false;
   return withTenant(pool, tenantId, async (db) =>
-    (await db.query('SELECT 1 FROM memberships WHERE user_id = $1', [userId])).rowCount === 1);
+    (await db.query('SELECT 1 FROM memberships WHERE user_id = $1 AND tenant_id = app_current_tenant()', [userId])).rowCount === 1);
 }
 
 const sendError = (res: ServerResponse, status: number, code: string, message: string) =>

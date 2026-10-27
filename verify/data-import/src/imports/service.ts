@@ -5,7 +5,7 @@ import type { PgBoss } from 'pg-boss';
 import { withTenant } from '../db/tenant';
 import { readCsv, readXlsx } from './read-file';
 import { detectFormat } from './upload';
-import { parseRows } from './rows';
+import { columnLabel, parseRows } from './rows';
 
 export const Q = { apply: 'import-apply', purge: 'import-purge' } as const;
 export interface ImportJob { tenantId: string; batchId: string }
@@ -24,6 +24,18 @@ export async function previewImport(pool: Pool, boss: PgBoss, tenantId: string, 
   const { columns, header, rows } = await parseRows(format === 'xlsx' ? readXlsx(file.data) : readCsv(file.data));
 
   return withTenant(pool, tenantId, async (db) => {
+    // An email another customer of this tenant already has: UNIQUE (tenant_id, email) would fail its chunk
+    const emails = rows.flatMap((r) => (r.data?.email ? [r.data.email] : []));
+    const { rows: owners } = await db.query<{ email: string; phone: string }>(
+      'SELECT email, phone FROM customers WHERE email = ANY($1::text[])', [emails]);
+    const ownerPhone = new Map(owners.map((o) => [o.email, o.phone]));
+    for (const r of rows) {
+      const owner = r.data?.email ? ownerPhone.get(r.data.email) : undefined;
+      if (owner && owner !== r.data!.phone) {
+        r.data = null;
+        r.errors = [{ column: columnLabel(columns, 'email'), message: 'Email đã có ở khách hàng khác' }];
+      }
+    }
     const { rows: [batch] } = await db.query(
       `INSERT INTO import_batches (kind, file_sha256, file_name, header, total_rows, valid_rows)
        VALUES ('customers', $1, $2, $3, $4, $5)

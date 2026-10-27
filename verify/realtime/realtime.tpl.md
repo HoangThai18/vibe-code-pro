@@ -4,7 +4,7 @@ Tell open screens "something changed": the appointment board and notification ba
 
 **Right-size it.** Few users, 30–60 s delay acceptable: poll (`refetchInterval` + `refetchOnWindowFocus`) and skip this file. One instance still needs the trigger and listener (they tie events to commits).
 
-Ran on Node 22, PostgreSQL 16 (FORCE RLS, app role without BYPASSRLS), pg 8.23, React 19.3, TanStack Query 5.104; removing the tenant filter, membership check, cleanup on close, notify-in-transaction, refetch on reconnect or coalescing failed a test.
+Ran on Node 22, PostgreSQL 16 (FORCE RLS, app role without BYPASSRLS), pg 8.23, React 19.3, TanStack Query 5.104; removing the tenant filter, membership check (or its tenant predicate), cleanup on close, notify-in-transaction, refetch on reconnect or coalescing fails a test.
 
 ## Contents
 1. Choosing a transport
@@ -82,15 +82,13 @@ Only for many client messages. Same hub and rules, plus: auth and membership che
 
 ## 6. Tests
 
-Helpers (not shown): `openStream` = fetch + SSE parser; `seed` = two spas, users, sessions; `startApp` = `node:http` app wiring these modules.
-
-```ts
-{{test/realtime.test.ts}}
-```
-
-- Negatives without sleeps: forbidden write first, control write second; the first event must be the control (commit order).
-- Also tested: recipient-only notifications; removed member; 429; logout; listener killed → `resync`; shutdown.
-- Client (jsdom + `eventsource` package, real server): live update, lost event recovered on reconnect, 50 bookings in one transaction → 1 refetch (50 uncoalesced), workspace switch, refused stream retried. `queryClient.clear()` after each test, or gc timers keep Node alive.
+Real Postgres as the app role (RLS), two app instances, real HTTP streams read with `fetch` and a small SSE parser, two spas with users and sessions. Check that:
+- no session gives 401 `unauthenticated`; a non-member or a bad tenant id gives 404; a member gets `text/event-stream; charset=utf-8`, `no-cache, no-transform`, `X-Accel-Buffering: no`, the `retry:` line and heartbeats; closing frees the hub entry;
+- a rolled-back write never reaches the stream; a committed one does, as `{ type, id, version }` only;
+- A's write never reaches a B stream, even on the other instance for a user in both spas;
+- negatives need no sleeps: forbidden write first, control write second; the first event must be the control (commit order);
+- also: recipient-only notifications; a removed member's stream ends and its reconnect gets 404; a role change ends the stream and the reconnect succeeds; 429 past `maxPerUser`; logout ends the stream at the re-check; listener killed → `resync`, then events flow; forged or malformed `NOTIFY` is ignored; a client leaving during the auth check leaves nothing; shutdown ends streams; Node's `requestTimeout` does not cut a stream; with `app.user_id` also set, a B-only user is not a member of A; WebSocket: 403 foreign origin, 401, 404, tenant-only invalidations;
+- client (jsdom + `eventsource` package, real server): live update, lost event recovered on reconnect, 50 bookings in one transaction → 1 refetch (50 uncoalesced), workspace switch, refused stream retried, unmount closes. `queryClient.clear()` after each test, or gc timers keep Node alive.
 
 ## 7. Operations and scale
 

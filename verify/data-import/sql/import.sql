@@ -28,7 +28,7 @@ CREATE TABLE import_rows (
   batch_id   uuid NOT NULL,
   row_number int  NOT NULL,                        -- as the user sees it in Excel
   data       jsonb,                                -- normalized values; NULL when rejected
-  raw        jsonb,                                -- original cells, rejected rows only
+  raw        jsonb,                                -- original cells, for the error report
   errors     jsonb,                                -- [{ "column": "SĐT (B)", "message": "..." }]
   PRIMARY KEY (batch_id, row_number),
   FOREIGN KEY (tenant_id, batch_id) REFERENCES import_batches (tenant_id, id) ON DELETE CASCADE

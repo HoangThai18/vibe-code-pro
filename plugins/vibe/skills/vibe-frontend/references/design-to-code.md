@@ -34,12 +34,7 @@ Add tokens to the project's system (CSS variables, Tailwind theme, theme object.
 
 ## Step 4: Motion
 
-Implement motion to spec (property, duration, easing, delay):
-
-- Animate only `transform` and `opacity` where possible: smooth, no layout recalculation.
-- Respect `prefers-reduced-motion`: disable or reduce large motions.
-- Use the project's existing tool (CSS transitions/keyframes, Motion/Framer Motion, GSAP...); don't add a library for one effect.
-- Put motion values in tokens (`--duration-base`, `--ease-out`) so screens stay in sync.
+Implement motion to spec (property, duration, easing, delay) and check it against the checklist in [motion-spec.md](motion-spec.md) (`transform`/`opacity` only, reduced motion, shared tokens). Use the project's existing tool (CSS transitions/keyframes, Motion/Framer Motion, GSAP...); don't add a library for one effect.
 
 ## Step 5: Verify visually (required for UI)
 

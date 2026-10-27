@@ -8,7 +8,6 @@
     "check:messages": "node --import tsx src/i18n/check-messages.ts messages",
     "build:web": "next build",
     "test:web": "node --import tsx --test test-web/hydration.test.ts",
-    "safeguards": "python3 scripts/safeguards.py",
     "explain": "psql \"$DATABASE_URL\" -f sql/explain.sql",
     "verify": "npm run typecheck && npm test && npm run check:messages"
   },

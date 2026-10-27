@@ -153,6 +153,7 @@ export function getQueryClient() {
 ```
 
 - Zustand stores read during SSR: create one per request with `createStore` and pass it down through a Context provider, per the Next.js guide in the current Zustand docs.
+- Server Actions and `'use cache'` / `unstable_cache` with tenant data: every action is a public POST endpoint that checks session, membership and permission itself; cached functions take the tenant as an argument, read no cookies, and are tagged per tenant. Code and tests: `references/server-actions.md`.
 
 ## 8. Tests
 
