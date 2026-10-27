@@ -2,6 +2,8 @@
 
 ORMs speed up writing code but hide the real SQL. The three most common mistakes: N+1 queries, misused transactions, and auto-generated migrations run without anyone reading them. The examples below ran on PostgreSQL 16 with Prisma 7.10, Drizzle 0.45, TypeORM 1.1, Sequelize 6.37, SQLAlchemy 2.1, Django 6.1, GORM 1.31, ActiveRecord 8.1, including two concurrent transactions decrementing stock. On other versions, **re-check against the installed version** (official docs or the type files in `node_modules`) before use.
 
+Eloquent (Laravel), JPA/Hibernate (Spring Boot) and EF Core (.NET) are covered with their frameworks: `references/laravel.md`, `references/spring.md`, `references/dotnet.md`.
+
 ## Contents
 1. General rules
 2. Prisma
