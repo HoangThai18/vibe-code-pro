@@ -1,6 +1,6 @@
 ---
 name: vibe-backend
-description: "Backend data and API layer on Node/TypeScript, Laravel, Spring Boot or ASP.NET Core, PostgreSQL or MySQL: schema, indexes, transactions, safe migrations, ORMs (Prisma, Drizzle, TypeORM, Eloquent, JPA/Hibernate, EF Core, SQLAlchemy, Django...), file storage, multi-tenancy (tenant_id, Postgres RLS, Supabase policies, isolation tests), API contracts, auth and permission models, background jobs, app security (uploads, SSRF in link previews and webhooks, rate limits), personal data under Vietnamese law. Use for tables, queries, endpoints, RLS policies, slow or N+1 queries, payments (VNPay, MoMo, VietQR, refunds, e-invoices), accent-insensitive search, Zalo/SMS/email delivery, realtime (SSE), Excel/CSV import and export, data deletion requests. Also use for Vietnamese requests like 'tạo bảng', 'query chậm', 'nhiều khách hàng dùng chung', 'phân quyền', 'tích hợp VNPay', 'tìm không dấu', 'gửi Zalo ZNS', 'nhập khách từ Excel', 'xoá dữ liệu cá nhân'."
+description: "Backend data and API layer on Node/TypeScript, Laravel, Spring Boot, ASP.NET Core with PostgreSQL or MySQL: schema, indexes, transactions, safe migrations, ORMs (Prisma, Drizzle, TypeORM, Eloquent, Hibernate, EF Core, SQLAlchemy, Django...), multi-tenancy (tenant_id, RLS, Supabase policies, isolation tests), API contracts, auth and permission models, background jobs, file storage, app security (uploads, SSRF, rate limits), personal data under Vietnamese law. Use whenever writing, reviewing or debugging server code or SQL: one tenant seeing another's data, double bookings, slow or N+1 queries, payments (VNPay, MoMo, VietQR, refunds, e-invoices), accent-insensitive search, Zalo/SMS/email, realtime (SSE), Excel/CSV import and export, link previews, webhooks, data deletion requests. Also use for Vietnamese requests like 'tạo bảng', 'query chậm', 'nhiều khách hàng dùng chung', 'lộ dữ liệu tenant khác', 'phân quyền', 'tích hợp VNPay', 'tìm không dấu', 'gửi Zalo ZNS', 'nhập khách từ Excel', 'xoá dữ liệu cá nhân'."
 ---
 
 # Backend: data, ORM, multi-tenancy, API
@@ -58,4 +58,5 @@ The costliest and most common mistakes; apply them even before reading any detai
 - Tests run against a **real DB** (container or test DB); don't mock the DB layer for queries, migrations, RLS.
 - New query on a table that can grow large: check `EXPLAIN (ANALYZE, BUFFERS)` with enough data.
 - Endpoint touching tenant data: has an isolation test (tenant A touching B's resource → 404).
+- No database or toolchain here: still write these tests next to the existing ones, and say they have not run.
 - Migration: runs on an empty DB **and** on a DB with sample data.
