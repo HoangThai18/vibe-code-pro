@@ -8,6 +8,7 @@ import type { Provider, ProviderConfig } from '../auth/id-token';
 import { authRoutes } from '../auth/routes';
 import { verifyAccessToken, type TokenConfig } from '../auth/tokens';
 import { CreateCustomerInput, ListCustomersQuery, UpdateCustomerInput } from '../contracts/customers';
+import { retryOnDeadlock } from '../db/retry';
 import { withMember } from '../db/tenant';
 import { changeMemberRole } from '../members/change-role';
 import { authorize, type Actor } from '../shared/authz';
@@ -101,9 +102,9 @@ export function buildApp(pool: Pool, o: AppOptions) {
   app.post('/v1/t/:tenantId/appointments', async (req, res) => {
     const input = z.object({ customerId: z.uuid(), staffUserId: z.uuid(), startsAt: z.iso.datetime(), endsAt: z.iso.datetime() })
       .parse(req.body);
-    const id = await inTenant(req, (db, actor) => bookAppointment(db, actor, {
+    const id = await retryOnDeadlock(() => inTenant(req, (db, actor) => bookAppointment(db, actor, {
       customerId: input.customerId, staffUserId: input.staffUserId, startsAt: new Date(input.startsAt), endsAt: new Date(input.endsAt),
-    }));
+    })));
     res.status(201).json({ data: { id } });
   });
   app.put('/v1/t/:tenantId/members/:userId/role', async (req, res) => {

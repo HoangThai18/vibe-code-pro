@@ -1,6 +1,6 @@
 # Data layer: schema, indexes, transactions, migrations, file storage
 
-Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalent syntax. Multi-tenancy and the example schema (`customers`, `appointments`): see `references/multi-tenant.md`. The SQL and TypeScript in section 6 ran on PostgreSQL 16 (ten concurrent bookings of one slot: one succeeded, nine got 409).
+Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalent syntax. Multi-tenancy and the example schema (`customers`, `appointments`): see `references/multi-tenant.md`. The SQL and TypeScript in section 6 ran on PostgreSQL 16: 500 rounds of ten simultaneous bookings of one slot gave one booking and nine 409s every round; without the per-staff lock, 63 of 1,000 requests in 100 rounds failed with a deadlock (500).
 
 ## Contents
 1. Data types
@@ -63,10 +63,16 @@ Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalen
 {{sql/no-overlap.sql}}
 ```
 
-  Map the violation (SQLSTATE `23P01`) to `409` with its own code; the UI then offers other times:
+  Map the violation (SQLSTATE `23P01`) to `409` with its own code; the UI then offers other times. Take a per-staff advisory lock first: simultaneous inserts that check the same exclusion constraint can deadlock (`40P01`, a 500) instead of failing with `23P01`. The lock queues bookings for one staff member (other staff still book in parallel); the constraint stays the guarantee for every other writer (imports, admin edits, a path that forgot the lock).
 
 ```ts
 {{src/appointments/book.ts}}
+```
+
+  A deadlock aborts the whole transaction, so a retry reruns the whole unit, from outside `withMember`: `retryOnDeadlock(() => withMember(pool, tenantId, userId, (db, actor) => bookAppointment(db, actor, input)))`.
+
+```ts
+{{src/db/retry.ts}}
 ```
 
   Adding the constraint to a table that already has overlaps fails: find and fix them first. It can't be added `NOT VALID`, and building its index locks writes, so add it while the table is small or in a quiet window.
