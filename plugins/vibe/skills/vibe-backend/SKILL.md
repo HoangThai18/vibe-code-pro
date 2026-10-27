@@ -58,5 +58,5 @@ The costliest and most common mistakes; apply them even before reading any detai
 - Tests run against a **real DB** (container or test DB); don't mock the DB layer for queries, migrations, RLS.
 - New query on a table that can grow large: check `EXPLAIN (ANALYZE, BUFFERS)` with enough data.
 - Endpoint touching tenant data: has an isolation test (tenant A touching B's resource → 404).
-- No database or toolchain here: still write these tests next to the existing ones, and say they have not run.
+- No database, toolchain or test helpers here: still write these tests next to the existing ones, adding the helpers they need (a signed test token, seed data), and say they have not run.
 - Migration: runs on an empty DB **and** on a DB with sample data.
