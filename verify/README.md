@@ -4,6 +4,7 @@ Every code block in the skills' references was run. This folder keeps that code 
 
 | Folder | Reference |
 |---|---|
+| `backend-core` | `vibe-backend/references/postgres-rls.md`, `multi-tenant.md`, `auth.md`, `native-auth.md`, `api-conventions.md`, `data-layer.md`, `isolation-tests.md` (vitest, Express 5) |
 | `search`, `payments`, `notifications`, `realtime`, `data-import`, `jobs`, `app-security`, `privacy` | `vibe-backend/references/<same name>.md` |
 | `i18n`, `seo` | `vibe-frontend/references/<same name>.md` |
 | `ai` | `vibe-ai/references/integration.md`, `cost.md`, `testing.md`, `chat-and-files.md` |
@@ -34,3 +35,5 @@ python3 verify/tools/check_docs.py --write  # re-render after editing
 ```
 
 `tools/docs.json` lists the templates. References without a template were checked by hand; their code here may differ from the doc in comments only.
+
+Shared code (the canonical schema, `withTenant`/`withMember`, `authz.ts`, `secret-box.ts`, the formatting module) is kept as byte-identical copies in the projects that need it, listed in `tools/copies.json`. Edit the original, then `python3 verify/tools/check_copies.py --write`; CI fails if a copy drifts.

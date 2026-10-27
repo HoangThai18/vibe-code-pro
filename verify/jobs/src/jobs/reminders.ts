@@ -2,30 +2,33 @@
 import type { PgBoss } from 'pg-boss';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '../db/tenant';
+import { formatDateTime } from '../i18n/format';
+import { removeDiacritics } from '../i18n/text';
 import { Q, type SendReminderJob } from './queues';
 
 export interface SmsSender {
-  // Nhà cung cấp SMS/Zalo nhận idempotencyKey: gửi lại cùng key thì không gửi tin thứ hai
+  // SMS/Zalo provider accepts idempotencyKey: resending with the same key sends no second message
   send(input: { to: string; text: string; idempotencyKey: string }): Promise<void>;
 }
 
-// pg-boss ghi job bằng chính transaction của bạn: job chỉ tồn tại nếu transaction commit
+// pg-boss writes the job using your own transaction: the job exists only if the transaction commits
 const inTx = (db: PoolClient) => ({ db: { executeSql: (text: string, values?: unknown[]) => db.query(text, values) } });
 
-// Job theo lịch: tìm lịch hẹn cần nhắc ở từng tenant (giữ RLS), tạo notification + job gửi cùng một transaction
+// Scheduled job: in each active tenant (keeping RLS), create notification + send job in one transaction.
+// app_tenant_ids(), not SELECT FROM tenants: a worker has no tenant, so RLS would show it 0 tenants.
 export async function enqueueReminders(pool: Pool, boss: PgBoss): Promise<number> {
-  const { rows: tenants } = await pool.query<{ id: string }>('SELECT id FROM tenants');
+  const { rows: tenants } = await pool.query<{ id: string }>('SELECT id FROM app_tenant_ids() AS id');
   let queued = 0;
   for (const tenant of tenants) {
     queued += await withTenant(pool, tenant.id, async (db) => {
-      // Cửa sổ rộng (2 đến 24 giờ tới) + UNIQUE: lần quét bị lỡ vẫn bù được, không nhắc hai lần
+      // Wide window (next 2 to 24 hours) + UNIQUE: a missed scan is caught up, no double reminders
       const { rows } = await db.query<{ id: string }>(
         `INSERT INTO notifications (tenant_id, appointment_id, kind)
          SELECT tenant_id, id, 'reminder_24h' FROM appointments
-          WHERE status = 'booked'
+          WHERE status IN ('booked', 'confirmed')
             AND starts_at >  now() + interval '2 hours'
             AND starts_at <= now() + interval '24 hours'
-         ON CONFLICT (appointment_id, kind) DO NOTHING
+         ON CONFLICT (tenant_id, appointment_id, kind) DO NOTHING
          RETURNING id`,
       );
       for (const n of rows) {
@@ -37,26 +40,33 @@ export async function enqueueReminders(pool: Pool, boss: PgBoss): Promise<number
   return queued;
 }
 
-// Worker: chạy lại bao nhiêu lần cũng chỉ gửi một tin
+// Worker: however many times it reruns, it sends one message
 export async function sendReminder(pool: Pool, sms: SmsSender, job: SendReminderJob): Promise<'sent' | 'skipped'> {
   const row = await withTenant(pool, job.tenantId, async (db) => {
-    const { rows } = await db.query<{ status: string; booked: boolean; phone: string; name: string; starts_at: Date }>(
-      `SELECT n.status, a.status = 'booked' AS booked, a.customer_phone AS phone, a.customer_name AS name, a.starts_at
-         FROM notifications n JOIN appointments a ON a.id = n.appointment_id
+    // Name and phone come from customers at send time: a correction or deletion request applies to queued reminders too
+    const { rows } = await db.query<{ status: string; active: boolean; phone: string; full_name: string; starts_at: Date; time_zone: string }>(
+      `SELECT n.status, a.status IN ('booked', 'confirmed') AS active, c.phone, c.full_name, a.starts_at, t.time_zone
+         FROM notifications n
+         JOIN appointments a ON a.tenant_id = n.tenant_id AND a.id = n.appointment_id
+         JOIN customers c ON c.tenant_id = a.tenant_id AND c.id = a.customer_id
+         JOIN tenants t ON t.id = n.tenant_id
         WHERE n.id = $1`,
       [job.notificationId],
     );
     return rows[0];
   });
-  if (!row || row.status !== 'pending') return 'skipped';   // đã gửi, đã bỏ, hoặc không thuộc tenant này (RLS)
-  if (!row.booked) {
-    await setStatus(pool, job, 'skipped');                    // lịch đã huỷ sau khi xếp job
+  if (!row || row.status !== 'pending') return 'skipped';   // already sent, skipped, or not in this tenant (RLS)
+  if (!row.active) {
+    await setStatus(pool, job, 'skipped');                    // appointment cancelled after the job was enqueued
     return 'skipped';
   }
 
-  const when = row.starts_at.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' });
-  // Gọi ra ngoài KHÔNG nằm trong transaction DB; lỗi thì ném ra để pg-boss thử lại
-  await sms.send({ to: row.phone, text: `Chào ${row.name}, nhắc lịch hẹn của bạn lúc ${when}.`, idempotencyKey: job.notificationId });
+  // Customer-care brandname SMS: the text must match a template registered with the carriers, without diacritics
+  // (references/notifications.md section 5). The time is in the tenant's zone, never the server's.
+  const when = formatDateTime(row.starts_at, { locale: 'vi', timeZone: row.time_zone });
+  const text = `Chao ${removeDiacritics(row.full_name)}, nhac lich hen cua ban luc ${when}.`;
+  // The external call is NOT inside a DB transaction; on error, throw so pg-boss retries
+  await sms.send({ to: row.phone, text, idempotencyKey: job.notificationId });
   await setStatus(pool, job, 'sent');
   return 'sent';
 }

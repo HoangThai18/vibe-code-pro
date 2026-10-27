@@ -1,0 +1,53 @@
+openapi: 3.1.0
+info: { title: Mini CRM API, version: 1.0.0 }
+paths:
+  /v1/t/{tenantId}/customers:
+    get:
+      summary: Danh sách khách hàng của workspace
+      parameters:
+        - { name: tenantId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerList' }
+        '401': { $ref: '#/components/responses/Error' }
+components:
+  schemas:
+    Customer:
+      type: object
+      required: [id, fullName, phone, email, birthday, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        fullName: { type: string, maxLength: 200 }
+        phone: { type: string, pattern: '^0\d{9,10}$' }
+        email: { type: [string, 'null'], format: email }
+        birthday: { type: [string, 'null'], format: date }
+        createdAt: { type: string, format: date-time }
+    CustomerList:
+      type: object
+      required: [data, nextCursor]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Customer' } }
+        nextCursor: { type: [string, 'null'] }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+            requestId: { type: string }
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

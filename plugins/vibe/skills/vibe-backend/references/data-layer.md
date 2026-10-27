@@ -1,6 +1,6 @@
 # Data layer: schema, indexes, transactions, migrations, file storage
 
-Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalent syntax. Multi-tenancy: see `references/multi-tenant.md`.
+Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalent syntax. Multi-tenancy and the example schema (`customers`, `appointments`): see `references/multi-tenant.md`. The SQL and TypeScript in section 6 ran on PostgreSQL 16 (ten concurrent bookings of one slot: one succeeded, nine got 409).
 
 ## Contents
 1. Data types
@@ -37,7 +37,7 @@ Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalen
 
 - `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at` (updated by trigger or ORM).
 - **Soft delete** (`deleted_at`) has a cost: every query must remember to filter, and UNIQUE becomes a partial index (`... WHERE deleted_at IS NULL`). An `archived` status is often clearer. Personal data a customer asks to delete must be really deleted or anonymized.
-- **Change history** (who changed what, when) for sensitive data: an `audit_log` table (actor, action, entity, entity_id, diff jsonb, at) written in the same transaction.
+- **Change history** (who changed what, when) for sensitive data: an `audit_log` table (actor, action, entity, entity_id, diff jsonb, at) written in the same transaction, append-only: the app role gets no UPDATE or DELETE on it (`references/auth.md` section 8).
 
 ## 4. Indexes
 
@@ -56,7 +56,52 @@ Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalen
 ## 6. Transactions and contention
 
 - One transaction wraps exactly one business unit (create order + decrement stock + write audit), as short as possible.
-- Contended resources (appointment slots, stock, balances): use DB constraints (UNIQUE, CHECK `stock >= 0`), or `SELECT ... FOR UPDATE`, or a conditional update (`UPDATE ... SET stock = stock - 1 WHERE id = $1 AND stock > 0`, then check the affected row count).
+- Contended resources (stock, balances): use DB constraints (UNIQUE, CHECK `stock >= 0`), or `SELECT ... FOR UPDATE`, or a conditional update (`UPDATE ... SET stock = stock - 1 WHERE id = $1 AND stock > 0`, then check the affected row count).
+- **Time slots** (appointments, rooms, staff): UNIQUE on `starts_at` and "check, then insert" don't stop overlaps: 10:00–11:00 and 10:30–11:30 have different start times, and two concurrent requests both see the slot free. Use an exclusion constraint; it holds under concurrency too. Design reasoning: the `vibe-architecture` skill (`references/ddd.md`, section 3).
+
+```sql
+-- A staff member never has two overlapping appointments; cancelled ones don't count.
+-- tstzrange is [starts_at, ends_at): 10:00-11:00 and 11:00-12:00 don't overlap.
+CREATE EXTENSION IF NOT EXISTS btree_gist;   -- lets the gist index compare uuids with =
+ALTER TABLE appointments ADD CONSTRAINT appointments_no_overlap
+  EXCLUDE USING gist (tenant_id WITH =, staff_user_id WITH =, tstzrange(starts_at, ends_at) WITH &&)
+  WHERE (status <> 'cancelled');
+```
+
+  Map the violation (SQLSTATE `23P01`) to `409` with its own code; the UI then offers other times:
+
+```ts
+// src/appointments/book.ts — inside withMember
+import pg from 'pg';
+import type { PoolClient } from 'pg';
+import { authorize, ForbiddenError, type Actor } from '../shared/authz';
+import { HttpError } from '../shared/errors';
+
+export interface NewAppointment { customerId: string; staffUserId: string; startsAt: Date; endsAt: Date }
+
+export async function bookAppointment(db: PoolClient, actor: Actor, a: NewAppointment): Promise<string> {
+  authorize(actor, 'appointment.write');
+  // Per-record rule (auth.md section 5): staff book only for themselves
+  if (actor.type === 'user' && actor.role === 'staff' && a.staffUserId !== actor.id) throw new ForbiddenError('appointment.write');
+  try {
+    const { rows } = await db.query<{ id: string }>(
+      `INSERT INTO appointments (customer_id, staff_user_id, starts_at, ends_at)
+       VALUES ($1, $2, $3, $4) RETURNING id`,
+      [a.customerId, a.staffUserId, a.startsAt, a.endsAt],
+    );
+    return rows[0]!.id;
+  } catch (err) {
+    if (!(err instanceof pg.DatabaseError)) throw err;
+    // 23P01 exclusion_violation: that staff member has an overlapping appointment (also under concurrency)
+    if (err.code === '23P01') throw new HttpError(409, 'appointment_slot_taken', 'Khung giờ này đã có lịch.');
+    // 23503: customer or staff not in this tenant (composite FKs); don't echo the DB message
+    if (err.code === '23503') throw new HttpError(422, 'invalid_reference', 'Khách hàng hoặc nhân viên không hợp lệ.');
+    throw err;
+  }
+}
+```
+
+  Adding the constraint to a table that already has overlaps fails: find and fix them first. It can't be added `NOT VALID`, and building its index locks writes, so add it while the table is small or in a quiet window.
 - Several people editing the same record (edit forms): optimistic locking with a `version` column, updating with `WHERE version = $old`.
 - External side effects (email, payment gateway, webhooks): write to an outbox table in the same transaction and let a worker send later; or call after commit with an idempotency key.
 - Deadlocks: always lock rows in the same order (e.g. ascending id).
@@ -69,13 +114,13 @@ Examples use PostgreSQL; the principles apply to MySQL/SQL Server with equivalen
 - New FK or CHECK on a table with data: `NOT VALID`, then `VALIDATE CONSTRAINT` in a separate step. `NOT NULL`: CHECK `NOT VALID` → `VALIDATE` → `SET NOT NULL` → drop the helper CHECK.
 - Backfill: in batches, rerunnable (idempotent), check affected row counts. If the table has RLS `FORCE`, read `references/postgres-rls.md` section 5 first: the backfill can silently update 0 rows.
 - Never edit a migration that ran in a shared environment; write a new one.
-- Only one task creates migrations at a time, so their order doesn't collide.
+- Only one task/agent creates migrations at a time (declare `touches: [.../migrations/**]` in its task card), so their order doesn't collide.
 
 ## 8. Files and object storage
 
 - Files (images, PDFs, documents) go to object storage (S3, R2, GCS, Supabase Storage); the DB stores only metadata: key, original name, MIME, size, checksum, uploader, `tenant_id`.
 - Upload straight from the browser with a short-lived **presigned URL** limited in size and file type; the server creates the URL after checking permissions.
-- The server generates the key (`tenants/{tenant_id}/customers/{id}/{uuid}.pdf`); never use the user's file name.
+- The server generates the key with one helper, `storageKey` (`references/app-security.md` section 2): `tenants/{tenant_id}/customers/{customer_id}/{uuid}.pdf`; never use the user's file name.
 - Buckets are private by default; download via presigned GET after a permission check. Public files (product images) go in a separate bucket or prefix.
 - Check the real file type (magic bytes); virus-scan files users share with each other; never serve uploads as HTML on the app's domain.
 - Deleting a record triggers a job that cleans up its files; enable versioning for important data.

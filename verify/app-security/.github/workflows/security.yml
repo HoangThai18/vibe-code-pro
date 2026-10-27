@@ -1,11 +1,11 @@
-# .github/workflows/security.yml — chạy ở mọi PR và mỗi tuần
+# .github/workflows/security.yml — runs on every PR and weekly
 name: Security
 on:
   pull_request:
   push:
     branches: [main]
   schedule:
-    - cron: "0 1 * * 1"   # 08:00 thứ Hai giờ Việt Nam: lỗ hổng mới công bố trong tuần
+    - cron: "0 1 * * 1"   # 08:00 Monday Vietnam time: vulnerabilities published during the week
 permissions:
   contents: read
 jobs:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0               # quét cả lịch sử: secret đã xoá khỏi code vẫn nằm trong git
+          fetch-depth: 0               # scan the full history: secrets deleted from code are still in git
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"

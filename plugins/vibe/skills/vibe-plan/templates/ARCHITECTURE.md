@@ -32,6 +32,7 @@ flowchart LR
 
 ## 4. Data model (draft)
 Tenancy model: shared schema + tenant_id + RLS / schema-per-tenant / DB-per-tenant. Reason: ...
+Permission model: fixed roles / roles per tenant / per-module matrix; data scope: own records / branch / whole tenant. Chosen by the user from: ...
 
 | Entity | Tenant-owned? | Key fields | Relations |
 |---|---|---|---|

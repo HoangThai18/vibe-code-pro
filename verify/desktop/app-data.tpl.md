@@ -42,7 +42,7 @@ The main process calls the API (it holds the tokens). Every request sends `x-app
 
 - `app.getVersion()` returns the `version` from the app's `package.json`; started without one (e.g. `electron main.js`) it returns Electron's own version (checked on Electron 45). Start the app folder, as the tests do.
 - `onUpdateRequired`: show a blocking "update required" screen in the renderer and run the auto-update check now (`release.md` section 3); do not keep working with an API that may have changed.
-- Token endpoints and refresh rules as on mobile (the `vibe-backend` skill, `references/auth.md` section 9; the `vibe-mobile` skill, `references/app-data.md` section 2): one shared refresh at a time, `401 refresh_invalid` clears the session, offline keeps it. The refresh call sends the same two headers.
+- Token endpoints and refresh rules as on mobile (the `vibe-backend` skill, `references/native-auth.md`; the `vibe-mobile` skill, `references/app-data.md` section 2): one shared refresh at a time, `401 refresh_invalid` clears the session, offline keeps it. The refresh call sends the same two headers.
 - The renderer calls IPC handlers named by business action (`customers:list`), which check the sender and validate input (`security.md` section 2), then call `api()`; it never gets the refresh token.
 
 ## 4. Local DB

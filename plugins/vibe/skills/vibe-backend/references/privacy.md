@@ -1,6 +1,6 @@
 # Personal data: complying with Vietnamese law in code
 
-**Read first.** This is an engineering checklist, not legal advice. The legal parts summarize the texts and law-firm analyses up to October 2026; verify article numbers, deadlines and fines against the original texts (vbpl.vn, thuvienphapluat.vn, the Official Gazette / Công báo) and ask a lawyer before relying on them. The law is new and guidance may change. SQL and code here ran on PostgreSQL 16 and Node 22.
+**Read first.** This is an engineering checklist, not legal advice. The legal parts summarize the texts and law-firm analyses up to October 2026; verify article numbers, deadlines and fines against the original texts (vbpl.vn, thuvienphapluat.vn, the Official Gazette / Công báo) and ask a lawyer before relying on them. The law is new and guidance may change. SQL and code here ran on PostgreSQL 16 (as the app role, from an empty database) and Node 22.
 
 ## Contents
 1. Applicable texts
@@ -8,7 +8,7 @@
 3. Consent
 4. Data subject requests
 5. Sensitive data
-6. Cross-border transfer, processors
+6. Cross-border transfer, processors, storing data in Vietnam
 7. Data breach: 72 hours
 8. Retention and deletion
 9. Children
@@ -21,6 +21,8 @@
 | Personal Data Protection Law No. 91/2025/QH15 (Luật Bảo vệ dữ liệu cá nhân) | 1 Jan 2026 | Main law |
 | Decree 356/2025/NĐ-CP (Nghị định 356) | 1 Jan 2026 | Detailed guidance; fully replaces Decree 13/2023/NĐ-CP (Nghị định 13) |
 | Decree 330/2026/NĐ-CP (Nghị định 330) | 19 Aug 2026 | Administrative penalties for cybersecurity and personal data protection violations |
+| Decree 53/2022/NĐ-CP (Nghị định 53) | 1 Oct 2022 | Guides the 2018 Cybersecurity Law; Article 26: storing data in Vietnam (section 6). Check how it applies now that the 2025 law is in force |
+| Cybersecurity Law No. 116/2025/QH15 (Luật An ninh mạng) | 1 Jul 2026 | Replaces the 2018 Cybersecurity Law and keeps an in-country storage duty; its guiding decree was a draft in October 2026 (check) |
 
 Privacy policy templates and assessment dossiers written under Decree 13/2023 are outdated: redo them under the new law.
 
@@ -34,7 +36,7 @@ Create `docs/privacy/DATA-MAP.md` during planning (the `vibe-plan` skill) and up
 
 | Data | Whose | Purpose | Stored where (table, service, country) | Who has access | Retention |
 |---|---|---|---|---|---|
-| Customer name, phone number | The spa's customers | Booking, reminders | `customers`, Postgres in Singapore | That spa's staff | Until the spa deletes the customer or ends the contract + 30 days |
+| Customer name, phone number | The spa's customers | Booking, reminders | `customers`, Postgres, region per the hosting ADR (section 6) | That spa's staff | Until the spa deletes the customer or ends the contract + 30 days |
 | Health notes (allergies) | The spa's customers | Safety during services | `customer_notes` | Technicians, managers | Same as above |
 
 This map feeds the privacy policy, the impact assessment dossier, and the answer to "what do you hold about me".
@@ -51,7 +53,8 @@ In code:
 - Withdrawing must be as easy as consenting (one button in settings, an SMS "TU CHOI"...), and takes effect immediately for messaging jobs.
 
 ```sql
--- Processing purposes, versioned: new wording means a new version, never edit an old one
+-- Processing purposes, versioned: new wording means a new version, never edit an old one.
+-- Global, so read-only for the app: purposes are added by a migration or an audited admin flow.
 CREATE TABLE consent_purposes (
   id         text    NOT NULL,              -- 'appointment_reminders', 'marketing_sms', 'ai_summary'
   version    integer NOT NULL,
@@ -59,8 +62,10 @@ CREATE TABLE consent_purposes (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (id, version)
 );
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON consent_purposes FROM app_user;
+GRANT SELECT ON consent_purposes TO app_user;
 
--- Each consent or withdrawal is a new row; no UPDATE, no DELETE: this is evidence
+-- Each consent or withdrawal is a new row: this is evidence
 CREATE TABLE consents (
   id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   tenant_id       uuid    NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
@@ -79,9 +84,11 @@ ALTER TABLE consents FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON consents
   USING (tenant_id = (SELECT app_current_tenant()))
   WITH CHECK (tenant_id = (SELECT app_current_tenant()));
+-- Append-only: the default privileges (postgres-rls.md section 1) also granted UPDATE and DELETE
+REVOKE UPDATE, DELETE, TRUNCATE ON consents FROM app_user;
 
 -- Current state per purpose = the latest row.
--- security_invoker: the view runs with the caller's privileges, so RLS still applies (by default a view runs as its owner and bypasses RLS)
+-- security_invoker: RLS applies to the caller, whoever owns the view (postgres-rls.md section 7, pitfall 7)
 CREATE VIEW current_consents WITH (security_invoker = true) AS
 SELECT DISTINCT ON (tenant_id, subject_id, purpose_id)
        tenant_id, subject_id, purpose_id, purpose_version, granted, created_at
@@ -109,7 +116,7 @@ CREATE POLICY tenant_isolation ON privacy_requests
   WITH CHECK (tenant_id = (SELECT app_current_tenant()));
 ```
 
-Verified on Postgres 16: consenting then withdrawing makes `current_consents` return `granted = false`; the app role cannot UPDATE `consents`; tenant B reading the view with `security_invoker` sees 0 rows, while the same view without `security_invoker` (owned by a superuser) shows tenant B the rows of tenant A.
+Verified on Postgres 16 as the app role: consenting then withdrawing makes `current_consents` return `granted = false`; the app role cannot UPDATE, DELETE or TRUNCATE `consents` nor write `consent_purposes` (removing the REVOKE fails the test); tenant B reading the view with `security_invoker` sees 0 rows, while the same view without `security_invoker`, owned by a superuser, shows tenant B the rows of tenant A.
 
 The promotional messaging job filters `current_consents` on `granted = true` for the right purpose at send time (not at enqueue time).
 
@@ -170,7 +177,7 @@ export function requestDeadlines(kind: RequestKind, receivedAt: Date, holidays: 
 
 Build this as a feature, not as manual work over email:
 
-- A tenant screen to receive requests, see deadlines, and mark them acknowledged and done (`privacy_requests` table in section 3). A daily job reminds about requests close to their deadline.
+- A tenant screen to receive requests, see deadlines, and mark them acknowledged and done (`privacy_requests` table in section 3). A daily job reminds about requests close to their deadline; it lists tenants with `app_tenant_ids()` and reads each inside `withTenant` (`references/jobs.md`), since a plain `SELECT` on `tenants` returns 0 rows to a worker.
 - **Data export** for one customer: one button that produces a JSON/CSV file with every table holding that person's data (the map in section 2 says which), run as a background job, sending an expiring download link.
 - **Deletion**: delete or anonymize across all tables, files, caches and search indexes, and send deletion requests to processors (email, SMS, AI services...). For data other laws require you to keep (invoices, accounting records), keep the mandatory part and record the reason.
 - Verify the requester's identity before exporting or deleting, so data does not go to an impersonator.
@@ -181,12 +188,12 @@ The list is in Decree 356 Article 4 and includes (not exhaustive): health status
 
 For spa, clinic and gym apps, notes like "essential oil allergy", "pregnant" or "back pain" are **health data**. When you hold this kind of data:
 
-- Put it in a separate column/table readable only by roles that need it (checked in both the API and RLS, `auth.md`); log every view or export.
+- Put it in a separate column/table readable only by roles that need it, checked in both the API (`auth.md`) and RLS (a policy on `app.member_role`, `postgres-rls.md` section 4); log every view or export.
 - Keep it out of logs, analytics and notification emails; do not send it to an AI service without a legal basis and clear notice (the `vibe-ai` skill, `references/safety.md` section 5).
 - Encrypt in transit (always HTTPS) and consider extra application-level encryption for the most sensitive columns.
 - Processing sensitive data forfeits the small-business exemption (section 10).
 
-## 6. Cross-border transfer, processors
+## 6. Cross-border transfer, processors, storing data in Vietnam
 
 Per Law Article 20 and published analyses: using a platform located abroad to process data collected in Vietnam (cloud, email, SMS, analytics, AI services) **is a cross-border transfer**. You need a cross-border transfer impact assessment dossier, filed with the specialized agency (A05, Ministry of Public Security / Bộ Công an) within 60 days of the first transfer; update it when things change.
 
@@ -195,6 +202,8 @@ In code and operations:
 - A processor (subprocessor) list in `DATA-MAP.md`: name, data sent, country, contract. When adding a new service, add the row before sending real data.
 - Send processors only the fields they need (e.g. an SMS service needs only the phone number and message text).
 - Choose the data region when the service allows it; record the choice in an ADR.
+
+**Storing data in Vietnam.** Decree 53/2022/NĐ-CP Article 26 requires **domestic enterprises** providing services over telecom networks or the internet to store in Vietnam the personal data of their users in Vietnam, the data those users create, and data on their relationships, for at least 24 months per published summaries (the clause is ambiguous: verify). The Cybersecurity Law No. 116/2025/QH15 (in force 1 July 2026) keeps an in-country storage duty; its guiding decree was still a draft in October 2026. A Vietnamese company selling SaaS is a domestic enterprise. Decide the hosting region for the database, backups and logs with a lawyer before launch, record it in an ADR (the `vibe-plan` skill), and revisit it when the decree is issued.
 
 ## 7. Data breach: 72 hours
 

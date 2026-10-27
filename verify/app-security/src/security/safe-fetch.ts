@@ -1,5 +1,5 @@
 // apps/api/src/security/safe-fetch.ts
-// Server tải URL do người dùng đưa (xem trước link, nhập dữ liệu từ URL, webhook của khách) mà không chạm được mạng nội bộ
+// Fetch user-supplied URLs (link previews, URL imports, customer webhooks) without reaching the internal network
 import dns from 'node:dns';
 import net from 'node:net';
 import ipaddr from 'ipaddr.js';
@@ -7,15 +7,15 @@ import { Agent, fetch } from 'undici';
 
 export class BlockedUrlError extends Error {}
 
-// Chỉ địa chỉ công khai: chặn loopback, mạng riêng, link-local (169.254.169.254 là metadata của cloud), CGNAT, IPv6 nội bộ,
-// và IPv4 viết dạng IPv6 (::ffff:127.0.0.1)
+// Public addresses only: blocks loopback, private networks, link-local (169.254.169.254 is cloud metadata), CGNAT, internal IPv6,
+// and IPv4 written as IPv6 (::ffff:127.0.0.1)
 export function isPublicAddress(address: string): boolean {
   if (!ipaddr.isValid(address)) return false;
   return ipaddr.process(address).range() === 'unicast';
 }
 
-// Kiểm mọi địa chỉ DNS trả về, và kết nối bằng chính kết quả đã kiểm: tên miền không thể trả IP công khai lúc kiểm
-// rồi IP nội bộ lúc kết nối (DNS rebinding)
+// Check every address DNS returns, and connect using exactly the checked result: a domain cannot return a public IP at check time
+// and an internal IP at connect time (DNS rebinding)
 function guardedLookup(isAllowed: (ip: string) => boolean): net.LookupFunction {
   return (hostname, options, callback) => {
     dns.lookup(hostname, { ...options, all: true }, (err, addresses) => {
@@ -33,8 +33,8 @@ export interface SafeFetchOptions {
   maxBytes?: number;
   timeoutMs?: number;
   maxRedirects?: number;
-  ports?: string[];                               // '' là cổng mặc định của http/https
-  isAllowedAddress?: (ip: string) => boolean;     // chỉ đổi trong test
+  ports?: string[];                               // '' is the http/https default port
+  isAllowedAddress?: (ip: string) => boolean;     // override only in tests
 }
 
 export async function safeFetchText(input: string, opts: SafeFetchOptions = {}) {
@@ -42,24 +42,24 @@ export async function safeFetchText(input: string, opts: SafeFetchOptions = {}) 
   const dispatcher = new Agent({ connect: { lookup: guardedLookup(isAllowedAddress) } });
   const signal = AbortSignal.timeout(timeoutMs);
   try {
-    let url = new URL(input);   // URL tự chuẩn hoá: http://2130706433/ và http://0x7f.1/ thành http://127.0.0.1/
+    let url = new URL(input);   // URL normalizes: http://2130706433/ and http://0x7f.1/ become http://127.0.0.1/
     for (let redirects = 0; ; redirects++) {
       if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new BlockedUrlError('Chỉ cho phép http và https');
       if (url.username || url.password) throw new BlockedUrlError('Không cho phép URL có tên đăng nhập');
       if (!ports.includes(url.port)) throw new BlockedUrlError(`Không cho phép cổng ${url.port}`);
       const host = url.hostname.replace(/^\[|\]$/g, '');
-      // IP viết thẳng trong URL không đi qua DNS lookup nên phải kiểm ở đây
+      // A literal IP in the URL skips DNS lookup, so it must be checked here
       if (net.isIP(host) && !isAllowedAddress(host)) throw new BlockedUrlError(`Không cho phép tải từ ${host}`);
 
       const res = await fetch(url, { dispatcher, signal, redirect: 'manual' }).catch((err: unknown) => {
-        // fetch bọc lỗi kết nối trong TypeError('fetch failed'); trả lại lỗi chặn của mình nếu đó là nguyên nhân
+        // fetch wraps connection errors in TypeError('fetch failed'); rethrow our block error if it was the cause
         throw err instanceof TypeError && err.cause instanceof BlockedUrlError ? err.cause : err;
       });
       const location = res.headers.get('location');
       if (res.status >= 300 && res.status < 400 && location) {
         await res.body?.cancel();
         if (redirects >= maxRedirects) throw new BlockedUrlError('Quá nhiều lần chuyển hướng');
-        url = new URL(location, url);   // URL mới đi lại toàn bộ các bước kiểm
+        url = new URL(location, url);   // the new URL goes through every check again
         continue;
       }
       return { url: url.href, status: res.status, contentType: res.headers.get('content-type') ?? '', body: await readLimited(res.body, maxBytes) };
