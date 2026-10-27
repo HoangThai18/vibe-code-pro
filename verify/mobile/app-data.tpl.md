@@ -46,7 +46,7 @@ Tenant lives in the route (`/t/[tenantId]/...`) as on web: deep links, the back 
 
 - **Access token only in memory** (lost when the app is killed, recovered with the refresh token).
 - **Refresh token in SecureStore** (Keychain on iOS, Keystore on Android). Never in AsyncStorage: it is a plain file, readable on rooted/jailbroken devices and included in backups.
-- **Token endpoints** (the `vibe-backend` skill, `references/auth.md` section 9): `POST /v1/auth/login` and `POST /v1/auth/refresh` (body `{ "refreshToken" }`) return `200 { "data": { "accessToken", "refreshToken", "expiresIn" } }`; validate the body with zod before saving anything. Refresh tokens rotate (each use issues a new one; reusing an old one revokes the session), so concurrent requests share **one** refresh. `401 refresh_invalid`: clear the session, go to login. Offline or 5xx: keep the session, retry later.
+- **Token endpoints** (the `vibe-backend` skill, `references/native-auth.md`): `POST /v1/auth/login` and `POST /v1/auth/refresh` (body `{ "refreshToken" }`) return `200 { "data": { "accessToken", "refreshToken", "expiresIn" } }`; validate the body with zod before saving anything. Refresh tokens rotate (each use issues a new one; reusing an old one revokes the session), so concurrent requests share **one** refresh. `401 refresh_invalid`: clear the session, go to login. Offline or 5xx: keep the session, retry later.
 - **iOS Keychain keeps data after uninstall**, AsyncStorage does not. `prepareTokenStorage()` runs once at startup, before reading the session, in this order:
   1. No `app.installed` marker and AsyncStorage empty: fresh install. Delete the refresh token an earlier install left.
   2. No marker but AsyncStorage has other keys: an update from a release without the marker. Keep the session.
@@ -59,7 +59,7 @@ Tenant lives in the route (`/t/[tenantId]/...`) as on web: deep links, the back 
 {{app/src/auth/session.ts}}
 ```
 
-In the root layout, register `setSignedOutHandler(() => router.replace('/login'))` and `setUpdateRequiredHandler(() => router.replace('/update-required'))` (section 3). Login calls `POST /v1/auth/login`, parses the body with `TokenResponse` and calls `saveSession`. Password, OTP and Apple/Google sign-in: the `vibe-backend` skill (`references/auth.md` sections 3 and 9). With Google/Facebook login, the App Store requires an extra privacy-friendly login option (`release.md` section 3).
+In the root layout, register `setSignedOutHandler(() => router.replace('/login'))` and `setUpdateRequiredHandler(() => router.replace('/update-required'))` (section 3). Login calls `POST /v1/auth/login`, parses the body with `TokenResponse` and calls `saveSession`. Password and OTP: the `vibe-backend` skill (`references/auth.md` section 3). Apple/Google sign-in: send `{ provider, idToken, nonce }` with the raw nonce and give the SDK its SHA-256 hex (the `vibe-backend` skill, `references/native-auth.md`). With Google/Facebook login, the App Store requires an extra privacy-friendly login option (`release.md` section 3).
 
 ## 3. API calls: app version, tenant, token refresh
 

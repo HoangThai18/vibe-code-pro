@@ -16,5 +16,16 @@
   "mobile/platform-features.tpl.md": "plugins/vibe/skills/vibe-mobile/references/platform-features.md",
   "desktop/security.tpl.md": "plugins/vibe/skills/vibe-desktop/references/security.md",
   "desktop/testing.tpl.md": "plugins/vibe/skills/vibe-desktop/references/testing.md",
-  "desktop/app-data.tpl.md": "plugins/vibe/skills/vibe-desktop/references/app-data.md"
+  "desktop/app-data.tpl.md": "plugins/vibe/skills/vibe-desktop/references/app-data.md",
+  "backend-core/postgres-rls.tpl.md": "plugins/vibe/skills/vibe-backend/references/postgres-rls.md",
+  "backend-core/multi-tenant.tpl.md": "plugins/vibe/skills/vibe-backend/references/multi-tenant.md",
+  "backend-core/auth.tpl.md": "plugins/vibe/skills/vibe-backend/references/auth.md",
+  "backend-core/api-conventions.tpl.md": "plugins/vibe/skills/vibe-backend/references/api-conventions.md",
+  "backend-core/data-layer.tpl.md": "plugins/vibe/skills/vibe-backend/references/data-layer.md",
+  "backend-core/isolation-tests.tpl.md": "plugins/vibe/skills/vibe-backend/references/isolation-tests.md",
+  "jobs/jobs.tpl.md": "plugins/vibe/skills/vibe-backend/references/jobs.md",
+  "app-security/app-security.tpl.md": "plugins/vibe/skills/vibe-backend/references/app-security.md",
+  "privacy/privacy.tpl.md": "plugins/vibe/skills/vibe-backend/references/privacy.md",
+  "backend-core/native-auth.tpl.md": "plugins/vibe/skills/vibe-backend/references/native-auth.md",
+  "backend-core/permissions.tpl.md": "plugins/vibe/skills/vibe-backend/references/permissions.md"
 }

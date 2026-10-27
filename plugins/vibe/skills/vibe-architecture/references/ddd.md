@@ -29,10 +29,10 @@ Worth it when you see at least a few of these signs: many intertwined business r
   ```sql
   CREATE EXTENSION IF NOT EXISTS btree_gist;
   ALTER TABLE appointments ADD CONSTRAINT no_staff_overlap
-    EXCLUDE USING gist (tenant_id WITH =, staff_id WITH =, tstzrange(starts_at, ends_at) WITH &&)
-    WHERE (status IN ('pending', 'confirmed'));
+    EXCLUDE USING gist (tenant_id WITH =, staff_user_id WITH =, tstzrange(starts_at, ends_at) WITH &&)
+    WHERE (status <> 'cancelled');
   ```
-  If a constraint isn't possible, lock per staff member inside the transaction (`SELECT ... FOR UPDATE` on the staff row, or an advisory lock on `staff_id`). The domain service only gives a friendly error up front; the constraint is what actually blocks.
+  Map its violation (`23P01`) to `409 appointment_slot_taken` (tested in the `vibe-backend` skill, `references/data-layer.md` section 6). If a constraint isn't possible, lock per staff member inside the transaction (`SELECT ... FOR UPDATE` on the staff row, or an advisory lock on `staff_user_id`). The domain service only gives a friendly error up front; the constraint is what actually blocks.
 - **Domain service**: a rule involving several aggregates that belongs to none of them (e.g. package pricing, checking free slots to suggest times).
 - **Repository**: one per aggregate root, taking and returning whole aggregates; no generic repository for every table.
 - **Domain event**: a business fact that happened (`AppointmentConfirmed`), emitted after the state changes; other modules react (send a message, record revenue) via the outbox so no event is lost.

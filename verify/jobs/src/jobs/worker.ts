@@ -1,4 +1,4 @@
-// apps/api/src/jobs/worker.ts — process riêng: node dist/jobs/worker.js
+// apps/api/src/jobs/worker.ts — separate process: node dist/jobs/worker.js
 import { PgBoss } from 'pg-boss';
 import pg from 'pg';
 import { Q, setupQueues, type SendReminderJob } from './queues';
@@ -12,7 +12,7 @@ export async function startWorker(opts: {
 }) {
   const pool = new pg.Pool({ connectionString: opts.databaseUrl, max: 10 });
   const boss = new PgBoss(opts.databaseUrl);
-  boss.on('error', (err) => console.error('pg-boss', err));   // dùng logger của dự án
+  boss.on('error', (err) => console.error('pg-boss', err));   // use the project's logger
   await boss.start();
   await setupQueues(boss, opts.retry);
 
@@ -24,7 +24,7 @@ export async function startWorker(opts: {
     await sendReminder(pool, opts.sms, job!.data);
   });
 
-  // Deploy gửi SIGTERM: nhận thêm job thì dừng, chờ job đang chạy xong (tối đa 30s) rồi mới thoát
+  // Deploy sends SIGTERM: stop taking jobs, wait for running jobs to finish (max 30s), then exit
   const stop = async () => {
     await boss.stop({ graceful: true, timeout: 30_000 });
     await pool.end();

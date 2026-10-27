@@ -2,6 +2,8 @@
 
 A starting point when the project has no conventions yet. If the project has its own, follow them. Once decided, record a summary in `AGENTS.md`.
 
+The zod and OpenAPI templates, the idempotency code and the version middleware ran with Node 22, PostgreSQL 16 (FORCE RLS), zod 4.6, Express 5.
+
 ## Contents
 1. Naming and structure
 2. Responses and errors
@@ -40,8 +42,8 @@ A starting point when the project has no conventions yet. If the project has its
 | 401 | Not logged in, token expired |
 | 403 | Logged in but not allowed to perform this action |
 | 404 | Doesn't exist **or belongs to another tenant** (indistinguishable) |
-| 409 | Conflict: duplicate unique value, stale version |
-| 422 | Valid format but breaks a business rule |
+| 409 | Conflict: duplicate unique value, stale version, slot already booked, same `Idempotency-Key` still running |
+| 422 | Valid format but breaks a business rule; `Idempotency-Key` reused with another body |
 | 429 | Rate limit exceeded (with `Retry-After`) |
 | 500 | Server error: generic message, details only in logs (look up by `requestId`) |
 
@@ -62,10 +64,90 @@ A starting point when the project has no conventions yet. If the project has its
 - The tenant is in the **path** (`/v1/t/{tenantId}/...`). On **every** request the server checks the user is a member of that tenant, takes the role from the membership, then sets tenant context for the transaction (`references/postgres-rls.md` section 4). Not a member, or malformed `tenantId` → 404.
 - No implicit "current tenant" in the session: switching workspace in the FE is just a URL change, and multiple tabs on different workspaces still work (the `vibe-frontend` skill, `references/state-management.md` section 5). The session should only remember the last-used workspace for the post-login redirect.
 - `tenantId` in body/query is ignored: the tenant comes only from the membership-checked path.
-- Each endpoint documents its required permission (e.g. `customers:write`).
+- Each endpoint documents its required permission, named `resource.action` (e.g. `customer.write`, `references/auth.md` section 4).
 
 ## 6. Idempotency
-POSTs that create resources with side effects accept `Idempotency-Key`. The server stores key + result (per tenant) for about 24h; a repeated key returns the stored result instead of redoing the work.
+
+POSTs that create resources or have side effects (payments, messages, bookings) accept an `Idempotency-Key` header: 8–255 characters, a new UUID per user action, the same one on every retry of it. The server keeps key and response per tenant for 24 hours:
+
+| Case | Response |
+|---|---|
+| First request | runs; key and response are stored in the same transaction as the write |
+| Same key and request, after the first finished | the stored status and body; nothing runs again |
+| Same key while the first is still running | `409 idempotency_in_progress`, at once (the client retries later) |
+| Same key, another method, path or body | `422 idempotency_key_reused` |
+| The first request failed (rolled back) | no key was stored: a retry runs normally |
+
+```sql
+CREATE TABLE idempotency_keys (
+  tenant_id    uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
+  key          text NOT NULL CHECK (length(key) BETWEEN 8 AND 255),
+  request_hash bytea NOT NULL,                   -- SHA-256 of method, path and body
+  status       smallint NOT NULL,
+  response     jsonb NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, key)
+);
+CREATE INDEX idempotency_keys_created ON idempotency_keys (tenant_id, created_at);
+ALTER TABLE idempotency_keys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE idempotency_keys FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON idempotency_keys
+  USING (tenant_id = (SELECT app_current_tenant()))
+  WITH CHECK (tenant_id = (SELECT app_current_tenant()));
+```
+
+```ts
+// src/http/idempotency.ts — inside withMember, around the use case that writes
+import { createHash } from 'node:crypto';
+import type { PoolClient } from 'pg';
+import { HttpError } from '../shared/errors';
+
+export interface Outcome { status: number; body: unknown }
+
+export async function idempotent(
+  db: PoolClient, key: string, req: { method: string; path: string; body: unknown },
+  run: () => Promise<Outcome>,
+): Promise<Outcome & { replayed: boolean }> {
+  if (key.length < 8 || key.length > 255) throw new HttpError(400, 'idempotency_key_invalid', 'Idempotency-Key không hợp lệ.');
+  const hash = createHash('sha256').update(`${req.method} ${req.path}\n${JSON.stringify(req.body ?? null)}`).digest();
+  // Non-blocking: while the first request with this key is still running, a duplicate gets 409 at once
+  const { rows: [lock] } = await db.query<{ ok: boolean }>(
+    "SELECT pg_try_advisory_xact_lock(hashtextextended(app_current_tenant()::text || ':' || $1, 0)) AS ok", [key]);
+  if (!lock!.ok) throw new HttpError(409, 'idempotency_in_progress', 'Yêu cầu này đang được xử lý.');
+  const { rows: [prev] } = await db.query<{ request_hash: Buffer; status: number; response: unknown }>(
+    'SELECT request_hash, status, response FROM idempotency_keys WHERE key = $1', [key]);
+  if (prev) {
+    if (!prev.request_hash.equals(hash)) throw new HttpError(422, 'idempotency_key_reused', 'Idempotency-Key đã dùng cho yêu cầu khác.');
+    return { status: prev.status, body: prev.response, replayed: true };
+  }
+  const outcome = await run();
+  // Same transaction as the write: both commit or neither does. A failed request leaves no key, so the client can retry.
+  await db.query('INSERT INTO idempotency_keys (key, request_hash, status, response) VALUES ($1, $2, $3, $4)',
+    [key, hash, outcome.status, JSON.stringify(outcome.body)]);
+  return { ...outcome, replayed: false };
+}
+```
+
+```ts
+// src/jobs/purge-idempotency-keys.ts — daily job (references/jobs.md)
+import type { Pool } from 'pg';
+import { withTenant } from '../db/tenant';
+
+export async function purgeIdempotencyKeys(pool: Pool): Promise<number> {
+  const { rows: tenants } = await pool.query<{ id: string }>('SELECT id FROM app_tenant_ids() AS id');
+  let deleted = 0;
+  for (const t of tenants) {
+    const res = await withTenant(pool, t.id, (db) =>
+      db.query("DELETE FROM idempotency_keys WHERE created_at < now() - interval '24 hours'"));
+    deleted += res.rowCount ?? 0;
+  }
+  return deleted;
+}
+```
+
+- Call it inside `withMember` (`references/postgres-rls.md` section 4), around the use case: `idempotent(db, key, { method, path, body }, () => createCustomer(...))`.
+- It covers what happens in the transaction: DB writes and jobs enqueued in it. Provider calls run in those jobs, with their own idempotency keys (`references/jobs.md`).
+- Tested: a retry replays the response and creates one customer; a duplicate sent while the first is held open gets 409 at once; another body gets 422; a failed request leaves no key; the purge removes keys older than 24 hours in every tenant. Removing the advisory lock failed the 409 test: the duplicate ran the use case a second time.
 
 ## 7. Contract templates
 
@@ -76,28 +158,28 @@ POSTs that create resources with side effects accept `Idempotency-Key`. The serv
 import { z } from 'zod';
 
 export const Customer = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).max(200),
-  email: z.string().email().nullable(),
-  phone: z.string().max(20).nullable(),
-  status: z.enum(['active', 'archived']),
-  createdAt: z.string().datetime(),
+  id: z.uuid(),
+  fullName: z.string().min(1).max(200),
+  phone: z.string().regex(/^0\d{9,10}$/),   // stored as 0912345678
+  email: z.email().nullable(),
+  birthday: z.iso.date().nullable(),        // 'YYYY-MM-DD', a calendar date
+  createdAt: z.iso.datetime(),
 });
 export type Customer = z.infer<typeof Customer>;
 
-// Create input: email/phone not required. Note .nullable() does NOT make a field optional,
+// Create input: email/birthday not required. Note .nullable() does NOT make a field optional,
 // so add .optional() to let clients omit the field.
 export const CreateCustomerInput = z.object({
-  name: Customer.shape.name,
+  fullName: Customer.shape.fullName,
+  phone: Customer.shape.phone,
   email: Customer.shape.email.optional(),
-  phone: Customer.shape.phone.optional(),
+  birthday: Customer.shape.birthday.optional(),
 });
 export const UpdateCustomerInput = CreateCustomerInput.partial();
 
 export const ListCustomersQuery = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().optional(),
-  status: z.enum(['active', 'archived']).optional(),
 });
 
 export const ListCustomersResponse = z.object({
@@ -106,7 +188,7 @@ export const ListCustomersResponse = z.object({
 });
 ```
 
-(zod v4 still runs the code above; shorter forms are `z.uuid()`, `z.email()`, `z.iso.datetime()`.)
+(zod 4. On zod 3 write `z.string().uuid()`, `z.string().email()`, `z.string().datetime()`, `z.string().date()`.)
 
 ### OpenAPI 3.1 (abridged)
 
@@ -132,12 +214,13 @@ components:
   schemas:
     Customer:
       type: object
-      required: [id, name, status, createdAt]
+      required: [id, fullName, phone, email, birthday, createdAt]
       properties:
         id: { type: string, format: uuid }
-        name: { type: string, maxLength: 200 }
+        fullName: { type: string, maxLength: 200 }
+        phone: { type: string, pattern: '^0\d{9,10}$' }
         email: { type: [string, 'null'], format: email }
-        status: { type: string, enum: [active, archived] }
+        birthday: { type: [string, 'null'], format: date }
         createdAt: { type: string, format: date-time }
     CustomerList:
       type: object
@@ -164,6 +247,8 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
 ```
+
+A test compares the zod `Customer` keys with the OpenAPI `Customer` properties, so the two can't drift.
 
 ### FE mocks (MSW v2)
 

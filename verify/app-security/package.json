@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "verify": "tsc -p . && node --import tsx --test --test-concurrency=1 test/*.test.ts"
+    "db:setup": "psql \"$DATABASE_URL\" -X -q -v ON_ERROR_STOP=1 -c 'SET client_min_messages = warning' -c 'DROP SCHEMA public CASCADE' -c 'CREATE SCHEMA public' -f sql/current-tenant.sql -f sql/schema.sql -f sql/webhook-endpoints.sql -f rate-limits.sql -c 'GRANT USAGE ON SCHEMA public TO app_user' -c 'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_user'",
+    "verify": "tsc -p . && npm run --silent db:setup && node --import tsx --test --test-concurrency=1 test/*.test.ts"
   },
   "keywords": [],
   "author": "",

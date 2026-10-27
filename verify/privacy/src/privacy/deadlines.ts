@@ -1,5 +1,5 @@
 // apps/api/src/privacy/deadlines.ts
-// Hạn theo Nghị định 356/2025/NĐ-CP điều 5 (đối chiếu văn bản gốc trước khi dùng; xem privacy.md mục 1)
+// Deadlines per Decree 356/2025/NĐ-CP Article 5 (verify against the original text before use; see privacy.md section 1)
 export type RequestKind = 'access' | 'correction' | 'deletion' | 'withdraw_consent' | 'restrict' | 'object';
 
 const COMPLETE_DAYS: Record<RequestKind, number> = {
@@ -11,7 +11,7 @@ const COMPLETE_DAYS: Record<RequestKind, number> = {
   object: 15,
 };
 
-// Ngày theo giờ Việt Nam dạng YYYY-MM-DD
+// Date in Vietnam time as YYYY-MM-DD
 function vnDate(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
@@ -22,7 +22,7 @@ function addDays(isoDate: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Ngày làm việc: bỏ thứ Bảy, Chủ nhật và ngày nghỉ lễ (danh sách cập nhật hằng năm, lưu trong config hoặc DB)
+// Working days: skip Saturdays, Sundays and public holidays (list updated yearly, kept in config or the DB)
 export function addWorkingDays(isoDate: string, days: number, holidays: ReadonlySet<string>): string {
   let date = isoDate;
   let left = days;
@@ -34,8 +34,8 @@ export function addWorkingDays(isoDate: string, days: number, holidays: Readonly
   return date;
 }
 
-// Xác nhận đã nhận: 2 ngày làm việc. Hạn hoàn thành tính theo ngày lịch: sớm hơn hoặc bằng cách tính theo ngày làm việc,
-// nên đúng hạn với cả hai cách hiểu
+// Acknowledgement: 2 working days. Completion counts calendar days: no later than counting working days,
+// so it meets the deadline under either reading
 export function requestDeadlines(kind: RequestKind, receivedAt: Date, holidays: ReadonlySet<string>) {
   const received = vnDate(receivedAt);
   return { ackDue: addWorkingDays(received, 2, holidays), due: addDays(received, COMPLETE_DAYS[kind]) };

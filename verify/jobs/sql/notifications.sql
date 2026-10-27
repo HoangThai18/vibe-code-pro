@@ -1,14 +1,15 @@
 CREATE TABLE notifications (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id      uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
-  appointment_id uuid NOT NULL REFERENCES appointments (id),
+  id             uuid NOT NULL DEFAULT gen_random_uuid(),
+  appointment_id uuid NOT NULL,
   kind           text NOT NULL,
   status         text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'skipped')),
   sent_at        timestamptz,
   created_at     timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (appointment_id, kind)            -- mỗi lịch hẹn chỉ một lần nhắc mỗi loại
+  PRIMARY KEY (tenant_id, id),
+  FOREIGN KEY (tenant_id, appointment_id) REFERENCES appointments (tenant_id, id) ON DELETE CASCADE,
+  UNIQUE (tenant_id, appointment_id, kind)          -- one reminder of each kind per appointment
 );
-CREATE INDEX notifications_tenant ON notifications (tenant_id);
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON notifications

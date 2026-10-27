@@ -1,7 +1,7 @@
 // apps/api/src/security/rate-limit.ts
 import type { Pool, PoolClient } from 'pg';
 
-// Cửa sổ cố định, đếm trong Postgres: đúng cả khi chạy nhiều instance app, không cần thêm Redis
+// Fixed window counted in Postgres: correct across multiple app instances, no extra Redis needed
 export async function hitRateLimit(db: Pool | PoolClient, key: string, limit: number, windowSeconds: number) {
   const { rows } = await db.query<{ count: number; retry_after: number }>(
     `INSERT INTO rate_limits (key, window_start, count)

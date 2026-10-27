@@ -1,6 +1,6 @@
 # Background jobs: queues, retries, schedules
 
-The code and SQL below ran with pg-boss 12.38, node-postgres, PostgreSQL 16 with RLS (`FORCE`), and an app role that does not bypass RLS. Removing any single protection (UNIQUE + `ON CONFLICT`, the `status = 'pending'` check, the cancelled-appointment check, the lower bound of the time window) made a test fail every time.
+The code and SQL below ran with pg-boss 12.38, node-postgres, PostgreSQL 16 with FORCE RLS on every tenant table including `tenants`, and an app role that does not bypass RLS, from an empty database. Removing any single protection (UNIQUE + `ON CONFLICT`, the `status = 'pending'` check, the cancelled-appointment check, the lower bound of the time window, `app_tenant_ids()`, the tenant's time zone) made a test fail.
 
 ## Contents
 1. When you need a background job
@@ -35,16 +35,17 @@ A scheduled job scans every 10 minutes, creates a `notifications` row and enqueu
 
 ```sql
 CREATE TABLE notifications (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id      uuid NOT NULL DEFAULT app_current_tenant() REFERENCES tenants (id),
-  appointment_id uuid NOT NULL REFERENCES appointments (id),
+  id             uuid NOT NULL DEFAULT gen_random_uuid(),
+  appointment_id uuid NOT NULL,
   kind           text NOT NULL,
   status         text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'skipped')),
   sent_at        timestamptz,
   created_at     timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (appointment_id, kind)            -- one reminder of each kind per appointment
+  PRIMARY KEY (tenant_id, id),
+  FOREIGN KEY (tenant_id, appointment_id) REFERENCES appointments (tenant_id, id) ON DELETE CASCADE,
+  UNIQUE (tenant_id, appointment_id, kind)          -- one reminder of each kind per appointment
 );
-CREATE INDEX notifications_tenant ON notifications (tenant_id);
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications FORCE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON notifications
@@ -88,6 +89,8 @@ export async function setupQueues(boss: PgBoss, retry = { retryLimit: 5, retryDe
 import type { PgBoss } from 'pg-boss';
 import type { Pool, PoolClient } from 'pg';
 import { withTenant } from '../db/tenant';
+import { formatDateTime } from '../i18n/format';
+import { removeDiacritics } from '../i18n/text';
 import { Q, type SendReminderJob } from './queues';
 
 export interface SmsSender {
@@ -98,9 +101,10 @@ export interface SmsSender {
 // pg-boss writes the job using your own transaction: the job exists only if the transaction commits
 const inTx = (db: PoolClient) => ({ db: { executeSql: (text: string, values?: unknown[]) => db.query(text, values) } });
 
-// Scheduled job: find appointments to remind in each tenant (keeping RLS), create notification + send job in one transaction
+// Scheduled job: in each active tenant (keeping RLS), create notification + send job in one transaction.
+// app_tenant_ids(), not SELECT FROM tenants: a worker has no tenant, so RLS would show it 0 tenants.
 export async function enqueueReminders(pool: Pool, boss: PgBoss): Promise<number> {
-  const { rows: tenants } = await pool.query<{ id: string }>('SELECT id FROM tenants');
+  const { rows: tenants } = await pool.query<{ id: string }>('SELECT id FROM app_tenant_ids() AS id');
   let queued = 0;
   for (const tenant of tenants) {
     queued += await withTenant(pool, tenant.id, async (db) => {
@@ -108,10 +112,10 @@ export async function enqueueReminders(pool: Pool, boss: PgBoss): Promise<number
       const { rows } = await db.query<{ id: string }>(
         `INSERT INTO notifications (tenant_id, appointment_id, kind)
          SELECT tenant_id, id, 'reminder_24h' FROM appointments
-          WHERE status = 'booked'
+          WHERE status IN ('booked', 'confirmed')
             AND starts_at >  now() + interval '2 hours'
             AND starts_at <= now() + interval '24 hours'
-         ON CONFLICT (appointment_id, kind) DO NOTHING
+         ON CONFLICT (tenant_id, appointment_id, kind) DO NOTHING
          RETURNING id`,
       );
       for (const n of rows) {
@@ -126,23 +130,30 @@ export async function enqueueReminders(pool: Pool, boss: PgBoss): Promise<number
 // Worker: however many times it reruns, it sends one message
 export async function sendReminder(pool: Pool, sms: SmsSender, job: SendReminderJob): Promise<'sent' | 'skipped'> {
   const row = await withTenant(pool, job.tenantId, async (db) => {
-    const { rows } = await db.query<{ status: string; booked: boolean; phone: string; name: string; starts_at: Date }>(
-      `SELECT n.status, a.status = 'booked' AS booked, a.customer_phone AS phone, a.customer_name AS name, a.starts_at
-         FROM notifications n JOIN appointments a ON a.id = n.appointment_id
+    // Name and phone come from customers at send time: a correction or deletion request applies to queued reminders too
+    const { rows } = await db.query<{ status: string; active: boolean; phone: string; full_name: string; starts_at: Date; time_zone: string }>(
+      `SELECT n.status, a.status IN ('booked', 'confirmed') AS active, c.phone, c.full_name, a.starts_at, t.time_zone
+         FROM notifications n
+         JOIN appointments a ON a.tenant_id = n.tenant_id AND a.id = n.appointment_id
+         JOIN customers c ON c.tenant_id = a.tenant_id AND c.id = a.customer_id
+         JOIN tenants t ON t.id = n.tenant_id
         WHERE n.id = $1`,
       [job.notificationId],
     );
     return rows[0];
   });
   if (!row || row.status !== 'pending') return 'skipped';   // already sent, skipped, or not in this tenant (RLS)
-  if (!row.booked) {
+  if (!row.active) {
     await setStatus(pool, job, 'skipped');                    // appointment cancelled after the job was enqueued
     return 'skipped';
   }
 
-  const when = row.starts_at.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' });
+  // Customer-care brandname SMS: the text must match a template registered with the carriers, without diacritics
+  // (references/notifications.md section 5). The time is in the tenant's zone, never the server's.
+  const when = formatDateTime(row.starts_at, { locale: 'vi', timeZone: row.time_zone });
+  const text = `Chao ${removeDiacritics(row.full_name)}, nhac lich hen cua ban luc ${when}.`;
   // The external call is NOT inside a DB transaction; on error, throw so pg-boss retries
-  await sms.send({ to: row.phone, text: `Chào ${row.name}, nhắc lịch hẹn của bạn lúc ${when}.`, idempotencyKey: job.notificationId });
+  await sms.send({ to: row.phone, text, idempotencyKey: job.notificationId });
   await setStatus(pool, job, 'sent');
   return 'sent';
 }
@@ -195,12 +206,13 @@ export async function startWorker(opts: {
 }
 ```
 
-`withTenant` comes from `postgres-rls.md` section 4. The app role needs permission to create the `pgboss` schema on first run (or run pg-boss migrations with the `pg-boss` CLI in the CI migrate step and grant only usage); pg-boss tables do not belong to a tenant, so they have no RLS.
+`withTenant` and `app_tenant_ids()` come from `postgres-rls.md` sections 3 and 4; `formatDateTime` and `removeDiacritics` from the shared formatting module (the `vibe-frontend` skill, `references/i18n.md`). The app role needs permission to create the `pgboss` schema on first run (or run pg-boss migrations with the `pg-boss` CLI in the CI migrate step and grant only usage); pg-boss tables do not belong to a tenant, so they have no RLS.
 
 Why it is written this way:
 
-- **Scan per tenant, inside `withTenant`**: a job has no request, so no tenant at hand; looping over tenants keeps RLS without a bypass role. Fine for thousands of tenants; beyond that, scan with a maintenance role and enqueue jobs carrying `tenantId`.
-- **Jobs carry only ids** (`tenantId`, `notificationId`), no phone number or message text: data is reread at run time, so it is always fresh (cancelled appointment, no message), and it is not scattered across the job table.
+- **List tenants with `app_tenant_ids()`, then work inside `withTenant`**: a job has no request, so no tenant at hand, and the `tenants` policy shows it 0 rows: `SELECT id FROM tenants` returns nothing and the job silently sends nothing. The function is the one cross-tenant read; everything else keeps RLS. Fine for thousands of tenants; beyond that, scan with a maintenance role and enqueue jobs carrying `tenantId`. Every "for each tenant" job (payment expiry, privacy request deadlines, purges) follows the same loop.
+- **Jobs carry only ids** (`tenantId`, `notificationId`), no phone number or message text: data is reread at run time, joined from `customers`, so it is always fresh (cancelled appointment, no message; corrected or deleted customer data applies to queued reminders too), and it is not scattered across the job table.
+- **Message text**: customer-care brandname SMS must match a template registered with the carriers, without diacritics (`references/notifications.md` section 5); unaccented text also fits 160 characters per SMS instead of 70. The time is formatted in the tenant's `time_zone` with a 4-digit year, never the server's zone.
 - **Call the provider outside the transaction**, update the status afterwards. If the process dies between the two steps, the retry resends with the same `idempotencyKey`: if the provider supports that key, there is no duplicate; if not, accept a rare duplicate message, or add a `sending` status and have a person check jobs stuck in it.
 
 ## 4. Rules for every job
@@ -212,169 +224,23 @@ Why it is written this way:
 5. **Timeouts on every external call**, shorter than the queue's `expireInSeconds`, so a job that is still running is not treated as stuck.
 6. **Graceful shutdown on deploy**: on `SIGTERM`, stop taking new jobs and wait for running jobs to finish (`boss.stop({ graceful: true })`).
 7. **Scheduled jobs do not overlap**: `singleton` queue or a lock; and they tolerate a missed run (wide time window + UNIQUE constraint, as in the example).
-8. **Times in the business time zone** (`tz: 'Asia/Ho_Chi_Minh'`), not server time.
+8. **Times in the business time zone**: schedules with `tz: 'Asia/Ho_Chi_Minh'`; dates in messages in the tenant's `time_zone` (`formatDateTime`), never server time.
 
 ## 5. Tests
 
-Test with a real DB (as in `isolation-tests.md`), a real worker and a fake SMS provider:
+Test with a real DB as the app role (as in `isolation-tests.md`), a real worker and a fake SMS provider. Run serially (`--test-concurrency=1`): the tests share the DB and queues. `pollingIntervalSeconds: 0.5` and short retries are for tests only, to keep them fast. Cases:
 
-```ts
-// test/reminders.test.ts — run against a real test DB: DATABASE_URL=postgres://... node --import tsx --test
-import assert from 'node:assert/strict';
-import { after, before, beforeEach, test } from 'node:test';
-import pg from 'pg';
-import { PgBoss } from 'pg-boss';
-import { withTenant } from '../src/db/tenant';
-import { Q, setupQueues, type SendReminderJob } from '../src/jobs/queues';
-import { enqueueReminders, sendReminder, type SmsSender } from '../src/jobs/reminders';
-import { startWorker } from '../src/jobs/worker';
-
-const url = process.env.DATABASE_URL!;
-const pool = new pg.Pool({ connectionString: url });
-const boss = new PgBoss(url);
-const A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-const B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-
-function fakeSms(failTimes = 0) {
-  const sent: { to: string; text: string; idempotencyKey: string }[] = [];
-  let failuresLeft = failTimes;
-  const sms: SmsSender = {
-    async send(message) {
-      if (failuresLeft-- > 0) throw new Error('Nhà cung cấp SMS lỗi');
-      sent.push(message);
-    },
-  };
-  return { sms, sent };
-}
-
-async function seed(tenantId: string, rows: { name: string; inHours: number; status?: string }[]) {
-  return withTenant(pool, tenantId, async (db) => {
-    const ids: string[] = [];
-    for (const r of rows) {
-      const { rows: [row] } = await db.query<{ id: string }>(
-        `INSERT INTO appointments (tenant_id, customer_name, customer_phone, starts_at, status)
-         VALUES ($1, $2, '0912345678', now() + make_interval(hours => $3), $4) RETURNING id`,
-        [tenantId, r.name, r.inHours, r.status ?? 'booked'],
-      );
-      ids.push(row!.id);
-    }
-    return ids;
-  });
-}
-
-const notificationStatus = (tenantId: string) =>
-  withTenant(pool, tenantId, async (db) => (await db.query<{ status: string }>('SELECT status FROM notifications')).rows.map((r) => r.status));
-
-async function waitFor(check: () => Promise<boolean> | boolean, timeoutMs = 20_000) {
-  const start = Date.now();
-  while (!(await check())) {
-    if (Date.now() - start > timeoutMs) throw new Error('Hết thời gian chờ');
-    await new Promise((r) => setTimeout(r, 200));
-  }
-}
-
-before(async () => {
-  boss.on('error', console.error);
-  await boss.start();
-});
-after(async () => {
-  await boss.stop({ graceful: false });
-  await pool.end();
-});
-beforeEach(async () => {
-  await pool.query('TRUNCATE notifications, appointments');
-  for (const name of Object.values(Q)) await boss.deleteQueue(name);
-});
-
-test('scan: only appointments 2 to 24 hours ahead, across all tenants, once each', async () => {
-  await setupQueues(boss);
-  await seed(A, [{ name: 'Lan', inHours: 10 }, { name: 'Sớm', inHours: 1 }, { name: 'Xa', inHours: 30 }, { name: 'Huỷ', inHours: 20, status: 'cancelled' }]);
-  await seed(B, [{ name: 'Minh', inHours: 5 }]);
-
-  assert.equal(await enqueueReminders(pool, boss), 2);
-  assert.equal(await enqueueReminders(pool, boss), 0);          // rerun: no duplicate reminders
-  const jobs = await boss.fetch<SendReminderJob>(Q.sendReminder, { batchSize: 10 });
-  assert.deepEqual(jobs.map((j) => j.data.tenantId).sort(), [A, B]);
-});
-
-test('transaction rollback leaves no job', async () => {
-  await setupQueues(boss);
-  await assert.rejects(
-    withTenant(pool, A, async (db) => {
-      await boss.send(Q.sendReminder, { tenantId: A, notificationId: 'x' }, { db: { executeSql: (t, v) => db.query(t, v) } });
-      throw new Error('lỗi nghiệp vụ sau khi xếp job');
-    }),
-  );
-  assert.equal((await boss.fetch(Q.sendReminder)).length, 0);
-});
-
-test('worker sends exactly one message; rerunning the job does not resend', async () => {
-  const { sms, sent } = fakeSms();
-  await seed(A, [{ name: 'Lan', inHours: 10 }]);
-  const worker = await startWorker({ databaseUrl: url, sms, pollingIntervalSeconds: 0.5 });
-  try {
-    await enqueueReminders(pool, worker.boss);
-    await waitFor(async () => (await notificationStatus(A))[0] === 'sent');
-    assert.equal(sent.length, 1);
-    assert.match(sent[0]!.text, /Chào Lan, nhắc lịch hẹn của bạn lúc/);
-    const { rows: [n] } = await withTenant(pool, A, (db) => db.query<{ id: string }>('SELECT id FROM notifications'));
-    assert.equal(sent[0]!.idempotencyKey, n!.id);
-    assert.equal(await sendReminder(pool, sms, { tenantId: A, notificationId: n!.id }), 'skipped');
-    assert.equal(sent.length, 1);
-  } finally {
-    await worker.stop();
-  }
-});
-
-test('provider error is retried; when retries run out the job goes to dead letter', async () => {
-  const flaky = fakeSms(1);
-  await seed(A, [{ name: 'Lan', inHours: 10 }]);
-  let worker = await startWorker({ databaseUrl: url, sms: flaky.sms, pollingIntervalSeconds: 0.5, retry: { retryLimit: 2, retryDelay: 1 } });
-  try {
-    await enqueueReminders(pool, worker.boss);
-    await waitFor(() => flaky.sent.length === 1);                 // first attempt fails, the retry succeeds
-  } finally {
-    await worker.stop();
-  }
-
-  await pool.query('TRUNCATE notifications, appointments');
-  const down = fakeSms(100);
-  await seed(B, [{ name: 'Minh', inHours: 10 }]);
-  worker = await startWorker({ databaseUrl: url, sms: down.sms, pollingIntervalSeconds: 0.5, retry: { retryLimit: 1, retryDelay: 1 } });
-  try {
-    await enqueueReminders(pool, worker.boss);
-    await waitFor(async () => (await boss.fetch(Q.sendReminderDead)).length === 1);
-    assert.deepEqual(await notificationStatus(B), ['pending']);    // not sent: handle manually, then redrive
-    assert.equal(down.sent.length, 0);
-  } finally {
-    await worker.stop();
-  }
-});
-
-test('no message for an id from another tenant or a cancelled appointment', async () => {
-  await setupQueues(boss);
-  const { sms, sent } = fakeSms();
-  const [appointmentId] = await seed(A, [{ name: 'Lan', inHours: 10 }]);
-  await enqueueReminders(pool, boss);
-  const { rows: [n] } = await withTenant(pool, A, (db) => db.query<{ id: string }>('SELECT id FROM notifications'));
-
-  assert.equal(await sendReminder(pool, sms, { tenantId: B, notificationId: n!.id }), 'skipped');   // RLS: B cannot see it
-  await withTenant(pool, A, (db) => db.query("UPDATE appointments SET status = 'cancelled' WHERE id = $1", [appointmentId]));
-  assert.equal(await sendReminder(pool, sms, { tenantId: A, notificationId: n!.id }), 'skipped');
-  assert.deepEqual(await notificationStatus(A), ['skipped']);
-  assert.equal(sent.length, 0);
-});
-
-test('scan schedule runs every 10 minutes in Vietnam time', async () => {
-  await setupQueues(boss);
-  const [schedule] = await boss.getSchedules(Q.enqueueReminders);
-  assert.equal(schedule?.cron, '*/10 * * * *');
-  assert.equal(schedule?.timezone, 'Asia/Ho_Chi_Minh');
-});
-```
-
-- Run serially (`--test-concurrency=1`) because the tests share the DB and queues.
-- `pollingIntervalSeconds: 0.5` and short retries are for tests only, to keep them fast.
+| Case | Expect |
+|---|---|
+| The worker role selects from `tenants` | 0 rows; `app_tenant_ids()` returns the active tenants |
+| Appointments 1, 10 and 30 hours ahead, one cancelled, one in a suspended tenant | reminders only inside the 2–24 hour window, in active tenants; a rerun adds none |
+| Enqueue in a transaction that then fails | no job |
+| Worker run | exactly one message: unaccented ASCII, time in the tenant's zone, `idempotencyKey` = notification id; running the job again sends nothing |
+| Customer renamed after enqueue | the message uses the new name and phone |
+| Provider fails once / keeps failing | retried and sent / dead letter, notification stays `pending` |
+| Job with another tenant's notification id, or the appointment cancelled | `skipped`, no message |
+| Notification pointing at another tenant's appointment | rejected by the composite FK (`23503`) |
+| Schedule | `*/10 * * * *` in `Asia/Ho_Chi_Minh` |
 
 ## 6. Operations
 

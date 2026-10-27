@@ -12,13 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 verify/tools/check_docs.py
+      - run: python3 verify/tools/check_copies.py
 
   examples:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        project: [search, payments, notifications, realtime, data-import, i18n, seo, next-actions, jobs, app-security, privacy, ai]
+        project: [backend-core, search, payments, notifications, realtime, data-import, i18n, seo, next-actions, jobs, app-security, privacy, ai]
     services:
       postgres:
         image: postgres:16

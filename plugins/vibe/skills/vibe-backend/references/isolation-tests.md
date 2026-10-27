@@ -1,21 +1,23 @@
 # Tenant isolation tests
 
-Goal: prove with tests that tenant A cannot read, update, delete or list tenant B's data, through the API and directly in the DB. Write table-driven tests so a new route gets a test by adding one row.
+Goal: prove with tests that tenant A cannot read, update, delete or list tenant B's data, through the API and directly in the DB. Write table-driven tests so a new route gets a test by adding one row. The tests below ran (vitest 5, supertest, Express 5, PostgreSQL 16 as the app role) against routes built on `withMember`.
 
 ## 1. Seed two tenants
 
 ```ts
 // test/helpers/tenants.ts (example: vitest + supertest; adapt to the project stack)
+import { createCustomer, createTenantWithUser } from './factories';
+
 export async function seedTwoTenants() {
-  const a = await createTenantWithUser('tenant-a');   // { tenantId, token }
+  const a = await createTenantWithUser('tenant-a');   // { tenantId, userId, token }
   const b = await createTenantWithUser('tenant-b');
-  const aCustomer = await createCustomer(a, { name: 'Khách của A', email: 'a@example.com' });
-  const bCustomer = await createCustomer(b, { name: 'Khách của B', email: 'b@example.com' });
+  const aCustomer = await createCustomer(a, { fullName: 'Khách của A', phone: '0912345678' });
+  const bCustomer = await createCustomer(b, { fullName: 'Khách của B', phone: '0987654321' });
   return { a, b, aCustomer, bCustomer };
 }
 ```
 
-Seed through app code (or SQL with the correct tenant context), never by inserting as a superuser that skips constraints; only then do tests reflect the real path.
+Seed through app code (or SQL with the correct tenant context), never by inserting as a superuser that skips constraints; only then do tests reflect the real path. `createTenantWithUser` signs up a user and a tenant (`createTenant`, `references/postgres-rls.md` section 4) and logs in; `createCustomer` calls the API.
 
 ## 2. Table-driven API tests with controls
 
@@ -44,8 +46,8 @@ type Route = {
 // One row per route with a tenant resource :id (exactly the routes the app has)
 const crossTenantRoutes: Route[] = [
   { name: 'GET customers/:id', method: 'get', path: (t, id) => `/v1/t/${t}/customers/${id}` },
-  { name: 'PATCH customers/:id', method: 'patch', path: (t, id) => `/v1/t/${t}/customers/${id}`, body: { name: 'hack' } },
-  { name: 'POST customers/:id/archive', method: 'post', path: (t, id) => `/v1/t/${t}/customers/${id}/archive` },
+  { name: 'PATCH customers/:id', method: 'patch', path: (t, id) => `/v1/t/${t}/customers/${id}`, body: { fullName: 'hack' } },
+  { name: 'DELETE customers/:id', method: 'delete', path: (t, id) => `/v1/t/${t}/customers/${id}` },
 ];
 
 function call(route: Route, tenantId: string, id: string, token: string) {
@@ -62,7 +64,7 @@ describe('tenant isolation: customers', () => {
 
     // 404 is not enough: B's data is unchanged
     const fromB = await call(crossTenantRoutes[0]!, ctx.b.tenantId, ctx.bCustomer.id, ctx.b.token);
-    expect(fromB.body.data).toMatchObject({ name: 'Khách của B', status: 'active' });
+    expect(fromB.body.data).toMatchObject({ fullName: 'Khách của B' });
 
     // Control: B itself making the same request succeeds. Without this step,
     // a wrong or missing route also returns 404 and the test passes without checking anything.
@@ -85,7 +87,7 @@ describe('tenant isolation: customers', () => {
   it('tenantId sent by the client in the body is ignored', async () => {
     const res = await request(app).post(`/v1/t/${ctx.a.tenantId}/customers`)
       .set('Authorization', `Bearer ${ctx.a.token}`)
-      .send({ name: 'Tạo lậu', tenantId: ctx.b.tenantId });
+      .send({ fullName: 'Tạo lậu', phone: '0911111111', tenantId: ctx.b.tenantId });
     expect(res.status).toBe(201);
     const get = crossTenantRoutes[0]!;
     expect((await call(get, ctx.a.tenantId, res.body.data.id, ctx.a.token)).status).toBe(200);   // belongs to A
@@ -93,12 +95,13 @@ describe('tenant isolation: customers', () => {
   });
 
   it('cannot reference a resource of another tenant', async () => {
-    const orders = `/v1/t/${ctx.a.tenantId}/orders`;
-    const cross = await request(app).post(orders).set('Authorization', `Bearer ${ctx.a.token}`)
-      .send({ customerId: ctx.bCustomer.id, items: [] });
+    const appointments = `/v1/t/${ctx.a.tenantId}/appointments`;
+    const slot = { staffUserId: ctx.a.userId, startsAt: '2026-11-02T03:00:00Z', endsAt: '2026-11-02T04:00:00Z' };
+    const cross = await request(app).post(appointments).set('Authorization', `Bearer ${ctx.a.token}`)
+      .send({ customerId: ctx.bCustomer.id, ...slot });
     expect([400, 404, 422]).toContain(cross.status);
-    const own = await request(app).post(orders).set('Authorization', `Bearer ${ctx.a.token}`)   // control
-      .send({ customerId: ctx.aCustomer.id, items: [] });
+    const own = await request(app).post(appointments).set('Authorization', `Bearer ${ctx.a.token}`)   // control
+      .send({ customerId: ctx.aCustomer.id, ...slot });
     expect(own.status).toBe(201);
   });
 });
@@ -131,7 +134,7 @@ ROLLBACK;
 -- 3. Tenant A context → cannot insert a row with tenant B (policy violation error)
 BEGIN;
 SELECT set_config('app.tenant_id', :'tenant_a', true);
-INSERT INTO customers (tenant_id, email) VALUES (:'tenant_b', 'x@example.com');
+INSERT INTO customers (tenant_id, full_name, phone) VALUES (:'tenant_b', 'Lậu', '0900000000');
 ROLLBACK;
 ```
 

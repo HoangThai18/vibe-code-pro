@@ -16,14 +16,7 @@ Keep only one source. Hand-written types plus OpenAPI drift apart sooner or late
 
 For each flow in the phase, record: resource, method, path, request, response, possible errors, required permission. Default conventions (naming, error format, pagination, time, money, idempotency) and zod/OpenAPI/MSW templates are in `references/api-conventions.md`. Read it when writing the project's first contract, then record a summary of the chosen conventions in `AGENTS.md`.
 
-Most common mistakes:
-
-- **The tenant is in the path and checked on the server** (`/v1/t/{tenantId}/...`): every request checks the user is a member of that tenant, otherwise 404. Never accept `tenantId` from body/query or rely on an implicit "current tenant" in the session (`references/api-conventions.md` section 5).
-- **Lists are always paginated and capped** (e.g. `limit` max 100). No "return everything" endpoint.
-- **One error format**, with a machine-readable `code` so FE handles each case (e.g. `customer_email_taken`) without parsing message text.
-- **Another tenant's resource returns 404**, not 403, so its existence isn't revealed.
-- **Create operations with side effects** (payments, emails, orders) accept an `Idempotency-Key` header, since flaky networks make clients resend.
-- **IDs are strings** (UUID/ULID); never expose auto-increment IDs.
+Most common mistakes, each covered in `references/api-conventions.md`: taking the tenant from body/query instead of the membership-checked path (section 5); lists without a page cap (section 3); errors without a machine-readable `code` (section 2); 403 instead of 404 for another tenant's resource (section 2); side-effect POSTs without `Idempotency-Key` (section 6); auto-increment ids (section 4).
 
 ## 3. Tooling for both sides
 
