@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: continue-from-handoff
+expected_outcome: |
+  Đọc docs/HANDOFF.md, git status (code chưa commit trên task/P1-T02), task card. Làm tiếp P1-T02 trên nhánh có
+  sẵn, không mở task khác: update chuẩn hoá số điện thoại; số trùng trong cùng tenant bị từ chối cả khi tạo và
+  khi sửa; test cô lập tenant cho update; node --test pass; card chuyển sang review (chưa done, chưa merge).
+context:
+  scaffold_script: place-files.sh
