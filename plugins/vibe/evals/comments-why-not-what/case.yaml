@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: comments-why-not-what
+expected_outcome: |
+  Viết src/billing/total.js theo phong cách của src/billing: comment chỉ khi giải thích lý do (vd thứ tự giảm giá rồi VAT,
+  làm tròn đến đồng, giảm giá không làm tổng âm), không comment kể lại code, không banner, không ghi chú "thêm mới"; có test
+  và node --test pass.
+context:
+  scaffold_script: place-files.sh

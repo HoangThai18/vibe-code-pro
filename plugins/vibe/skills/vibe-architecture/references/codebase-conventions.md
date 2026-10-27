@@ -55,7 +55,7 @@ Every agent reads `AGENTS.md` (Claude Code reads `CLAUDE.md`, which contains `@A
 ## 3. Writing new code
 
 - **Find the most similar feature** and do it its way: file layout, function signatures, naming, test style. Building "supplier"? Look at "customer". Building a list screen? Look at an existing list screen.
-- **Use the libraries already in use** for the same job. To add a new library, ask the user and give a reason.
+- **Use the libraries already in use** for the same job. A problem a maintained library solves (CSV, dates, validation, retries...) is not hand-written to avoid a dependency (`references/design-principles.md` section 2); a new library comes with a reason, and if `AGENTS.md` says to ask first, ask.
 - **Reuse shared infrastructure**: error classes, logger, config, HTTP client, UI components, money and date formatting. Grep before writing a new helper.
 - **Keep boundaries (if the codebase has module boundaries)**: for another module's data, call that module's public API; never query its tables directly. For many records, use (or add) a batch read function instead of fetching one by one in a loop; if the operation must share a transaction, pass `tx`. In a Rails/Django-style codebase where joining across apps via the ORM is the convention, follow that convention.
 - **Test in the existing style** (file location, data setup, level of mocking).

@@ -19,7 +19,9 @@
 ## Mandatory rules
 - Every query on a tenant table runs in a transaction with tenant context; never accept tenant_id from the client.
 - APIs follow the contract in `packages/contracts`; to change an API, change the contract first.
-- No new dependency unless the task requires it.
+- Same logic about to appear a third time: extract one function at the lowest level its callers share and move every copy to it; one business rule lives in one place.
+- Comments explain why (business rule, constraint, workaround), never what; no change notes or commented-out code.
+- Use the project's libraries and the platform before writing helpers; for CSV, dates and time zones, validation, retries or sanitizing, use a maintained library instead of hand-written code. New dependencies come with a reason.
 - Migrations: only one task creates a migration at a time; safe on tables that already hold data.
 - Git: commit a checkpoint before each task. Undo with `git restore <file>` (uncommitted) or `git revert <sha>` (committed). `git reset --hard`, `git clean`, force-push only with the user's explicit consent.
 - Secrets: never print `.env` files or secret values. Production keys, service-role keys and the production `DATABASE_URL` never go into chat or a local `.env`.

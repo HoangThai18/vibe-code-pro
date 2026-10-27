@@ -9,7 +9,9 @@ A reminder, not a form to fill. Report only real issues in the diff, each with `
 ## Design and consistency with the codebase
 - Follows the existing conventions of similar modules (file structure, naming, error reporting, validation, tests); no second way to do the same thing.
 - Business logic in the business layer, not spread across controllers, components or SQL; no reverse or circular imports; no direct reads of another module's tables.
-- No copies of existing logic or helpers; no new dependency without need.
+- No copies of existing logic or helpers: logic in three places (or one business rule in two) is one function, at the lowest level its callers share.
+- No hand-written replacement for what a dependency, the platform or a maintained library already does (CSV parsing, time zones, validation, retries, sanitizing); no new dependency for a one-liner.
+- Comments explain why; none restate the code, narrate the change, or keep commented-out code.
 - No premature abstraction (interface, factory, generics for something with one use), and no function or service doing too many jobs.
 
 ## Security

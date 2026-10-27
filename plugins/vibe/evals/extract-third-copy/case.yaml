@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: extract-third-copy
+expected_outcome: |
+  customers và staff đã có hai bản normalizePhone giống hệt nhau; supplier sẽ là bản thứ ba. Tách một hàm chung
+  (vd src/shared/phone.js), cho cả customers, staff và suppliers dùng nó, xoá hai bản cũ, có test; node --test pass.
+context:
+  scaffold_script: place-files.sh
