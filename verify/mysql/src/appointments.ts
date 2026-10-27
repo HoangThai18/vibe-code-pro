@@ -1,4 +1,5 @@
-// src/appointments.ts — inside withMember. No exclusion constraints: serialize per staff member.
+// src/appointments.ts — inside withMember, at READ COMMITTED (the pool's setting). No exclusion constraints:
+// serialize per staff member.
 import { randomUUID } from 'node:crypto';
 import type { RowDataPacket } from 'mysql2/promise';
 import { errno, type TenantDb } from './db/tenant';
@@ -18,10 +19,10 @@ export async function bookAppointment(db: TenantDb, actor: Actor, a: NewAppointm
   const [staff] = await db.conn.query<RowDataPacket[]>(
     'SELECT user_id FROM memberships WHERE tenant_id = ? AND user_id = ? FOR UPDATE', [db.tenantId, a.staffUserId]);
   if (!staff[0]) throw new HttpError(422, 'invalid_reference', 'Khách hàng hoặc nhân viên không hợp lệ.');
-  // 2. A locking read: a plain SELECT reads the snapshot taken before the lock wait and misses the booking
-  //    just committed. It locks what it scans: pin the staff index, or other staff's bookings deadlock.
+  // 2. Overlap check. At READ COMMITTED it reads the booking the previous lock holder just committed; FOR SHARE
+  //    keeps a session left at REPEATABLE READ (snapshot older than the lock wait) from double booking.
   const [clash] = await db.conn.query<RowDataPacket[]>(
-    `SELECT id FROM appointments FORCE INDEX (appointments_staff)
+    `SELECT id FROM appointments
       WHERE tenant_id = ? AND staff_user_id = ? AND starts_at > ? - INTERVAL ? MINUTE AND starts_at < ?
         AND ends_at > ? AND status <> 'cancelled'
       LIMIT 1 FOR SHARE`,
