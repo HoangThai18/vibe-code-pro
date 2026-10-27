@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: mysql-search-khong-dau
+expected_outcome: |
+  So khớp tên phải chạy trên collation utf8mb4_0900_ai_ci (đổi cột, hoặc cột/biểu thức tìm kiếm riêng) hay một khoá
+  không dấu tự chuẩn hoá có đổi đ -> d: utf8mb4_unicode_ci đang dùng coi Đ khác D nên "dang" không ra "Đặng", còn
+  utf8mb4_vi_0900_ai_ci (lựa chọn tự nhiên khi muốn thứ tự tiếng Việt) coi ê, ơ, ư, ă, â, đ là chữ riêng nên "nguyen"
+  không ra "Nguyễn". Thứ tự tiếng Việt lấy riêng: ORDER BY ... COLLATE utf8mb4_vi_0900_ai_ci, cột VIRTUAL có index,
+  hoặc Intl.Collator('vi') trên trang kết quả. Tách từ và khớp từng từ theo mọi thứ tự, chuẩn hoá SĐT (+84/84 -> 0, bỏ
+  khoảng trắng), escape % và _, mọi câu vẫn lọc tenant_id, không dùng FULLTEXT ngram cho tên (một index chung mọi tenant).
+context:
+  scaffold_script: place-files.sh

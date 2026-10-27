@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: spring-rls-session-set
+expected_outcome: |
+  Tìm ra nguyên nhân: TenantFilter đặt app.tenant_id bằng set_config(..., false), tức mức session, trên một
+  connection HikariCP mượn ngoài transaction; connection trả về pool vẫn giữ tenant cũ, và các query sau của
+  request có thể chạy trên connection khác đang mang tenant của request trước. Sửa: đặt tenant bằng
+  set_config(..., true) làm câu lệnh đầu của mỗi transaction (hook ở transaction manager/JpaDialect hoặc
+  wrapper), tenant giữ trong context của request và xoá khi request xong; đưa các chỗ đọc ngoài transaction
+  (ô tìm khách và lịch ngày gọi thẳng query method của Spring Data, vốn không có transaction) vào service
+  @Transactional(readOnly = true), nếu không sau khi sửa chúng thấy 0 dòng; tắt spring.jpa.open-in-view.
+  Đề xuất test hai tenant chạy bằng role của app với pool nhỏ để bắt lỗi rò tenant.
+context:
+  scaffold_script: place-files.sh

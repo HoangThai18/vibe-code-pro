@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: mysql-online-alter-mdl
+expected_outcome: |
+  Hai câu ALTER riêng: ADD COLUMN ... ALGORITHM=INSTANT, rồi ADD INDEX ... ALGORITHM=INPLACE, LOCK=NONE (gộp chung một
+  ALTER thì không INSTANT được và INPLACE dựng lại cả bảng 20 triệu dòng). Ghi rõ ALGORITHM để MySQL báo lỗi thay vì lặng
+  lẽ rebuild. Bẫy chính là metadata lock: ALTER (kể cả INSTANT) chờ mọi transaction đang mở trên bảng (ở đây job export
+  chạy một transaction dài lúc 02:00) và mọi query mới trên bảng xếp hàng sau nó; nên đặt lock_wait_timeout ngắn cho phiên
+  chạy migration (mặc định một năm), kiểm tra transaction dài trước (innodb_trx, processlist, sys.schema_table_lock_waits),
+  tránh giờ export, thử lại khi 1205. DDL tự commit: runner bọc BEGIN/COMMIT không rollback được. gh-ost không hỗ trợ
+  foreign key nên không dùng cho bảng này; native online DDL là đủ.
+context:
+  scaffold_script: place-files.sh

@@ -149,3 +149,55 @@ jobs:
           [ "$s" = 0 ] || python3 verify/tools/annotate.py verify.log dotnet; exit "$s"
         env:
           PG_URL: postgres://postgres:postgres@localhost:5432
+
+  spring:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: verify/spring/pom.xml
+      - name: verify/tools/run.sh spring
+        run: |
+          verify/tools/run.sh spring 2>&1 | tee verify.log; s=${PIPESTATUS[0]}
+          [ "$s" = 0 ] || python3 verify/tools/annotate.py verify.log spring; exit "$s"
+        env:
+          PG_URL: postgres://postgres:postgres@localhost:5432
+
+  mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -proot" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: verify/mysql/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        working-directory: verify/mysql
+      - name: verify/tools/run.sh mysql
+        run: |
+          verify/tools/run.sh mysql 2>&1 | tee verify.log; s=${PIPESTATUS[0]}
+          [ "$s" = 0 ] || python3 verify/tools/annotate.py verify.log mysql; exit "$s"
+        env:
+          PG_URL: none
+          MYSQL_URL: mysql://root:root@127.0.0.1:3306

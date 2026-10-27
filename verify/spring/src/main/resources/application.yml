@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_APP_USER}          # NOSUPERUSER NOBYPASSRLS, not the table owner
+    password: ${DB_APP_PASSWORD}
+  flyway:
+    user: ${DB_OWNER_USER}            # owns the tables: DDL only; the app never connects as it
+    password: ${DB_OWNER_PASSWORD}
+    placeholders:
+      app_role: ${DB_APP_USER}
+      definer_role: ${DB_DEFINER_ROLE}
+  jpa:
+    open-in-view: false               # no lazy loading after the transaction (it would run without the tenant)
+app:
+  jwt-secret: ${JWT_SECRET}
+  reminders:
+    cron: "0 */10 * * * *"

@@ -8,6 +8,8 @@ Every code block in the skills' references was run. This folder keeps that code 
 | `search`, `payments`, `notifications`, `realtime`, `data-import`, `jobs`, `app-security`, `privacy` | `vibe-backend/references/<same name>.md` |
 | `laravel` | `vibe-backend/references/laravel.md` (Laravel 13, PHPUnit 12, MySQL 8.4/8.0, plus PostgreSQL 16 RLS; `verify.sh` runs `composer install`) |
 | `dotnet` | `vibe-backend/references/dotnet.md` (ASP.NET Core 10, EF Core 10 + Npgsql 10, xUnit v3; needs the .NET 10 SDK, psql and pg_dump 16) |
+| `spring` | `vibe-backend/references/spring.md` (Spring Boot 4.1, Java 21, Maven, PostgreSQL 16 RLS) |
+| `mysql` | `vibe-backend/references/mysql.md` (node:test + mysql2 on MySQL 8.4 and 8.0; creates and drops its own database through `MYSQL_URL`) |
 | `i18n`, `seo` | `vibe-frontend/references/<same name>.md` |
 | `ai` | `vibe-ai/references/integration.md`, `cost.md`, `testing.md`, `chat-and-files.md` |
 | `next-actions` | `vibe-frontend/references/server-actions.md` (`next build` + `next start`, posting to the actions over HTTP) |

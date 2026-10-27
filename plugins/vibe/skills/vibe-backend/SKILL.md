@@ -25,6 +25,8 @@ Paths are relative to this skill folder. Read only the file for the task at hand
 | Email, Zalo (ZNS/ZBS) and SMS delivery: DNS, unsubscribe, templates and tokens, brandname, advertising rules, OTP abuse | `references/notifications.md` |
 | Live updates and in-app notifications: SSE/WebSocket, LISTEN/NOTIFY fan-out, refetch on reconnect | `references/realtime.md` |
 | Importing or exporting Excel/CSV (CSV injection on export): column mapping, row-error preview, re-runnable imports, error report | `references/data-import.md` |
+| MySQL or MariaDB instead of PostgreSQL: tenant isolation without RLS, utf8mb4 and collations for Vietnamese search, DATETIME and time zones, online DDL and metadata locks, double booking without exclusion constraints, SKIP LOCKED jobs | `references/mysql.md` |
+| Spring Boot (Java): tenant per transaction with JPA, Flyway roles, method security, N+1, double booking, scheduled jobs under RLS | `references/spring.md` |
 | ASP.NET Core / .NET: EF Core + Npgsql, minimal APIs, tenant endpoint filter, query filters and DbContext pooling, BackgroundService jobs, EF migrations in CI | `references/dotnet.md` |
 | Laravel (PHP): tenant scope without RLS, route model binding, FormRequests, Gates/Policies, queues, no double booking on MySQL, Laravel on PostgreSQL RLS | `references/laravel.md` (MySQL-wide facts: `references/mysql.md`) |
 | Formatting money, dates and messages on the server (SMS, email, PDF), time zones, Vietnamese sorting | the `vibe-frontend` skill (`references/i18n.md`) |
@@ -32,7 +34,7 @@ Paths are relative to this skill folder. Read only the file for the task at hand
 
 Before using an ORM or library API you are unsure of for the installed version, check the version and docs (the `vibe-plan` skill, `references/tech-research.md`). ORMs change APIs between major versions often.
 
-**Right-size it.** Read only the matching file: fixing one query needs no multi-tenant reading; single-customer systems skip the tenant parts (on Supabase they still need RLS). SQL examples are PostgreSQL. On MySQL, SQLite or MongoDB keep the principles and find the equivalent in that DB's docs (e.g. MySQL has no RLS: filter by tenant in the repository and test isolation harder); don't copy Postgres syntax.
+**Right-size it.** Read only the matching file: fixing one query needs no multi-tenant reading; single-customer systems skip the tenant parts (on Supabase they still need RLS). SQL examples are PostgreSQL. On MySQL, SQLite or MongoDB keep the principles and find the equivalent in that DB's docs (on MySQL read `references/mysql.md`); don't copy Postgres syntax.
 
 ## Always-on rules
 
