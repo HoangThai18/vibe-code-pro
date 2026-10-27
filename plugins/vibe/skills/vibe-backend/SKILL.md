@@ -25,6 +25,7 @@ Paths are relative to this skill folder. Read only the file for the task at hand
 | Email, Zalo (ZNS/ZBS) and SMS delivery: DNS, unsubscribe, templates and tokens, brandname, advertising rules, OTP abuse | `references/notifications.md` |
 | Live updates and in-app notifications: SSE/WebSocket, LISTEN/NOTIFY fan-out, refetch on reconnect | `references/realtime.md` |
 | Importing or exporting Excel/CSV (CSV injection on export): column mapping, row-error preview, re-runnable imports, error report | `references/data-import.md` |
+| Laravel (PHP): tenant scope without RLS, route model binding, FormRequests, Gates/Policies, queues, no double booking on MySQL, Laravel on PostgreSQL RLS | `references/laravel.md` (MySQL-wide facts: `references/mysql.md`) |
 | Formatting money, dates and messages on the server (SMS, email, PDF), time zones, Vietnamese sorting | the `vibe-frontend` skill (`references/i18n.md`) |
 | Slow queries, load testing, performance targets | the `vibe-ship` skill (`references/performance.md`) |
 
